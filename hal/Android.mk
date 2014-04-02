@@ -127,6 +127,10 @@ endif
 endif
 
 
+ifeq ($(strip $(AUDIO_FEATURE_ENABLED_MULTIPLE_TUNNEL)), true)
+    LOCAL_CFLAGS += -DMULTIPLE_OFFLOAD_ENABLED
+endif
+
 LOCAL_SHARED_LIBRARIES := \
 	liblog \
 	libcutils \
