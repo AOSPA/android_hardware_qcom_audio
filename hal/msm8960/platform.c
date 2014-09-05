@@ -1204,3 +1204,9 @@ bool platform_check_backends_match(snd_device_t snd_device1 __unused,
 {
     return true;
 }
+
+int platform_set_snd_device_name(snd_device_t snd_device __unused,
+                                 const char * name __unused)
+{
+    return -ENOSYS;
+}
