@@ -52,6 +52,10 @@ ifeq ($(strip $(AUDIO_FEATURE_ENABLED_FM_POWER_OPT)),true)
     LOCAL_SRC_FILES += audio_extn/fm.c
 endif
 
+ifeq ($(strip $(AUDIO_FEATURE_ENABLED_KPI_OPTIMIZE)),true)
+    LOCAL_CFLAGS += -DKPI_OPTIMIZE_ENABLED
+endif
+
 ifeq ($(strip $(AUDIO_FEATURE_ENABLED_USBAUDIO)),true)
     LOCAL_CFLAGS += -DUSB_HEADSET_ENABLED
     LOCAL_SRC_FILES += audio_extn/usb.c
