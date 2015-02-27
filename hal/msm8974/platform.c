@@ -60,7 +60,9 @@
 #define MAX_PCM_OFFLOAD_FRAGMENT_SIZE (240 * 1024)
 #define MIN_PCM_OFFLOAD_FRAGMENT_SIZE (4 * 1024)
 
-#define ALIGN( num, to ) (((num) + (to-1)) & (~(to-1)))
+#define DIV_ROUND_UP(x, y) (((x) + (y) - 1)/(y))
+#define ALIGN(x, y) ((y) * DIV_ROUND_UP((x), (y)))
+
 /*
  * This file will have a maximum of 38 bytes:
  *
@@ -2137,7 +2139,11 @@ uint32_t platform_get_pcm_offload_buffer_size(audio_offload_info_t* info)
         ALOGV("Using buffer size from sys prop %d", fragment_size);
     }
 
-    fragment_size = ALIGN( fragment_size, 1024);
+    // To have same PCM samples for all channels, the buffer size requires to
+    // be multiple of (number of channels * bytes per sample)
+    // For writes to succeed, the buffer must be written at address which is multiple of 32
+    // Alignment of 96 satsfies both of the above requirements
+    fragment_size = ALIGN(fragment_size, 96);
 
     if(fragment_size < MIN_PCM_OFFLOAD_FRAGMENT_SIZE)
         fragment_size = MIN_PCM_OFFLOAD_FRAGMENT_SIZE;
