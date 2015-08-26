@@ -65,11 +65,17 @@ typedef enum {
     USECASE_AUDIO_PLAYBACK_LOW_LATENCY,
     USECASE_AUDIO_PLAYBACK_MULTI_CH,
     USECASE_AUDIO_PLAYBACK_OFFLOAD,
-    
+
+    /* Direct PCM usecase */
+    USECASE_AUDIO_DIRECT_PCM_OFFLOAD,
+
+    /* ULL usecase */
+    USECASE_AUDIO_PLAYBACK_ULL,
+
     /* FM usecase */
     USECASE_AUDIO_PLAYBACK_FM,
 
-    /* HFP Use case*/
+    /* HFP usecase */
     USECASE_AUDIO_HFP_SCO,
     USECASE_AUDIO_HFP_SCO_WB,
 

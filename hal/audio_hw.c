@@ -144,6 +144,8 @@ const char * const use_case_table[AUDIO_USECASE_MAX] = {
     [USECASE_AUDIO_PLAYBACK_LOW_LATENCY] = "low-latency-playback",
     [USECASE_AUDIO_PLAYBACK_MULTI_CH] = "multi-channel-playback",
     [USECASE_AUDIO_PLAYBACK_OFFLOAD] = "compress-offload-playback",
+    [USECASE_AUDIO_DIRECT_PCM_OFFLOAD] = "compress-offload-playback2",
+    [USECASE_AUDIO_PLAYBACK_ULL] = "audio-ull-playback",
     [USECASE_AUDIO_RECORD] = "audio-record",
     [USECASE_AUDIO_RECORD_COMPRESS] = "audio-record-compress",
     [USECASE_AUDIO_RECORD_LOW_LATENCY] = "low-latency-record",
@@ -173,7 +175,6 @@ const char * const use_case_table[AUDIO_USECASE_MAX] = {
     [USECASE_AUDIO_PLAYBACK_AFE_PROXY] = "afe-proxy-playback",
     [USECASE_AUDIO_RECORD_AFE_PROXY] = "afe-proxy-record",
 };
-
 
 #define STRING_TO_ENUM(string) { #string, string }
 
@@ -227,6 +228,7 @@ static bool is_supported_format(audio_format_t format)
 #ifdef EXTN_OFFLOAD_ENABLED
         format == AUDIO_FORMAT_PCM_16_BIT_OFFLOAD ||
         format == AUDIO_FORMAT_PCM_24_BIT_OFFLOAD ||
+        format == AUDIO_FORMAT_PCM_16_BIT ||
 #endif
         format == AUDIO_FORMAT_AAC_LC ||
         format == AUDIO_FORMAT_AAC_HE_V1 ||
@@ -249,6 +251,7 @@ static int get_snd_codec_id(audio_format_t format)
         break;
 #ifdef EXTN_OFFLOAD_ENABLED
     case AUDIO_FORMAT_PCM_OFFLOAD:
+    case AUDIO_FORMAT_PCM:
         id = SND_AUDIOCODEC_PCM;
         break;
 #endif
@@ -2371,7 +2374,7 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
 
     if ((flags & AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD) &&
              (SND_CARD_STATE_OFFLINE == get_snd_card_state(adev))) {
-        ALOGE(" sound card is not active rejecting compress output open request");
+        ALOGE("sound card is not active rejecting compress output open request");
         return -EINVAL;
     }
 
@@ -2449,7 +2452,8 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
         out->config = pcm_config_deep_buffer;
         out->sample_rate = out->config.rate;
 #endif
-    } else if (out->flags & AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD) {
+    } else if ((out->flags & AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD) ||
+               (out->flags & AUDIO_OUTPUT_FLAG_DIRECT_PCM)) {
         if (config->offload_info.version != AUDIO_INFO_INITIALIZER.version ||
             config->offload_info.size != AUDIO_INFO_INITIALIZER.size) {
             ALOGE("%s: Unsupported Offload information", __func__);
@@ -2471,7 +2475,13 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
             goto error_open;
         }
 
-        out->usecase = USECASE_AUDIO_PLAYBACK_OFFLOAD;
+        if (out->flags & AUDIO_OUTPUT_FLAG_DIRECT_PCM) {
+            ALOGV("%s:: inserting DIRECT_PCM _USECASE", __func__);
+            out->usecase = USECASE_AUDIO_DIRECT_PCM_OFFLOAD;
+        } else {
+            ALOGV("%s:: inserting OFFLOAD_USECASE", __func__);
+            out->usecase = USECASE_AUDIO_PLAYBACK_OFFLOAD;
+        }
         if (config->offload_info.channel_mask)
             out->channel_mask = config->offload_info.channel_mask;
         else if (config->channel_mask) {
@@ -2495,7 +2505,8 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
             out->compr_config.codec->id =
                 get_snd_codec_id(config->offload_info.format);
 #ifdef EXTN_OFFLOAD_ENABLED
-        if (audio_is_offload_pcm(config->offload_info.format)) {
+        if (((config->offload_info.format & AUDIO_FORMAT_MAIN_MASK) == AUDIO_FORMAT_PCM_OFFLOAD)||
+             ((config->offload_info.format & AUDIO_FORMAT_MAIN_MASK) == AUDIO_FORMAT_PCM)) {
             out->compr_config.fragment_size =
                        platform_get_pcm_offload_buffer_size(&config->offload_info);
         } else
@@ -2521,8 +2532,10 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
 #ifdef EXTN_OFFLOAD_ENABLED
         if (config->offload_info.format == AUDIO_FORMAT_PCM_16_BIT_OFFLOAD)
             out->compr_config.codec->format = SNDRV_PCM_FORMAT_S16_LE;
-        else if(config->offload_info.format == AUDIO_FORMAT_PCM_24_BIT_OFFLOAD)
+        if(config->offload_info.format == AUDIO_FORMAT_PCM_24_BIT_OFFLOAD)
             out->compr_config.codec->format = SNDRV_PCM_FORMAT_S24_LE;
+        else if (config->offload_info.format == AUDIO_FORMAT_PCM_16_BIT)
+            out->compr_config.codec->format = SNDRV_PCM_FORMAT_S16_LE;
 #endif
 
         if (flags & AUDIO_OUTPUT_FLAG_NON_BLOCKING)
@@ -2576,6 +2589,9 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
         out->config = pcm_config_low_latency;
         out->sample_rate = out->config.rate;
 #endif
+    } else if (out->flags & AUDIO_OUTPUT_FLAG_RAW) {
+        out->usecase = USECASE_AUDIO_PLAYBACK_ULL;
+        out->config = pcm_config_low_latency;
     } else {
         /* primary path is the default path selected if no other outputs are available/suitable */
         out->usecase = USECASE_AUDIO_PLAYBACK_PRIMARY;
@@ -2642,7 +2658,8 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
 
     *stream_out = &out->stream;
     ALOGD("%s: Stream (%p) picks up usecase (%s)", __func__, &out->stream,
-        use_case_table[out->usecase]);
+           use_case_table[out->usecase]);
+
     ALOGV("%s: exit", __func__);
     return 0;
 
