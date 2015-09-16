@@ -88,6 +88,8 @@
 #define AUDIO_PARAMETER_KEY_VOLUME_BOOST  "volume_boost"
 #define MAX_CAL_NAME 20
 
+#define AUDIO_PARAMETER_KEY_PERF_LOCK_OPTS "perf_lock_opts"
+
 char cal_name_info[WCD9XXX_MAX_CAL][MAX_CAL_NAME] = {
         [WCD9XXX_ANC_CAL] = "anc_cal",
         [WCD9XXX_MBHC_CAL] = "mbhc_cal",
@@ -1818,16 +1820,62 @@ static int platform_set_slowtalk(struct platform_data *my_data, bool state)
     return ret;
 }
 
+static void perf_lock_set_params(struct platform_data *platform,
+                          struct str_parms *parms,
+                          char *value, int len)
+{
+    int err = 0, i = 0, num_opts = 0;
+    char *test_r = NULL;
+    char *opts = NULL;
+    char *opts_size = NULL;
+
+    err = str_parms_get_str(parms, AUDIO_PARAMETER_KEY_PERF_LOCK_OPTS,
+                            value, len);
+    if (err >= 0) {
+        opts_size = strtok_r(value, ", ", &test_r);
+        if (opts_size == NULL) {
+            ALOGE("%s: incorrect perf lock opts\n", __func__);
+            return;
+        }
+        num_opts = atoi(opts_size);
+        if (num_opts > 0) {
+            if (num_opts > MAX_PERF_LOCK_OPTS) {
+                ALOGD("%s: num_opts %d exceeds max %d, setting to max\n",
+                      __func__, num_opts, MAX_PERF_LOCK_OPTS);
+                num_opts = MAX_PERF_LOCK_OPTS;
+           }
+            for (i = 0; i < num_opts; i++) {
+                opts = strtok_r(NULL, ", ", &test_r);
+                if (opts == NULL) {
+                    ALOGE("%s: incorrect perf lock opts\n", __func__);
+                    break;
+                }
+                platform->adev->perf_lock_opts[i] = strtoul(opts, NULL, 16);
+            }
+            platform->adev->perf_lock_opts_size = i;
+        }
+        str_parms_del(parms, AUDIO_PARAMETER_KEY_PERF_LOCK_OPTS);
+    }
+}
+
 int platform_set_parameters(void *platform, struct str_parms *parms)
 {
     struct platform_data *my_data = (struct platform_data *)platform;
     char *str;
     char value[256] = {0};
-    int val;
+    int val, len;
     int ret = 0, err;
     char *kv_pairs = str_parms_to_str(parms);
 
+    if(kv_pairs == NULL) {
+        ret = -ENOMEM;
+        ALOGE("[%s] key-value pair is NULL",__func__);
+        goto done;
+    }
+
     ALOGV_IF(kv_pairs != NULL, "%s: enter: %s", __func__, kv_pairs);
+
+    len = strlen(kv_pairs);
 
     err = str_parms_get_int(parms, AUDIO_PARAMETER_KEY_BTSCO, &val);
     if (err >= 0) {
@@ -1870,7 +1918,8 @@ int platform_set_parameters(void *platform, struct str_parms *parms)
             }
         }
     }
-
+    perf_lock_set_params(platform, parms, value, len);
+done:
     ALOGV("%s: exit with code(%d)", __func__, ret);
     free(kv_pairs);
     return ret;

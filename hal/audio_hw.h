@@ -53,6 +53,7 @@
 #define SND_CARD_STATE_ONLINE 1
 
 typedef int snd_device_t;
+#define MAX_PERF_LOCK_OPTS 20
 
 /* These are the supported use cases by the hardware.
  * Each usecase is mapped to a specific PCM device.
@@ -256,6 +257,9 @@ struct audio_device {
     int (*offload_effects_stop_output)(audio_io_handle_t, int);
 
     struct sound_card_status snd_card_status;
+    int perf_lock_handle;
+    int perf_lock_opts[MAX_PERF_LOCK_OPTS];
+    int perf_lock_opts_size;
 };
 
 int select_devices(struct audio_device *adev,

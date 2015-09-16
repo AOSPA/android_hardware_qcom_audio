@@ -887,7 +887,9 @@ int start_input_stream(struct stream_in *in)
     uc_info->out_snd_device = SND_DEVICE_NONE;
 
     list_add_tail(&adev->usecase_list, &uc_info->list);
-    audio_extn_perf_lock_acquire();
+    audio_extn_perf_lock_acquire(&adev->perf_lock_handle, 0,
+                                 adev->perf_lock_opts,
+                                 adev->perf_lock_opts_size);
     select_devices(adev, in->usecase);
 
     ALOGV("%s: Opening PCM device card_id(%d) device_id(%d), channels %d",
@@ -919,15 +921,15 @@ int start_input_stream(struct stream_in *in)
         }
         break;
     }
-    audio_extn_perf_lock_release();
 
-    ALOGV("%s: exit", __func__);
+    audio_extn_perf_lock_release(&adev->perf_lock_handle);
+    ALOGD("%s: exit", __func__);
+
     return ret;
 
 error_open:
+    audio_extn_perf_lock_release(&adev->perf_lock_handle);
     stop_input_stream(in);
-    audio_extn_perf_lock_release();
-
 error_config:
     adev->active_input = NULL;
     /*
@@ -1257,6 +1259,9 @@ int start_output_stream(struct stream_out *out)
 
     list_add_tail(&adev->usecase_list, &uc_info->list);
 
+    audio_extn_perf_lock_acquire(&adev->perf_lock_handle, 0,
+                                 adev->perf_lock_opts,
+                                 adev->perf_lock_opts_size);
     select_devices(adev, out->usecase);
 
     ALOGV("%s: Opening PCM device card_id(%d) device_id(%d)",
@@ -1307,6 +1312,8 @@ int start_output_stream(struct stream_out *out)
         if (audio_extn_is_dolby_format(out->format))
             audio_extn_dolby_send_ddp_endp_params(adev);
 #endif
+    audio_extn_perf_lock_release(&adev->perf_lock_handle);
+    ALOGD("%s: exit", __func__);
 
         if (adev->visualizer_start_output != NULL)
             adev->visualizer_start_output(out->handle, out->pcm_device_id);
@@ -1316,6 +1323,7 @@ int start_output_stream(struct stream_out *out)
     ALOGV("%s: exit", __func__);
     return 0;
 error_open:
+    audio_extn_perf_lock_release(&adev->perf_lock_handle);
     stop_output_stream(out);
 error_config:
     /*
@@ -3078,6 +3086,9 @@ static int adev_open(const hw_module_t *module, const char *name,
     voice_init(adev);
     list_init(&adev->usecase_list);
     adev->cur_wfd_channels = 2;
+    adev->perf_lock_opts[0] = 0x101;
+    adev->perf_lock_opts[1] = 0x20E;
+    adev->perf_lock_opts_size = 2;
 
     pthread_mutex_init(&adev->snd_card_status.lock, (const pthread_mutexattr_t *) NULL);
     adev->snd_card_status.state = SND_CARD_STATE_OFFLINE;
@@ -3133,6 +3144,7 @@ static int adev_open(const hw_module_t *module, const char *name,
     audio_device_ref_count++;
     pthread_mutex_unlock(&adev_init_lock);
 
+    audio_extn_perf_lock_init();
     ALOGV("%s: exit", __func__);
     return 0;
 }
