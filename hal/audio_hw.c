@@ -933,6 +933,11 @@ error_open:
 
 error_config:
     adev->active_input = NULL;
+    /*
+     * sleep 50ms to allow sufficient time for kernel
+     * drivers to recover incases like SSR.
+     */
+    usleep(50000);
     ALOGD("%s: exit: status(%d)", __func__, ret);
 
     return ret;
@@ -1332,6 +1337,11 @@ int start_output_stream(struct stream_out *out)
 error_open:
     stop_output_stream(out);
 error_config:
+    /*
+     * sleep 50ms to allow sufficient time for kernel
+     * drivers to recover incases like SSR.
+     */
+    usleep(50000);
     return ret;
 }
 
