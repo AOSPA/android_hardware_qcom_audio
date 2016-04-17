@@ -52,7 +52,7 @@ ifeq ($(strip $(AUDIO_FEATURE_ENABLED_FM_POWER_OPT)),true)
     LOCAL_SRC_FILES += audio_extn/fm.c
 endif
 
-ifeq ($(strip $(AUDIO_FEATURE_ENABLED_KPI_OPTIMIZE)),true)
+ifneq ($(strip $(AUDIO_FEATURE_ENABLED_KPI_OPTIMIZE)),false)
     LOCAL_CFLAGS += -DKPI_OPTIMIZE_ENABLED
 endif
 
