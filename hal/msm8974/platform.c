@@ -340,10 +340,8 @@ static const char * const device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_IN_BT_SCO_MIC_WB_NREC] = "bt-sco-mic-wb",
     [SND_DEVICE_IN_CAMCORDER_MIC] = "camcorder-mic",
     [SND_DEVICE_IN_VOICE_DMIC] = "voice-dmic-ef",
-#ifdef VENDOR_EDIT
 /* add begin by zhiguang.su@MultiMedia.AudioDrv on 2015-04-16,add for skype mic */
     [SND_DEVICE_IN_VOIP_MIC] = "voice-speaker-voip-mic",
-#endif
     [SND_DEVICE_IN_VOICE_SPEAKER_DMIC] = "voice-speaker-dmic-ef",
     [SND_DEVICE_IN_VOICE_SPEAKER_QMIC] = "voice-speaker-qmic",
     [SND_DEVICE_IN_VOICE_TTY_FULL_HEADSET_MIC] = "voice-tty-full-headset-mic",
@@ -378,7 +376,7 @@ static const char * const device_table[SND_DEVICE_MAX] = {
 static int backend_bit_width_table[SND_DEVICE_MAX] = {0};
 
 /* ACDB IDs (audio DSP path configuration IDs) for each sound device */
-#ifndef VENDOR_EDIT
+#ifdef VENDOR_EDIT
 //zhiguang.su@MultiMedia.AudioDrv, 2015-03-24, change for 14049 config 
 static int acdb_device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_NONE] = -1,
@@ -443,7 +441,7 @@ static int acdb_device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_IN_BT_SCO_MIC_WB_NREC] = 123,
     [SND_DEVICE_IN_CAMCORDER_MIC] = 4,
     [SND_DEVICE_IN_VOICE_DMIC] = 41,
-#ifdef VENDOR_EDIT
+#ifndef VENDOR_EDIT
 /* add begin by zhiguang.su@MultiMedia.AudioDrv on 2015-04-16,add for skype mic */
     [SND_DEVICE_IN_VOIP_MIC] = 42,
 #endif
@@ -540,10 +538,8 @@ static int acdb_device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_IN_BT_SCO_MIC_WB_NREC] = 123,
     [SND_DEVICE_IN_CAMCORDER_MIC] = 35,
     [SND_DEVICE_IN_VOICE_DMIC] = 41,
-#ifdef VENDOR_EDIT
 /* add begin by zhiguang.su@MultiMedia.AudioDrv on 2015-04-16,add for skype mic */
     [SND_DEVICE_IN_VOIP_MIC] = 42,
-#endif
     [SND_DEVICE_IN_VOICE_SPEAKER_DMIC] = 43,
     [SND_DEVICE_IN_VOICE_SPEAKER_QMIC] = 19,
     [SND_DEVICE_IN_VOICE_TTY_FULL_HEADSET_MIC] = 16,
@@ -965,14 +961,12 @@ static void set_platform_defaults()
 
     // TBD - do these go to the platform-info.xml file.
     // will help in avoiding strdups here
-#ifdef VENDOR_EDIT
     //zhiguang.su@MultiMedia.AudioDrv, 2015-03-25, add for smart pa
     backend_table[SND_DEVICE_OUT_SPEAKER] = strdup("speaker");
 	backend_table[SND_DEVICE_OUT_VOICE_SPEAKER] = strdup("speaker");
 
     /*wangdongdong@MultiMedia.AudioDrv,2015-03-30, add for speaker and headphone play ring*/
     backend_table[SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES] = strdup("speaker-and-headphones");
-#endif
     backend_table[SND_DEVICE_IN_BT_SCO_MIC] = strdup("bt-sco");
     backend_table[SND_DEVICE_IN_BT_SCO_MIC_WB] = strdup("bt-sco-wb");
     backend_table[SND_DEVICE_IN_BT_SCO_MIC_NREC] = strdup("bt-sco");
@@ -1607,16 +1601,12 @@ int platform_send_audio_calibration(void *platform, snd_device_t snd_device,
         else
             acdb_dev_type = ACDB_DEV_TYPE_IN;
 
-#ifdef VENDOR_EDIT_DSP
 //lifei@OnePlus.MultiMediaService, 2015/07/09, add by lifei for no wave audio effect audio params for Music speaker
         if (acdb_dev_type == ACDB_DEV_TYPE_OUT && snd_device == SND_DEVICE_OUT_SPEAKER)
         {
             acdb_dev_id = 81;
             ALOGD("H2 version using the audio params 81 for speaker");
         }
-#endif/*VENDOR_EDIT_DSP*/
-
-#ifdef VENDOR_EDIT
 //lifei@OnePlus.MultiMediaService, 2015/05/30, add by lifei for loudly audio params for ringtone
         if (my_data->adev->mRingMode && acdb_dev_type == ACDB_DEV_TYPE_OUT
             && snd_device == SND_DEVICE_OUT_SPEAKER)
@@ -1624,17 +1614,12 @@ int platform_send_audio_calibration(void *platform, snd_device_t snd_device,
             acdb_dev_id = 80;
             ALOGD("ring mode using the loudly audio params 80");
         }
-#endif/*VENDOR_EDIT*/
-
-#ifdef VENDOR_EDIT
 //Kangjirui@MultiMedia.Audio, 2015/07/14, Add for avoid noise in phone record, bypass audio params
         if ((acdb_dev_type == ACDB_DEV_TYPE_IN) && (my_data->adev->active_input->source == AUDIO_SOURCE_VOICE_CALL)
             && (my_data->adev->mode == AUDIO_MODE_IN_CALL) && (snd_device == SND_DEVICE_IN_VOICE_HEADSET_MIC)) {
             ALOGD("phone record use headset mic bypass audio params");
             acdb_dev_id = 23;
         }
-#endif /* VENDOR_EDIT */
-#ifdef VENDOR_EDIT_DSP
 //#lifei@OnePlus.MultiMediaService, 2015/09/28 add Dirac set/get dsp interface
          if(acdb_dev_type == ACDB_DEV_TYPE_OUT && snd_device == SND_DEVICE_OUT_HEADPHONES &&
               my_data->adev->mode == AUDIO_MODE_NORMAL) {
@@ -1659,7 +1644,6 @@ int platform_send_audio_calibration(void *platform, snd_device_t snd_device,
                     ALOGD("H2 version using the audio params 94 for Dirac Enable false headset");
                 }
             }
-#endif/*VENDOR_EDIT_DSP*/
         my_data->acdb_send_audio_cal(acdb_dev_id, acdb_dev_type, app_type,
                                      sample_rate);
     }
@@ -2177,7 +2161,6 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
                     if (my_data->fluence_mode == FLUENCE_BROADSIDE)
                        snd_device = SND_DEVICE_IN_VOICE_SPEAKER_DMIC_BROADSIDE;
                     else
-#ifdef VENDOR_EDIT
 /*zhiguang.su@MultiMedia.AudioDrv on 2015-04-21,add for voip mic */
                     {
     /*zhiguang.su@MultiMedia.AudioDrv on 2015-04-28,add ec.*/
@@ -2189,7 +2172,6 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
                         else
                             snd_device = SND_DEVICE_IN_VOICE_SPEAKER_DMIC;
                     }
-#endif
                 }
             } else {
                 snd_device = SND_DEVICE_IN_VOICE_SPEAKER_MIC;
@@ -2343,10 +2325,10 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
                     channel_count == 2)
                 snd_device = SND_DEVICE_IN_HANDSET_STEREO_DMIC;
             else
-#ifndef VENDOR_EDIT
+#ifdef VENDOR_EDIT
 /*wangdongdong@MultiMedia.AudioDrv,2015-04-02,config for single mic audio record*/
                 snd_device = SND_DEVICE_IN_HANDSET_MIC;
-#else
+#endif
 /*zhiguang.su@MultiMedia.AudioDrv on 2015-04-21 ,it is better to add this*/
 {
 /*suzhiguang@MultiMedia.AudioDrv,2015-04-18,add for skype*/
@@ -2373,7 +2355,6 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
 				snd_device = SND_DEVICE_IN_HDMI_MIC;
 
 }
-#endif
         } else if (in_device & AUDIO_DEVICE_IN_BACK_MIC) {
             snd_device = SND_DEVICE_IN_SPEAKER_MIC;
         } else if (in_device & AUDIO_DEVICE_IN_WIRED_HEADSET) {
@@ -2410,7 +2391,6 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
         } else if (out_device & AUDIO_DEVICE_OUT_SPEAKER) {
             if (channel_count == 2)
                 snd_device = SND_DEVICE_IN_SPEAKER_STEREO_DMIC;
-#ifdef VENDOR_EDIT
 //slove new version skype echo bug 20151223
             else if((adev->active_input!=NULL) && (adev->active_input->usecase== USECASE_AUDIO_RECORD_LOW_LATENCY )&& (adev->mode == AUDIO_MODE_IN_COMMUNICATION ))
             {
@@ -2418,8 +2398,7 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
                 snd_device = SND_DEVICE_IN_VOIP_MIC;
                 platform_set_echo_reference(adev->platform, true);
             }
-#endif
-            else               
+            else
                 snd_device = SND_DEVICE_IN_SPEAKER_MIC;
         } else if (out_device & AUDIO_DEVICE_OUT_WIRED_HEADPHONE) {
             snd_device = SND_DEVICE_IN_HANDSET_MIC;

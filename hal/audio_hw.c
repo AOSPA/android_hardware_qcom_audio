@@ -285,11 +285,9 @@ static int check_and_set_gapless_mode(struct audio_device *adev) {
 static bool is_supported_format(audio_format_t format)
 {
     if (format == AUDIO_FORMAT_MP3 ||
-#ifdef VENDOR_EDIT 
 //lifei@OnePlus.MultiMediaService, 2015/12/23,add MP2 offload playback
         format == AUDIO_FORMAT_MP2 ||
         format == AUDIO_FORMAT_AAC ||
-#endif/*VENDOR_EDIT*/
         format == AUDIO_FORMAT_AAC_LC ||
         format == AUDIO_FORMAT_AAC_HE_V1 ||
         format == AUDIO_FORMAT_AAC_HE_V2 ||
@@ -340,12 +338,10 @@ static int get_snd_codec_id(audio_format_t format)
     case AUDIO_FORMAT_WMA_PRO:
         id = SND_AUDIOCODEC_WMA_PRO;
         break;
-#ifdef VENDOR_EDIT 
 //lifei@OnePlus.MultiMediaService, 2015/12/23,add MP2 offload playback
     case AUDIO_FORMAT_MP2:
         id = SND_AUDIOCODEC_MP2;
         break;
-#endif/*VENDOR_EDIT*/
     default:
         ALOGE("%s: Unsupported audio format :%x", __func__, format);
     }
@@ -869,17 +865,14 @@ int select_devices(struct audio_device *adev, audio_usecase_t uc_id)
             if (out_snd_device == SND_DEVICE_NONE) {
                 out_snd_device = platform_get_output_snd_device(adev->platform,
                                             usecase->stream.out->devices);
-#ifdef VENDOR_EDIT
 /* zhiguang.su@MultiMedia.AudioDrv on 2015-07-20,add for skype mic */
                 adev->active_out_snd_device = out_snd_device;
-#endif
                 if (usecase->stream.out == adev->primary_output &&
                         adev->active_input &&
                         adev->active_input->source == AUDIO_SOURCE_VOICE_COMMUNICATION &&
                         out_snd_device != usecase->out_snd_device) {
                     select_devices(adev, adev->active_input->usecase);
                 }
-#ifdef VENDOR_EDIT
 /* zhiguang.su@MultiMedia.AudioDrv on 2015-04-18,add for skype mic */
 			if (usecase->stream.out == adev->primary_output &&
 					adev->active_input &&
@@ -889,7 +882,6 @@ int select_devices(struct audio_device *adev, audio_usecase_t uc_id)
 					ALOGD("%s: select_devices PCM_PLAYBACK capture",__func__);
 				select_devices(adev, adev->active_input->usecase);
 			}
-#endif
             }
         } else if (usecase->type == PCM_CAPTURE) {
             usecase->devices = usecase->stream.in->device;
@@ -2003,7 +1995,6 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
         pthread_mutex_unlock(&out->lock);
     }
 
-#ifdef VENDOR_EDIT
 //lifei@OnePlus.MultiMediaService, 2015/05/30, add by lifei for loudly audio params for ringtone
     err = str_parms_get_str(parms, "playback", value, sizeof(value));
     if (err >= 0) {
@@ -2031,7 +2022,6 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
             }
         }
     }
-#endif/*VENDOR_EDIT*/
 
     str_parms_destroy(parms);
 error:
@@ -2587,7 +2577,6 @@ static int in_standby(struct audio_stream *stream)
         ALOGV("%s: Ignore Standby in VOIP call", __func__);
         return status;
     }
-#ifdef VENDOR_EDIT
 /* zhiguang.su@MultiMedia.AudioDrv on 2015-04-18,add for skype mic */
 		if ((adev->active_input!=NULL) && (adev->active_input->usecase== USECASE_AUDIO_RECORD_LOW_LATENCY )
 			              && (adev->mode == AUDIO_MODE_IN_COMMUNICATION) && (in->standby)) {
@@ -2597,7 +2586,6 @@ static int in_standby(struct audio_stream *stream)
 			ALOGD("%s: Ignore Standby in VOIP call", __func__);
 			return status;
 		}
-#endif
 
     lock_input_stream(in);
     if (!in->standby && in->is_st_session) {
@@ -2958,12 +2946,9 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
         out->config.channels = audio_channel_count_from_out_mask(out->channel_mask);
         out->config.period_size = HDMI_MULTI_PERIOD_BYTES / (out->config.channels * 2);
     } else if ((out->dev->mode == AUDIO_MODE_IN_COMMUNICATION) &&
-#ifndef VENDOR_EDIT
 //lifei@OnePlus.MultiMediaService, 2015/12/28 solve voip bug in M version
         (out->flags == (AUDIO_OUTPUT_FLAG_DIRECT | AUDIO_OUTPUT_FLAG_VOIP_RX)) &&
-#else /* VENDOR_EDIT */
         (out->flags & AUDIO_OUTPUT_FLAG_DIRECT) && (out->flags & AUDIO_OUTPUT_FLAG_VOIP_RX) &&
-#endif /* VENDOR_EDIT */
                (voice_extn_compress_voip_is_config_supported(config))) {
         ret = voice_extn_compress_voip_open_output_stream(out);
         if (ret != 0) {
@@ -3305,7 +3290,6 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
 
     if (!parms)
         goto error;
-#ifdef VENDOR_EDIT_DSP
 //#lifei@OnePlus.MultiMediaService, 2015/09/28 add Dirac set/get dsp interface
     ret = str_parms_get_str(parms, "DiracEnable", value, sizeof(value));
     if (ret >= 0) {
@@ -3346,7 +3330,6 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
              ALOGD("DSP Dirac select headset is invalid");
         }
     }
-#endif
 /*add end*/
     ret = str_parms_get_str(parms, "SND_CARD_STATUS", value, sizeof(value));
     if (ret >= 0) {
@@ -3881,7 +3864,6 @@ static int adev_open(const hw_module_t *module, const char *name,
     adev->device.close_input_stream = adev_close_input_stream;
     adev->device.dump = adev_dump;
 
-#ifdef VENDOR_EDIT_DSP
 //#lifei@OnePlus.MultiMediaService, 2015/09/28 add Dirac set/get dsp interface
     char val_str[PROPERTY_VALUE_MAX] = { 0 };
     if (property_get("persist.audio.DiracEnable", val_str, NULL) >= 0) {
@@ -3912,7 +3894,6 @@ static int adev_open(const hw_module_t *module, const char *name,
             ALOGD("HAL DiracHeadset is invalid");
         }
     }
-#endif/*VENDOR_EDIT_DSP*/
     /* Set the default route before the PCM stream is opened */
     adev->mode = AUDIO_MODE_NORMAL;
     adev->active_input = NULL;
@@ -3929,10 +3910,8 @@ static int adev_open(const hw_module_t *module, const char *name,
     adev->cur_wfd_channels = 2;
     adev->offload_usecases_state = 0;
 
-#ifdef VENDOR_EDIT
 //lifei@OnePlus.MultiMediaService, 2015/07/09, add by lifei for no wave audio effect audio params for Music speaker
     adev->mRingMode = false;
-#endif/*VENDOR_EDIT*/
 
     pthread_mutex_init(&adev->snd_card_status.lock, (const pthread_mutexattr_t *) NULL);
     adev->snd_card_status.state = SND_CARD_STATE_OFFLINE;

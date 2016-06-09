@@ -154,10 +154,8 @@ enum {
     SND_DEVICE_IN_SPEAKER_QMIC_AEC,
     SND_DEVICE_IN_SPEAKER_QMIC_NS,
     SND_DEVICE_IN_SPEAKER_QMIC_AEC_NS,
-#ifdef VENDOR_EDIT			
- /* add begin by zhiguang.su@MultiMedia.AudioDrv on 2015-04-16,add for voip mic */    
+/* add begin by zhiguang.su@MultiMedia.AudioDrv on 2015-04-16,add for voip mic */
     SND_DEVICE_IN_VOIP_MIC,
-#endif    
     SND_DEVICE_IN_SSR_3MIC,
     SND_DEVICE_IN_END,
 

@@ -309,19 +309,13 @@ struct audio_device {
     audio_mode_t mode;
     audio_devices_t out_device;
     struct stream_in *active_input;
-#ifdef VENDOR_EDIT
 /* zhiguang.su@MultiMedia.AudioDrv on 2015-04-18,add for skype  */
     snd_device_t active_out_snd_device;
-#endif/*VENDOR_EDIT*/
-#ifdef VENDOR_EDIT
 //lifei@OnePlus.MultiMediaService, 2015/05/30, add by lifei for loudly audio params for ringtone
     bool mRingMode;
-#endif/*VENDOR_EDIT*/
-#ifdef VENDOR_EDIT_DSP
 //#lifei@OnePlus.MultiMediaService, 2015/09/28 add Dirac set/get dsp interface
     bool mIsHalDiracEnable;
     int  mIsHalDiracHeadset;
-#endif/*VENDOR_EDIT_DSP*/
     struct stream_out *primary_output;
     struct stream_out *voice_tx_output;
     struct stream_out *current_call_output;
