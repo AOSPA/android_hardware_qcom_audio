@@ -400,6 +400,9 @@ static const char * const device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_IN_CAMCORDER_MIC] = "camcorder-mic",
     [SND_DEVICE_IN_VOICE_DMIC] = "voice-dmic-ef",
     [SND_DEVICE_IN_VOICE_SPEAKER_DMIC] = "voice-speaker-dmic-ef",
+#ifdef ONEPLUS_3
+    [SND_DEVICE_IN_VOIP_MIC] = "voice-speaker-voip-mic",
+#endif
     [SND_DEVICE_IN_VOICE_SPEAKER_QMIC] = "voice-speaker-qmic",
     [SND_DEVICE_IN_VOICE_TTY_FULL_HEADSET_MIC] = "voice-tty-full-headset-mic",
     [SND_DEVICE_IN_VOICE_TTY_VCO_HANDSET_MIC] = "voice-tty-vco-handset-mic",
@@ -457,9 +460,17 @@ static int acdb_device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES_EXTERNAL_1] = 130,
     [SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES_EXTERNAL_2] = 130,
     [SND_DEVICE_OUT_VOICE_HANDSET] = 7,
+#ifndef ONEPLUS_3
     [SND_DEVICE_OUT_VOICE_SPEAKER] = 14,
+#else
+    [SND_DEVICE_OUT_VOICE_SPEAKER] = 15,
+#endif
     [SND_DEVICE_OUT_VOICE_SPEAKER_VBAT] = 14,
+#ifdef ONEPLUS_3
+    [SND_DEVICE_OUT_VOICE_HEADPHONES] = 26,
+#else
     [SND_DEVICE_OUT_VOICE_HEADPHONES] = 10,
+#endif
     [SND_DEVICE_OUT_VOICE_LINE] = 10,
     [SND_DEVICE_OUT_HDMI] = 18,
     [SND_DEVICE_OUT_SPEAKER_AND_HDMI] = 14,
@@ -494,7 +505,11 @@ static int acdb_device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_IN_HANDSET_DMIC] = 41,
     [SND_DEVICE_IN_HANDSET_DMIC_AEC] = 109,
     [SND_DEVICE_IN_HANDSET_DMIC_NS] = 110,
+#ifndef ONEPLUS_3
     [SND_DEVICE_IN_HANDSET_DMIC_AEC_NS] = 111,
+#else
+    [SND_DEVICE_IN_HANDSET_DMIC_AEC_NS] = 41,
+#endif
     [SND_DEVICE_IN_SPEAKER_MIC] = 11,
     [SND_DEVICE_IN_SPEAKER_MIC_AEC] = 112,
     [SND_DEVICE_IN_SPEAKER_MIC_NS] = 113,
@@ -502,11 +517,23 @@ static int acdb_device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_IN_SPEAKER_DMIC] = 43,
     [SND_DEVICE_IN_SPEAKER_DMIC_AEC] = 115,
     [SND_DEVICE_IN_SPEAKER_DMIC_NS] = 116,
+#ifndef ONEPLUS_3
     [SND_DEVICE_IN_SPEAKER_DMIC_AEC_NS] = 117,
+#else
+    [SND_DEVICE_IN_SPEAKER_DMIC_AEC_NS] = 43,
+#endif
     [SND_DEVICE_IN_HEADSET_MIC] = 8,
+#ifdef ONEPLUS_3
+    [SND_DEVICE_IN_HEADSET_MIC_FLUENCE] = 16,
+#else
     [SND_DEVICE_IN_HEADSET_MIC_FLUENCE] = 47,
+#endif
     [SND_DEVICE_IN_VOICE_SPEAKER_MIC] = 11,
+#ifdef ONEPLUS_3
+    [SND_DEVICE_IN_VOICE_HEADSET_MIC] = 16,
+#else
     [SND_DEVICE_IN_VOICE_HEADSET_MIC] = 8,
+#endif
     [SND_DEVICE_IN_HDMI_MIC] = 4,
     [SND_DEVICE_IN_BT_SCO_MIC] = 21,
     [SND_DEVICE_IN_BT_SCO_MIC_NREC] = 122,
@@ -515,6 +542,9 @@ static int acdb_device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_IN_CAMCORDER_MIC] = 4,
     [SND_DEVICE_IN_VOICE_DMIC] = 41,
     [SND_DEVICE_IN_VOICE_SPEAKER_DMIC] = 43,
+#ifdef ONEPLUS_3
+    [SND_DEVICE_IN_VOIP_MIC] = 43,
+#endif
     [SND_DEVICE_IN_VOICE_SPEAKER_QMIC] = 19,
     [SND_DEVICE_IN_VOICE_TTY_FULL_HEADSET_MIC] = 16,
     [SND_DEVICE_IN_VOICE_TTY_VCO_HANDSET_MIC] = 36,
@@ -872,6 +902,8 @@ void platform_set_echo_reference(struct audio_device *adev, bool enable,
                                  audio_devices_t out_device __unused)
 {
     struct platform_data *my_data = (struct platform_data *)adev->platform;
+    snd_device_t snd_device = SND_DEVICE_NONE;
+    struct stream_out out;
 
     if (strcmp(my_data->ec_ref_mixer_path, "")) {
         ALOGV("%s: disabling %s", __func__, my_data->ec_ref_mixer_path);
@@ -880,6 +912,7 @@ void platform_set_echo_reference(struct audio_device *adev, bool enable,
     }
 
     if (enable) {
+       snd_device = platform_get_output_snd_device(adev->platform, &out);
         /*
          * If native audio device reference count > 0, then apply codec EC otherwise
          * fallback to Speakers with VBat if enabled or default
@@ -890,11 +923,29 @@ void platform_set_echo_reference(struct audio_device *adev, bool enable,
         else if (adev->snd_dev_ref_cnt[SND_DEVICE_OUT_SPEAKER_VBAT] > 0)
             strlcpy(my_data->ec_ref_mixer_path, "echo-reference speaker-vbat",
                     sizeof(my_data->ec_ref_mixer_path));
+#ifdef ONEPLUS_3
+        else if( (adev->active_input!=NULL) && (adev->active_input->usecase== USECASE_AUDIO_RECORD_LOW_LATENCY ) )
+            strlcpy(my_data->ec_ref_mixer_path, "echo-reference-skype quat_i2s",
+                    sizeof(my_data->ec_ref_mixer_path));
+        else if((snd_device == SND_DEVICE_OUT_SPEAKER)||
+                (adev->snd_dev_ref_cnt[SND_DEVICE_OUT_SPEAKER] > 0) )
+            strlcpy(my_data->ec_ref_mixer_path, "echo-reference quat_i2s",
+                    sizeof(my_data->ec_ref_mixer_path));
+#endif
+#ifdef ONEPLUS_3
+        else if(snd_device == SND_DEVICE_OUT_HEADPHONES){
+            strlcpy(my_data->ec_ref_mixer_path, "echo-reference headphones",
+                    sizeof(my_data->ec_ref_mixer_path));
+        }
+#endif
         else
             strlcpy(my_data->ec_ref_mixer_path, "echo-reference",
                     sizeof(my_data->ec_ref_mixer_path));
-
+#ifdef ONEPLUS_3
+        ALOGD("%s: enabling %s,snd_device:%d", __func__, my_data->ec_ref_mixer_path, (int)snd_device);
+#else
         ALOGD("%s: enabling %s", __func__, my_data->ec_ref_mixer_path);
+#endif
         audio_route_apply_and_update_path(adev->audio_route, my_data->ec_ref_mixer_path);
     }
 }
@@ -1084,6 +1135,11 @@ static void set_platform_defaults(struct platform_data * my_data)
         backend_bit_width_table[dev] = CODEC_BACKEND_DEFAULT_BIT_WIDTH;
     }
 
+#ifdef ONEPLUS_3
+    backend_tag_table[SND_DEVICE_OUT_SPEAKER] = strdup("quat_i2s");
+	backend_tag_table[SND_DEVICE_OUT_VOICE_SPEAKER] = strdup("quat_i2s");
+    backend_tag_table[SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES] = strdup("speaker-and-headphones");
+#endif
     // To overwrite these go to the audio_platform_info.xml file.
     backend_tag_table[SND_DEVICE_IN_BT_SCO_MIC] = strdup("bt-sco");
     backend_tag_table[SND_DEVICE_IN_BT_SCO_MIC_WB] = strdup("bt-sco-wb");
@@ -2049,11 +2105,28 @@ int platform_get_default_app_type(void *platform)
 
 int platform_get_default_app_type_v2(void *platform, usecase_type_t  type)
 {
+
+#ifndef ONEPLUS_3
+
     ALOGV("%s: Platform: %p, type: %d", __func__, platform, type);
+
     if(type == PCM_CAPTURE)
         return DEFAULT_APP_TYPE_TX_PATH;
     else
         return DEFAULT_APP_TYPE_RX_PATH;
+#else /* ONEPLUS_3 */
+    struct platform_data *my_data = (struct platform_data *)platform;
+    struct audio_device *adev = my_data->adev;
+
+    if(type == PCM_CAPTURE) {
+        if(adev->mode == AUDIO_MODE_IN_CALL)
+            return 0x11133;
+        else
+            return DEFAULT_APP_TYPE_TX_PATH;
+    } else {
+        return DEFAULT_APP_TYPE_RX_PATH;
+    }
+#endif /* ONEPLUS_3 */
 }
 
 int platform_get_snd_device_acdb_id(snd_device_t snd_device)
@@ -2267,6 +2340,7 @@ int platform_send_audio_calibration(void *platform, struct audio_usecase *usecas
                                     int app_type, int sample_rate)
 {
     struct platform_data *my_data = (struct platform_data *)platform;
+    struct audio_device *adev = my_data->adev;
     int acdb_dev_id, acdb_dev_type;
     int snd_device = SND_DEVICE_OUT_SPEAKER;
     int new_snd_device[SND_DEVICE_OUT_END];
@@ -2307,6 +2381,84 @@ int platform_send_audio_calibration(void *platform, struct audio_usecase *usecas
                 acdb_dev_type = ACDB_DEV_TYPE_OUT;
             else
                 acdb_dev_type = ACDB_DEV_TYPE_IN;
+#ifdef ONEPLUS_3
+        if (snd_device == SND_DEVICE_IN_HEADSET_MIC){
+            if((adev->primary_output->dev->mode == AUDIO_MODE_IN_COMMUNICATION ||
+                adev->mSkypeHeassetMode == true)){
+                acdb_dev_id = 16;// VOIP
+            }else if(adev->app_recoder_type == APP_TYPE_NORMAL||
+                     adev->app_recoder_type == APP_TYPE_VOIP){
+                acdb_dev_id = 23; //NORMAL RECODER
+            }else if(adev->app_recoder_type == APP_TYPE_LAKALA){
+                acdb_dev_id = 8;//lakala
+            }
+            ALOGD("myrecoder headset mic record using the audio params %d", acdb_dev_id);
+        }
+
+        if (snd_device == SND_DEVICE_IN_VOIP_MIC
+            && (adev->primary_output->dev->mode == AUDIO_MODE_IN_COMMUNICATION ||
+                adev->app_recoder_type == APP_TYPE_VOIP ||
+                adev->mSkypeHeassetMode == true)){
+            acdb_dev_id = 43;
+            ALOGD("myrecoder speaker mic record using the audio params 43");
+        }
+
+        if (snd_device == SND_DEVICE_IN_HANDSET_MIC
+            && (adev->primary_output->dev->mode == AUDIO_MODE_IN_COMMUNICATION ||
+                adev->app_recoder_type == APP_TYPE_VOIP ||
+                adev->mSkypeHeassetMode == true)){
+            if(adev->primary_output->dev->mode == AUDIO_MODE_NORMAL){
+                acdb_dev_id = 4;
+                ALOGD("myrecoder handset mic record using the audio params 4");
+            }else{
+                acdb_dev_id = 41;
+                ALOGD("myrecoder handset mic record using the audio params 41");
+            }
+        }
+        if (snd_device == SND_DEVICE_OUT_HEADPHONES){
+            if(adev->primary_output->dev->mode == AUDIO_MODE_IN_COMMUNICATION ||
+                adev->app_recoder_type == APP_TYPE_VOIP ||
+                adev->mSkypeHeassetMode == true){
+                ALOGD("headphone using the audio params %d", acdb_dev_id);
+                acdb_dev_id = 26;
+                ALOGD("headphone using the audio params 26");
+            }
+        }
+
+        if (snd_device == SND_DEVICE_OUT_HANDSET
+            && (adev->primary_output->dev->mode == AUDIO_MODE_IN_COMMUNICATION ||
+                adev->app_recoder_type == APP_TYPE_VOIP ||
+                adev->mSkypeHeassetMode == true)){
+            ALOGD("myrecoder headphone record using the audio params %d", acdb_dev_id);
+            acdb_dev_id = 7;
+            ALOGD("myrecoder handset mic record using the audio params 7");
+        }
+        if (snd_device == SND_DEVICE_OUT_SPEAKER
+            && (adev->primary_output->dev->mode == AUDIO_MODE_IN_COMMUNICATION ||
+                adev->app_recoder_type == APP_TYPE_VOIP ||
+                adev->mSkypeHeassetMode == true)){
+            ALOGD("myrecoder headphone record using the audio params %d", acdb_dev_id);
+            acdb_dev_id = 15;
+            ALOGD("myrecoder speaker mic record using the audio params 15");
+        }
+
+        //specially for Kalefu APK,which should not use Diract for RX.
+        if( ((snd_device == SND_DEVICE_OUT_HEADPHONES) || (snd_device == SND_DEVICE_OUT_HEADPHONES_44_1))
+                && (adev->is_lakal_app_dl)  )
+        {
+            acdb_dev_id = 26;
+            ALOGD("Kalefu APK use 26");
+        }
+#endif/*ONEPLUS_3*/
+
+#ifdef ONEPLUS_3
+        if (my_data->adev->mRingMode && acdb_dev_type == ACDB_DEV_TYPE_OUT
+            && snd_device == SND_DEVICE_OUT_SPEAKER)
+        {
+            acdb_dev_id = 14;
+            ALOGD("ring mode using the loudly audio params 14");
+        }
+#endif/*ONEPLUS_3*/
             my_data->acdb_send_audio_cal(acdb_dev_id, acdb_dev_type, app_type,
                                          sample_rate);
         }
@@ -2917,7 +3069,17 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
                     if (my_data->fluence_mode == FLUENCE_BROADSIDE)
                        snd_device = SND_DEVICE_IN_VOICE_SPEAKER_DMIC_BROADSIDE;
                     else
-                       snd_device = SND_DEVICE_IN_VOICE_SPEAKER_DMIC;
+                    {
+#ifdef ONEPLUS_3
+                        if(voice_extn_compress_voip_is_active(adev)||
+                           adev->primary_output->dev->mode == AUDIO_MODE_IN_COMMUNICATION||
+                           adev->app_recoder_type == APP_TYPE_VOIP){
+                            snd_device = SND_DEVICE_IN_VOIP_MIC;
+                        }else{
+                            snd_device = SND_DEVICE_IN_VOICE_SPEAKER_DMIC;
+                        }
+#endif
+                    }
                 }
             } else {
                 snd_device = SND_DEVICE_IN_VOICE_SPEAKER_MIC;
@@ -2929,7 +3091,11 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
     } else if (source == AUDIO_SOURCE_CAMCORDER) {
         if (in_device & AUDIO_DEVICE_IN_BUILTIN_MIC ||
             in_device & AUDIO_DEVICE_IN_BACK_MIC) {
-            snd_device = SND_DEVICE_IN_CAMCORDER_MIC;
+#ifndef ONEPLUS_3
+           snd_device = SND_DEVICE_IN_CAMCORDER_MIC;
+#else
+            snd_device = SND_DEVICE_IN_SPEAKER_STEREO_DMIC;
+#endif
         }
     } else if (source == AUDIO_SOURCE_VOICE_RECOGNITION) {
         if (in_device & AUDIO_DEVICE_IN_BUILTIN_MIC) {
@@ -2988,6 +3154,9 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
             if (adev->active_input->enable_aec &&
                     adev->active_input->enable_ns) {
                 if (in_device & AUDIO_DEVICE_IN_BACK_MIC) {
+#ifdef ONEPLUS_3
+                    out_device = SND_DEVICE_OUT_SPEAKER;
+#endif
                     if (my_data->fluence_in_spkr_mode) {
                         if ((my_data->fluence_type & FLUENCE_QUAD_MIC) &&
                             (my_data->source_mic_type & SOURCE_QUAD_MIC)) {
@@ -3009,6 +3178,9 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
                         snd_device = SND_DEVICE_IN_HANDSET_MIC_AEC_NS;
                 } else if (in_device & AUDIO_DEVICE_IN_WIRED_HEADSET) {
                     snd_device = SND_DEVICE_IN_HEADSET_MIC_FLUENCE;
+#ifdef ONEPLUS_3
+                    out_device = SND_DEVICE_OUT_HEADPHONES;
+#endif
                 }
                 platform_set_echo_reference(adev, true, out_device);
             } else if (adev->active_input->enable_aec) {
@@ -3104,10 +3276,24 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
             else if ((my_data->fluence_type & (FLUENCE_DUAL_MIC | FLUENCE_QUAD_MIC)) &&
                     (channel_count == 2) && (my_data->source_mic_type & SOURCE_DUAL_MIC))
                 snd_device = SND_DEVICE_IN_HANDSET_STEREO_DMIC;
+#ifdef ONEPLUS_3
+            else if (my_data->fluence_type & (FLUENCE_DUAL_MIC | FLUENCE_QUAD_MIC) &&
+                    channel_count == 1 && (adev->active_input->usecase== USECASE_AUDIO_RECORD_LOW_LATENCY ))
+                snd_device = SND_DEVICE_IN_VOICE_DMIC;
+#endif
             else
                 snd_device = SND_DEVICE_IN_HANDSET_MIC;
         } else if (in_device & AUDIO_DEVICE_IN_BACK_MIC) {
+#ifdef ONEPLUS_3
+            if((adev->active_input!=NULL) && (adev->active_input->usecase== USECASE_AUDIO_RECORD_LOW_LATENCY ||
+                                              adev->primary_output->dev->mode == AUDIO_MODE_IN_COMMUNICATION||
+                                              adev->app_recoder_type == APP_TYPE_VOIP)) {
+                snd_device = SND_DEVICE_IN_VOIP_MIC;
+                platform_set_echo_reference(adev, true, out_device);
+            }
+#else//qualcom original
             snd_device = SND_DEVICE_IN_SPEAKER_MIC;
+#endif
         } else if (in_device & AUDIO_DEVICE_IN_WIRED_HEADSET) {
             snd_device = SND_DEVICE_IN_HEADSET_MIC;
         } else if (in_device & AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET) {
@@ -3145,14 +3331,17 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
             if ((my_data->source_mic_type & SOURCE_DUAL_MIC) &&
                 (channel_count == 2)) {
                 snd_device = SND_DEVICE_IN_SPEAKER_STEREO_DMIC;
-            } else if ((my_data->source_mic_type & SOURCE_MONO_MIC) &&
-                       (channel_count == 1)) {
-                 snd_device = SND_DEVICE_IN_SPEAKER_MIC;
             } else {
-                ALOGE("%s: something wrong: source type (%d) channel_count (%d) .."
-                      " no combination found .. setting to mono", __func__,
-                      my_data->source_mic_type, channel_count);
-                snd_device = SND_DEVICE_IN_SPEAKER_MIC;
+#ifdef ONEPLUS_3
+                if ((adev->active_input!=NULL) && (adev->active_input->usecase== USECASE_AUDIO_RECORD_LOW_LATENCY ||
+                                                   adev->primary_output->dev->mode == AUDIO_MODE_IN_COMMUNICATION ||
+                                                   adev->app_recoder_type == APP_TYPE_VOIP)){
+                    snd_device = SND_DEVICE_IN_VOIP_MIC;
+                    platform_set_echo_reference(adev, true, out_device);
+                } else {
+                    snd_device = SND_DEVICE_IN_SPEAKER_MIC;
+                }
+#endif
             }
         } else if (out_device & AUDIO_DEVICE_OUT_WIRED_HEADPHONE ||
                         out_device & AUDIO_DEVICE_OUT_LINE) {
