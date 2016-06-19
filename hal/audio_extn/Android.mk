@@ -136,6 +136,10 @@ ifneq ($(filter sdm845 sdm710 sdmshrike msmnile kona lahaina holi lito bengal at
   MULTIPLE_HW_VARIANTS_ENABLED := true
 endif
 
+ifeq ($(QCPATH),)
+     LOCAL_CFLAGS += -D_OSS
+endif
+
 LOCAL_SRC_FILES:= ssr.c \
                   device_utils.c
 
