@@ -104,6 +104,10 @@ ifeq ($(strip $(AUDIO_FEATURE_ENABLED_CUSTOMSTEREO)),true)
     LOCAL_CFLAGS += -DCUSTOM_STEREO_ENABLED
 endif
 
+ifeq ($(TARGET_DEVICE),oneplus3)
+    LOCAL_CFLAGS += -DONEPLUS_3
+endif
+
 ifeq ($(strip $(AUDIO_FEATURE_ENABLED_SSR)),true)
     LOCAL_CFLAGS += -DSSR_ENABLED
     LOCAL_SRC_FILES += audio_extn/ssr.c
