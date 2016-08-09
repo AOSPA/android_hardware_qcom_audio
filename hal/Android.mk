@@ -104,6 +104,10 @@ ifeq ($(strip $(AUDIO_FEATURE_ENABLED_CUSTOMSTEREO)),true)
     LOCAL_CFLAGS += -DCUSTOM_STEREO_ENABLED
 endif
 
+ifeq ($(TARGET_DEVICE),oneplus3)
+    LOCAL_CFLAGS += -DONEPLUS_3
+endif
+
 ifeq ($(strip $(AUDIO_FEATURE_ENABLED_SSR)),true)
     LOCAL_CFLAGS += -DSSR_ENABLED
     LOCAL_SRC_FILES += audio_extn/ssr.c
@@ -159,6 +163,11 @@ ifeq ($(strip $(DS1_DOLBY_DAP)),true)
 ifneq ($(strip $(DOLBY_DDP)),true)
     LOCAL_SRC_FILES += audio_extn/dolby.c
 endif
+endif
+
+ifeq ($(strip $(AUDIO_FEATURE_ENABLED_FLAC_OFFLOAD)),true)
+    LOCAL_CFLAGS += -DFLAC_OFFLOAD_ENABLED
+    LOCAL_CFLAGS += -DCOMPRESS_METADATA_NEEDED
 endif
 
 ifeq ($(strip $(AUDIO_FEATURE_ENABLED_EXTN_FLAC_DECODER)),true)
