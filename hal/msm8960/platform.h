@@ -97,6 +97,10 @@ enum {
 #define MIXER_PATH_MAX_LENGTH 100
 #define DEFAULT_OUTPUT_SAMPLING_RATE 48000
 
+#define DEVICE_NAME_MAX_SIZE 128
+// doesn't exist on flo so leave empty
+#define PLATFORM_INFO_XML_PATH ""
+
 /*
  * tinyAlsa library interprets period size as number of frames
  * one frame = channel_count * sizeof (pcm sample)
