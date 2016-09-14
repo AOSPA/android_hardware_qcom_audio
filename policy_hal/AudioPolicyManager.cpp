@@ -1020,6 +1020,7 @@ status_t AudioPolicyManagerCustom::stopSource(sp<AudioOutputDescriptor> outputDe
                         outputDesc->sharesHwModuleWith(desc) &&
                         (newDevice != desc->device())) {
                         audio_devices_t dev = getNewOutputDevice(mOutputs.valueFor(curOutput), false /*fromCache*/);
+                        bool force = desc->device() != dev;
                         uint32_t delayMs;
                         if (dev == prevDevice) {
                             delayMs = 0;
@@ -1028,7 +1029,7 @@ status_t AudioPolicyManagerCustom::stopSource(sp<AudioOutputDescriptor> outputDe
                         }
                         setOutputDevice(desc,
                                     dev,
-                                    true,
+                                    force,
                                     delayMs);
                 }
             }
