@@ -201,7 +201,7 @@ void audio_extn_dolby_set_dmid(struct audio_device *adev);
 #define audio_extn_dolby_set_dmid(adev)                 (0)
 #endif
 
-#ifndef DS1_DOLBY_DDP_ENABLED
+#ifndef DS1_DOLBY_DAP_ENABLED
 #define audio_extn_dolby_set_endpoint(adev)                 (0)
 #else
 void audio_extn_dolby_set_endpoint(struct audio_device *adev);
