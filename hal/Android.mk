@@ -87,6 +87,9 @@ ifeq ($(strip $(AUDIO_FEATURE_ENABLED_COMPRESS_VOIP)),true)
     LOCAL_SRC_FILES += voice_extn/compress_voip.c
 endif
 
+ifeq ($(strip $(AUDIO_FEATURE_ENABLED_EXTN_OFFLOAD)),true)
+LOCAL_CFLAGS += -DEXTN_OFFLOAD_ENABLED
+endif
 
 ifeq ($(strip $(AUDIO_FEATURE_ENABLED_EXTN_FORMATS)),true)
 LOCAL_CFLAGS += -DFORMATS_ENABLED
