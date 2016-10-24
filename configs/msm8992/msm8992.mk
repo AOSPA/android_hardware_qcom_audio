@@ -60,9 +60,7 @@ endif
 PRODUCT_COPY_FILES += \
     hardware/qcom/audio/configs/msm8992/audio_output_policy.conf:system/vendor/etc/audio_output_policy.conf \
     hardware/qcom/audio/configs/msm8992/audio_effects.conf:system/vendor/etc/audio_effects.conf \
-    hardware/qcom/audio/configs/msm8992/mixer_paths.xml:system/etc/mixer_paths.xml \
     hardware/qcom/audio/configs/msm8992/mixer_paths_i2s.xml:system/etc/mixer_paths_i2s.xml \
-    hardware/qcom/audio/configs/msm8992/audio_platform_info.xml:system/etc/audio_platform_info.xml \
     hardware/qcom/audio/configs/msm8992/audio_platform_info_i2s.xml:system/etc/audio_platform_info_i2s.xml \
     hardware/qcom/audio/configs/msm8992/sound_trigger_mixer_paths.xml:system/etc/sound_trigger_mixer_paths.xml \
     hardware/qcom/audio/configs/msm8992/sound_trigger_platform_info.xml:system/etc/sound_trigger_platform_info.xml \
