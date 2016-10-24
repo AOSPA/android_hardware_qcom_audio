@@ -35,7 +35,7 @@
 #include "audio_extn.h"
 #include "voice.h"
 
-#define AUDIO_OUTPUT_POLICY_VENDOR_CONFIG_FILE "/vendor/etc/audio_output_policy.conf"
+#define AUDIO_OUTPUT_POLICY_VENDOR_CONFIG_FILE "/system/etc/audio_output_policy.conf"
 
 #define OUTPUTS_TAG "outputs"
 
