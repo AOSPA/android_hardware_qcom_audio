@@ -48,14 +48,6 @@ DEVICE_PACKAGE_OVERLAYS += hardware/qcom/audio/configs/common/overlay
 
 USE_XML_AUDIO_POLICY_CONF := 0
 
-# Audio configuration file
-ifeq ($(TARGET_USES_AOSP), true)
-PRODUCT_COPY_FILES += \
-    device/qcom/common/media/audio_policy.conf:system/etc/audio_policy.conf
-else
-PRODUCT_COPY_FILES += \
-    hardware/qcom/audio/configs/msm8992/audio_policy.conf:system/etc/audio_policy.conf
-endif
 
 PRODUCT_COPY_FILES += \
     hardware/qcom/audio/configs/msm8992/audio_output_policy.conf:system/etc/audio_output_policy.conf \
@@ -81,6 +73,15 @@ PRODUCT_COPY_FILES += \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/default_volume_tables.xml:/system/etc/default_volume_tables.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:/system/etc/r_submix_audio_policy_configuration.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/usb_audio_policy_configuration.xml:/system/etc/usb_audio_policy_configuration.xml
+else
+# Audio configuration file
+ifeq ($(TARGET_USES_AOSP), true)
+PRODUCT_COPY_FILES += \
+    device/qcom/common/media/audio_policy.conf:system/etc/audio_policy.conf
+else
+PRODUCT_COPY_FILES += \
+    hardware/qcom/audio/configs/msm8992/audio_policy.conf:system/etc/audio_policy.conf
+endif
 endif
 
 # Listen configuration file
