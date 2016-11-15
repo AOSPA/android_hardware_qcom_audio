@@ -1362,10 +1362,6 @@ int select_devices(struct audio_device *adev, audio_usecase_t uc_id)
                                                         out_snd_device,
                                                         in_snd_device);
         enable_audio_route_for_voice_usecases(adev, usecase);
-        /* Enable sidetone only if voice/voip call already exists */
-        if (voice_is_call_state_active(adev) ||
-            voice_extn_compress_voip_is_started(adev))
-            voice_set_sidetone(adev, out_snd_device, true);
     }
 
     usecase->in_snd_device = in_snd_device;
@@ -1385,6 +1381,13 @@ int select_devices(struct audio_device *adev, audio_usecase_t uc_id)
     }
 
     enable_audio_route(adev, usecase);
+
+    if (usecase->type == VOICE_CALL || usecase->type == VOIP_CALL) {
+        /* Enable sidetone only if other voice/voip call already exists */
+        if (voice_is_call_state_active(adev) ||
+            voice_extn_compress_voip_is_started(adev))
+            voice_set_sidetone(adev, out_snd_device, true);
+    }
 
     /* Applicable only on the targets that has external modem.
      * Enable device command should be sent to modem only after
@@ -2346,15 +2349,16 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
             }
 
             if (!out->standby) {
-                audio_extn_perf_lock_acquire(&adev->perf_lock_handle, 0,
-                                             adev->perf_lock_opts,
-                                             adev->perf_lock_opts_size);
                 if (!same_dev) {
                     ALOGV("update routing change");
                     out->routing_change = true;
+                    audio_extn_perf_lock_acquire(&adev->perf_lock_handle, 0,
+                                                 adev->perf_lock_opts,
+                                                 adev->perf_lock_opts_size);
                 }
                 select_devices(adev, out->usecase);
-                audio_extn_perf_lock_release(&adev->perf_lock_handle);
+                if (!same_dev)
+                    audio_extn_perf_lock_release(&adev->perf_lock_handle);
             }
         }
 
@@ -3996,7 +4000,7 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
             ALOGV("cache new edid");
             platform_cache_edid(adev->platform);
         } else if ((val & AUDIO_DEVICE_OUT_USB_DEVICE) ||
-                   (val & AUDIO_DEVICE_IN_USB_DEVICE)) {
+                   !(val ^ AUDIO_DEVICE_IN_USB_DEVICE)) {
             /*
              * Do not allow AFE proxy port usage by WFD source when USB headset is connected.
              * Per AudioPolicyManager, USB device is higher priority than WFD.
@@ -4020,7 +4024,7 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
             ALOGV("invalidate cached edid");
             platform_invalidate_hdmi_config(adev->platform);
         } else if ((val & AUDIO_DEVICE_OUT_USB_DEVICE) ||
-                   (val & AUDIO_DEVICE_IN_USB_DEVICE)) {
+                   !(val ^ AUDIO_DEVICE_IN_USB_DEVICE)) {
             ret = str_parms_get_str(parms, "card", value, sizeof(value));
             if (ret >= 0) {
                 audio_extn_usb_remove_device(val, atoi(value));

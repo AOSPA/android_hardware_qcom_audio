@@ -705,14 +705,11 @@ static int vol_prc_lib_release(effect_handle_t handle)
     effect_uuid_t uuid;
 
     ALOGV("%s context %p", __func__, handle);
-    if (recv_contex == NULL || recv_contex->desc == NULL) {
-        ALOGE("%s: Got invalid handle while release, DO NOTHING ", __func__);
-        return status;
-    }
 
     if (recv_contex == NULL) {
         return status;
     }
+
     pthread_mutex_lock(&vol_listner_init_lock);
     session_id = recv_contex->session_id;
     stream_type = recv_contex->stream_type;

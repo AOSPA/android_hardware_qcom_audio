@@ -3583,6 +3583,8 @@ int platform_set_parameters(void *platform, struct str_parms *parms)
     char *kv_pairs = NULL;
 
     kv_pairs = str_parms_to_str(parms);
+    if(!kv_pairs)
+        return ret;
     len = strlen(kv_pairs);
     ALOGV("%s: enter: - %s", __func__, kv_pairs);
     free(kv_pairs);
@@ -4323,7 +4325,7 @@ static bool platform_check_codec_backend_cfg(struct audio_device* adev,
     // default backend
     // force routing is not required here, caller will do it anyway
     if ((voice_is_in_call(adev) || adev->mode == AUDIO_MODE_IN_COMMUNICATION) &&
-        backend_idx == DEFAULT_CODEC_BACKEND) {
+        usecase->devices & AUDIO_DEVICE_OUT_ALL_CODEC_BACKEND) {
         ALOGW("%s:becf: afe:Use default bw and sr for voice/voip calls ",
               __func__);
         bit_width = CODEC_BACKEND_DEFAULT_BIT_WIDTH;
@@ -4343,8 +4345,8 @@ static bool platform_check_codec_backend_cfg(struct audio_device* adev,
             struct audio_usecase *uc;
             uc = node_to_item(node, struct audio_usecase, list);
             struct stream_out *out = (struct stream_out*) uc->stream.out;
-            unsigned int out_channels = audio_channel_count_from_out_mask(out->channel_mask);
             if (uc->type == PCM_PLAYBACK && out && usecase != uc) {
+                unsigned int out_channels = audio_channel_count_from_out_mask(out->channel_mask);
 
                 ALOGD("%s:napb: (%d) - (%s)id (%d) sr %d bw "
                       "(%d) ch (%d) device %s", __func__, i++, use_case_table[uc->id],
