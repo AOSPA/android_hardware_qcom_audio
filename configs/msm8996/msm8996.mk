@@ -157,8 +157,8 @@ use.voice.path.for.pcm.voip=true
 
 #Enable DS2, Hardbypass feature for Dolby
 PRODUCT_PROPERTY_OVERRIDES += \
-audio.dolby.ds2.enabled=true\
-audio.dolby.ds2.hardbypass=true
+audio.dolby.ds2.enabled=false\
+audio.dolby.ds2.hardbypass=false
 
 #Enable compress passthrough session
 PRODUCT_PROPERTY_OVERRIDES += \
