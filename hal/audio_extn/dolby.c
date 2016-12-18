@@ -598,12 +598,12 @@ int audio_extn_dolby_set_dap_bypass(struct audio_device *adev __unused, int stat
 void audio_extn_dolby_set_license(struct audio_device *adev __unused)
 {
     int i_key=0;
-    char c_key[128] = {0};
     char c_dmid[128] = {0};
     int i_dmid;
     struct dolby_param_license dolby_license;
 
 #ifdef DOLBY_ACDB_LICENSE
+    char c_key[128] = {0};
     property_get("audio.ds1.metainfo.key",c_key,"0");
     i_key = atoi(c_key);
 #else
