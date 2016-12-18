@@ -3,7 +3,9 @@
 #AUDIO_FEATURE_FLAGS
 BOARD_USES_ALSA_AUDIO := true
 USE_CUSTOM_AUDIO_POLICY := 1
-BOARD_SUPPORTS_SOUND_TRIGGER := true
+ifeq ($(VENDOR_HEAD_IS_PRESENT), true)
+  BOARD_SUPPORTS_SOUND_TRIGGER := true
+endif
 AUDIO_USE_LL_AS_PRIMARY_OUTPUT := true
 USE_XML_AUDIO_POLICY_CONF := 1
 
@@ -13,8 +15,8 @@ AUDIO_FEATURE_ENABLED_COMPRESS_CAPTURE := false
 AUDIO_FEATURE_ENABLED_COMPRESS_VOIP := true
 AUDIO_FEATURE_ENABLED_CUSTOMSTEREO := true
 AUDIO_FEATURE_ENABLED_EXTN_FORMATS := true
-AUDIO_FEATURE_ENABLED_EXTN_FLAC_DECODER := true
-AUDIO_FEATURE_ENABLED_EXTN_RESAMPLER := true
+#AUDIO_FEATURE_ENABLED_EXTN_FLAC_DECODER := true
+# AUDIO_FEATURE_ENABLED_EXTN_RESAMPLER := true
 AUDIO_FEATURE_ENABLED_FM_POWER_OPT := true
 AUDIO_FEATURE_ENABLED_FLUENCE := true
 AUDIO_FEATURE_ENABLED_HDMI_SPK := true
@@ -24,19 +26,18 @@ AUDIO_FEATURE_ENABLED_HDMI_EDID := true
 AUDIO_FEATURE_ENABLED_HFP := true
 AUDIO_FEATURE_ENABLED_INCALL_MUSIC := false
 AUDIO_FEATURE_ENABLED_MULTI_VOICE_SESSIONS := true
-AUDIO_FEATURE_ENABLED_PCM_OFFLOAD := true
-AUDIO_FEATURE_ENABLED_PCM_OFFLOAD_24 := true
-AUDIO_FEATURE_ENABLED_FLAC_OFFLOAD := true
-AUDIO_FEATURE_ENABLED_VORBIS_OFFLOAD := true
-AUDIO_FEATURE_ENABLED_WMA_OFFLOAD := true
-AUDIO_FEATURE_ENABLED_ALAC_OFFLOAD := true
-AUDIO_FEATURE_ENABLED_APE_OFFLOAD := true
-AUDIO_FEATURE_ENABLED_AAC_ADTS_OFFLOAD := true
+#AUDIO_FEATURE_ENABLED_PCM_OFFLOAD := true
+#AUDIO_FEATURE_ENABLED_PCM_OFFLOAD_24 := true
+#AUDIO_FEATURE_ENABLED_FLAC_OFFLOAD := true
+#AUDIO_FEATURE_ENABLED_VORBIS_OFFLOAD := true
+#AUDIO_FEATURE_ENABLED_WMA_OFFLOAD := true
+#AUDIO_FEATURE_ENABLED_ALAC_OFFLOAD := true
+#AUDIO_FEATURE_ENABLED_APE_OFFLOAD := true
+#AUDIO_FEATURE_ENABLED_AAC_ADTS_OFFLOAD := true
 AUDIO_FEATURE_ENABLED_PROXY_DEVICE := true
 AUDIO_FEATURE_ENABLED_KPI_OPTIMIZE := true
 AUDIO_FEATURE_ENABLED_SPKR_PROTECTION := true
-AUDIO_FEATURE_ENABLED_SSR := true
-AUDIO_FEATURE_ENABLED_ACDB_LICENSE := true
+#AUDIO_FEATURE_ENABLED_SSR := true
 
 AUDIO_FEATURE_ENABLED_DTS_EAGLE := false
 BOARD_USES_SRS_TRUEMEDIA := true
@@ -67,16 +68,16 @@ endif
 PRODUCT_COPY_FILES += \
     hardware/qcom/audio/configs/msm8996/audio_output_policy.conf:system/vendor/etc/audio_output_policy.conf \
     hardware/qcom/audio/configs/msm8996/audio_effects.conf:system/vendor/etc/audio_effects.conf \
-    hardware/qcom/audio/configs/msm8996/mixer_paths.xml:system/etc/mixer_paths.xml \
-    hardware/qcom/audio/configs/msm8996/mixer_paths_tasha.xml:system/etc/mixer_paths_tasha.xml \
-    hardware/qcom/audio/configs/msm8996/mixer_paths_dtp.xml:system/etc/mixer_paths_dtp.xml \
-    hardware/qcom/audio/configs/msm8996/mixer_paths_i2s.xml:system/etc/mixer_paths_i2s.xml \
+#   hardware/qcom/audio/configs/msm8996/mixer_paths.xml:system/etc/mixer_paths.xml \
+#   hardware/qcom/audio/configs/msm8996/mixer_paths_tasha.xml:system/etc/mixer_paths_tasha.xml \
+#   hardware/qcom/audio/configs/msm8996/mixer_paths_dtp.xml:system/etc/mixer_paths_dtp.xml \
+#   hardware/qcom/audio/configs/msm8996/mixer_paths_i2s.xml:system/etc/mixer_paths_i2s.xml \
     hardware/qcom/audio/configs/msm8996/aanc_tuning_mixer.txt:system/etc/aanc_tuning_mixer.txt \
-    hardware/qcom/audio/configs/msm8996/audio_platform_info_i2s.xml:system/etc/audio_platform_info_i2s.xml \
+#   hardware/qcom/audio/configs/msm8996/audio_platform_info_i2s.xml:system/etc/audio_platform_info_i2s.xml \
     hardware/qcom/audio/configs/msm8996/sound_trigger_mixer_paths.xml:system/etc/sound_trigger_mixer_paths.xml \
     hardware/qcom/audio/configs/msm8996/sound_trigger_mixer_paths_wcd9330.xml:system/etc/sound_trigger_mixer_paths_wcd9330.xml \
-    hardware/qcom/audio/configs/msm8996/sound_trigger_platform_info.xml:system/etc/sound_trigger_platform_info.xml \
-    hardware/qcom/audio/configs/msm8996/audio_platform_info.xml:system/etc/audio_platform_info.xml
+    hardware/qcom/audio/configs/msm8996/sound_trigger_platform_info.xml:system/etc/sound_trigger_platform_info.xml
+#   hardware/qcom/audio/configs/msm8996/audio_platform_info.xml:system/etc/audio_platform_info.xml
 
 #XML Audio configuration files
 ifeq ($(USE_XML_AUDIO_POLICY_CONF), 1)
@@ -127,16 +128,16 @@ PRODUCT_PROPERTY_OVERRIDES += \
 audio.offload.video=true
 
 #Enable 16 bit PCM offload by default
-PRODUCT_PROPERTY_OVERRIDES += \
-audio.offload.pcm.16bit.enable=true
+#PRODUCT_PROPERTY_OVERRIDES += \
+#audio.offload.pcm.16bit.enable=true
 
 #Enable 24 bit PCM offload by default
-PRODUCT_PROPERTY_OVERRIDES += \
-audio.offload.pcm.24bit.enable=true
+#PRODUCT_PROPERTY_OVERRIDES += \
+#audio.offload.pcm.24bit.enable=true
 
 #Enable audio track offload by default
-PRODUCT_PROPERTY_OVERRIDES += \
-audio.offload.track.enable=true
+#PRODUCT_PROPERTY_OVERRIDES += \
+#audio.offload.track.enable=true
 
 #Enable music through deep buffer
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -151,21 +152,21 @@ PRODUCT_PROPERTY_OVERRIDES += \
 use.voice.path.for.pcm.voip=true
 
 #Enable multi channel aac through offload
-PRODUCT_PROPERTY_OVERRIDES += \
-audio.offload.multiaac.enable=true
+#PRODUCT_PROPERTY_OVERRIDES += \
+#audio.offload.multiaac.enable=true
 
 #Enable DS2, Hardbypass feature for Dolby
 PRODUCT_PROPERTY_OVERRIDES += \
-audio.dolby.ds2.enabled=true\
-audio.dolby.ds2.hardbypass=true
+audio.dolby.ds2.enabled=false\
+audio.dolby.ds2.hardbypass=false
 
 #Enable compress passthrough session
 PRODUCT_PROPERTY_OVERRIDES += \
 audio.offload.passthrough=true
 
 #Disable Multiple offload sesison
-PRODUCT_PROPERTY_OVERRIDES += \
-audio.offload.multiple.enabled=false
+#PRODUCT_PROPERTY_OVERRIDES += \
+#audio.offload.multiple.enabled=false
 
 #Disable Compress passthrough playback
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -188,15 +189,15 @@ PRODUCT_PROPERTY_OVERRIDES += \
 audio.parser.ip.buffer.size=262144
 
 #enable hw aac encoder by default
-PRODUCT_PROPERTY_OVERRIDES += \
-qcom.hw.aac.encoder=true
+#PRODUCT_PROPERTY_OVERRIDES += \
+#qcom.hw.aac.encoder=true
 
 #enable software decoders for ALAC and APE
-PRODUCT_PROPERTY_OVERRIDES += \
-use.qti.sw.alac.decoder=true
-PRODUCT_PROPERTY_OVERRIDES += \
-use.qti.sw.ape.decoder=true
+#PRODUCT_PROPERTY_OVERRIDES += \
+#use.qti.sw.alac.decoder=true
+#PRODUCT_PROPERTY_OVERRIDES += \
+#use.qti.sw.ape.decoder=true
 
 #flac sw decoder 24 bit decode capability
-PRODUCT_PROPERTY_OVERRIDES += \
-flac.sw.decoder.24bit.support=true
+#PRODUCT_PROPERTY_OVERRIDES += \
+#flac.sw.decoder.24bit.support=true

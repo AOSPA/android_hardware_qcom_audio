@@ -709,6 +709,7 @@ static int vol_prc_lib_release(effect_handle_t handle)
     if (recv_contex == NULL) {
         return status;
     }
+
     pthread_mutex_lock(&vol_listner_init_lock);
     session_id = recv_contex->session_id;
     stream_type = recv_contex->stream_type;
