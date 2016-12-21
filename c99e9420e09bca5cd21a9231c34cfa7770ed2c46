@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7ac40928_8ee69b43",
+        "filename": "configs/msm8996/msm8996.mk",
+        "patchSetId": 2
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1000012
+      },
+      "writtenOn": "2016-12-21T00:53:32Z",
+      "side": 1,
+      "message": "Should we disable SRS and DTS as well?",
+      "revId": "c99e9420e09bca5cd21a9231c34cfa7770ed2c46",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad",
+      "unresolved": false
+    }
+  ]
+}
