@@ -26,8 +26,11 @@ LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE_RELATIVE_PATH := soundfx
 LOCAL_MODULE:= libqcompostprocbundle
 
+LOCAL_ADDITIONAL_DEPENDENCIES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
+
 LOCAL_C_INCLUDES := \
 	external/tinyalsa/include \
+        $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include \
 	$(call include-path-for, audio-effects)
 
 LOCAL_HEADER_LIBRARIES += libhardware_headers
@@ -58,8 +61,11 @@ LOCAL_MODULE:= libvolumelistener
 LOCAL_MODULE_OWNER := qcom
 LOCAL_PROPRIETARY_MODULE := true
 
+LOCAL_ADDITIONAL_DEPENDENCIES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
+
 LOCAL_C_INCLUDES := \
         hardware/qcom/audio/hal \
+        $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include \
 	$(call include-path-for, audio-effects)
 
 LOCAL_HEADER_LIBRARIES += libhardware_headers
