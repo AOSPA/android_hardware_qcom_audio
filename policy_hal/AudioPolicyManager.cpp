@@ -2166,7 +2166,7 @@ void AudioPolicyManagerCustom::closeAllInputs() {
         mpClientInterface->onAudioPatchListUpdate();
     }
 }
-
+#ifdef FM_POWER_OPT
 AudioPolicyManagerCustom::AudioPolicyManagerCustom(AudioPolicyClientInterface *clientInterface)
     : AudioPolicyManager(clientInterface),
       mHdmiAudioDisabled(false),
@@ -2174,6 +2174,13 @@ AudioPolicyManagerCustom::AudioPolicyManagerCustom(AudioPolicyClientInterface *c
       mPrevPhoneState(0),
       mPrevFMVolumeDb(0.0f),
       mFMIsActive(false)
+#else
+AudioPolicyManagerCustom::AudioPolicyManagerCustom(AudioPolicyClientInterface *clientInterface)
+    : AudioPolicyManager(clientInterface),
+      mHdmiAudioDisabled(false),
+      mHdmiAudioEvent(false),
+      mPrevPhoneState(0)
+#endif
 {
 
 #ifdef USE_XML_AUDIO_POLICY_CONF
