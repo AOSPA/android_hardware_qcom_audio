@@ -162,8 +162,10 @@ private:
         // Used for record + playback concurrency
         bool mIsInputRequestOnProgress;
 #endif
+#ifdef FM_POWER_OPT
         float mPrevFMVolumeDb;
         bool mFMIsActive;
+#endif
 };
 
 };
