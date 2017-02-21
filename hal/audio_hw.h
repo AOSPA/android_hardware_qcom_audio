@@ -385,6 +385,7 @@ struct audio_device {
     int perf_lock_opts[MAX_PERF_LOCK_OPTS];
     int perf_lock_opts_size;
     bool native_playback_enabled;
+    bool vr_audio_mode_enabled;
 };
 
 int select_devices(struct audio_device *adev,

@@ -83,6 +83,7 @@ const struct string_to_enum s_flag_name_to_enum_table[] = {
     STRING_TO_ENUM(AUDIO_OUTPUT_FLAG_DIRECT_PCM),
     STRING_TO_ENUM(AUDIO_OUTPUT_FLAG_PRIMARY),
     STRING_TO_ENUM(AUDIO_OUTPUT_FLAG_FAST),
+    STRING_TO_ENUM(AUDIO_OUTPUT_FLAG_RAW),
     STRING_TO_ENUM(AUDIO_OUTPUT_FLAG_DEEP_BUFFER),
     STRING_TO_ENUM(AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD),
     STRING_TO_ENUM(AUDIO_OUTPUT_FLAG_NON_BLOCKING),
@@ -172,7 +173,7 @@ static audio_output_flags_t parse_flag_names(char *name)
         flag_name = strtok_r(NULL, "|", &last_r);
     }
 
-    ALOGV("parse_flag_names: flag - %d", flag);
+    ALOGV("parse_flag_names: flag - %x", flag);
     return (audio_output_flags_t)flag;
 }
 
@@ -561,6 +562,11 @@ static bool audio_is_this_native_usecase(struct audio_usecase *uc)
     return native_usecase;
 }
 
+static inline bool audio_is_vr_mode_on(struct audio_device *(__attribute__((unused)) adev))
+{
+    return adev->vr_audio_mode_enabled;
+}
+
 int audio_extn_utils_send_app_type_cfg(struct audio_device *adev,
                                        struct audio_usecase *usecase)
 {
@@ -581,12 +587,21 @@ int audio_extn_utils_send_app_type_cfg(struct audio_device *adev,
     if ((usecase->id != USECASE_AUDIO_PLAYBACK_DEEP_BUFFER) &&
         (usecase->id != USECASE_AUDIO_PLAYBACK_LOW_LATENCY) &&
         (usecase->id != USECASE_AUDIO_PLAYBACK_MULTI_CH) &&
+        (usecase->id != USECASE_AUDIO_PLAYBACK_ULL) &&
         (!is_offload_usecase(usecase->id)) &&
         (usecase->type != PCM_CAPTURE)) {
         ALOGV("%s: a rx/tx path where app type cfg is not required %d", __func__, usecase->id);
         rc = 0;
         goto exit_send_app_type_cfg;
     }
+
+    //if VR is active then only send the mixer control
+    if (usecase->id == USECASE_AUDIO_PLAYBACK_ULL && !audio_is_vr_mode_on(adev)) {
+            ALOGI("ULL doesnt need sending app type cfg, returning");
+            rc = 0;
+            goto exit_send_app_type_cfg;
+    }
+
     if (usecase->type == PCM_PLAYBACK) {
         snd_device = usecase->out_snd_device;
         pcm_device_id = platform_get_pcm_device_id(usecase->id, PCM_PLAYBACK);

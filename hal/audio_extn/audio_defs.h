@@ -103,4 +103,6 @@
 
 #define AUDIO_PARAMETER_IS_HW_DECODER_SESSION_ALLOWED  "is_hw_dec_session_allowed"
 
+#define AUDIO_PARAMETER_KEY_VR_AUDIO_MODE "vr_audio_mode_on"
+
 #endif /* AUDIO_DEFS_H */
