@@ -105,8 +105,6 @@ protected:
         //parameter indicates if HDMI plug in/out detected
         bool mHdmiAudioEvent;
 private:
-        static float volIndexToAmpl(audio_devices_t device, const StreamDescriptor& streamDesc,
-                int indexInUi);
         // updates device caching and output for streams that can influence the
         //    routing of notifications
         void handleNotificationRoutingForStream(audio_stream_type_t stream);
