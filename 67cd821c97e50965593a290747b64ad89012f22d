@@ -1,5 +1,13 @@
 Code-Review+2: Alex Naidis <alex.naidis@linux.com>
 Verified+1: Alex Naidis <alex.naidis@linux.com>
+Submitted-by: Park Ju Hyung <qkrwngud825@gmail.com>
+Submitted-at: Sat, 18 Mar 2017 10:21:20 +0000
+Reviewed-on: https://gerrit.aospa.co/1778
+Project: AOSPA/android_hardware_qcom_audio
+Branch: refs/heads/nougat-mr1-8996
+
+Code-Review+2: Alex Naidis <alex.naidis@linux.com>
+Verified+1: Alex Naidis <alex.naidis@linux.com>
 Submitted-by: Alex Naidis <alex.naidis@linux.com>
 Submitted-at: Sun, 29 Jan 2017 19:34:20 +0000
 Reviewed-on: https://gerrit.aospa.co/1778
