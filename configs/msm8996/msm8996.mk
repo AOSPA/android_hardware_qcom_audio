@@ -112,9 +112,9 @@ PRODUCT_PROPERTY_OVERRIDES += \
 
 ##fluencetype can be "fluence" or "fluencepro" or "none"
 PRODUCT_PROPERTY_OVERRIDES += \
-ro.qc.sdk.audio.fluencetype=none\
-persist.audio.fluence.voicecall=true\
-persist.audio.fluence.voicerec=false\
+ro.qc.sdk.audio.fluencetype=none \
+persist.audio.fluence.voicecall=true \
+persist.audio.fluence.voicerec=false \
 persist.audio.fluence.speaker=true
 
 #disable tunnel encoding
@@ -157,7 +157,7 @@ use.voice.path.for.pcm.voip=true
 #PRODUCT_PROPERTY_OVERRIDES += \
 #audio.offload.multiaac.enable=true
 
-#Enable DS2, Hardbypass feature for Dolby
+#Disable DS2, Hardbypass feature for Dolby
 PRODUCT_PROPERTY_OVERRIDES += \
 audio.dolby.ds2.enabled=false\
 audio.dolby.ds2.hardbypass=false
@@ -169,10 +169,6 @@ audio.offload.passthrough=true
 #Disable Multiple offload sesison
 #PRODUCT_PROPERTY_OVERRIDES += \
 #audio.offload.multiple.enabled=false
-
-#Disable Compress passthrough playback
-PRODUCT_PROPERTY_OVERRIDES += \
-audio.offload.passthrough=false
 
 #Disable surround sound recording
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -196,8 +192,7 @@ audio.parser.ip.buffer.size=262144
 
 #enable software decoders for ALAC and APE
 #PRODUCT_PROPERTY_OVERRIDES += \
-#use.qti.sw.alac.decoder=true
-#PRODUCT_PROPERTY_OVERRIDES += \
+#use.qti.sw.alac.decoder=true \
 #use.qti.sw.ape.decoder=true
 
 #flac sw decoder 24 bit decode capability
