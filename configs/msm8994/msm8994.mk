@@ -47,7 +47,7 @@ AUDIO_FEATURE_ENABLED_DS2_DOLBY_DAP := false
 #Audio Specific device overlays
 DEVICE_PACKAGE_OVERLAYS += hardware/qcom/audio/configs/common/overlay
 
-USE_XML_AUDIO_POLICY_CONF := 1
+USE_XML_AUDIO_POLICY_CONF ?= 1
 
 # Audio configuration file
 ifeq ($(TARGET_USES_AOSP), true)
