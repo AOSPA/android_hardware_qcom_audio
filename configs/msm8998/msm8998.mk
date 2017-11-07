@@ -82,7 +82,6 @@ PRODUCT_COPY_FILES += \
     hardware/qcom/audio/configs/msm8998/audio_output_policy.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_output_policy.conf \
     hardware/qcom/audio/configs/msm8998/audio_effects.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.conf \
     hardware/qcom/audio/configs/msm8998/mixer_paths.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths.xml \
-    hardware/qcom/audio/configs/msm8998/mixer_paths_tasha.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_tasha.xml \
     hardware/qcom/audio/configs/msm8998/mixer_paths_tavil.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_tavil.xml \
     hardware/qcom/audio/configs/msm8998/mixer_paths_skuk.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_skuk.xml \
     hardware/qcom/audio/configs/msm8998/mixer_paths_skuk.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_qvr.xml \
@@ -95,8 +94,7 @@ PRODUCT_COPY_FILES += \
     hardware/qcom/audio/configs/msm8998/sound_trigger_mixer_paths_wcd9330.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_wcd9330.xml \
     hardware/qcom/audio/configs/msm8998/sound_trigger_mixer_paths_wcd9340.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_wcd9340.xml \
     hardware/qcom/audio/configs/msm8998/sound_trigger_platform_info.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_platform_info.xml \
-    hardware/qcom/audio/configs/msm8998/graphite_ipc_platform_info.xml:$(TARGET_COPY_OUT_VENDOR)/etc/graphite_ipc_platform_info.xml \
-    hardware/qcom/audio/configs/msm8998/audio_platform_info.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info.xml
+    hardware/qcom/audio/configs/msm8998/graphite_ipc_platform_info.xml:$(TARGET_COPY_OUT_VENDOR)/etc/graphite_ipc_platform_info.xml
 
 #XML Audio configuration files
 ifeq ($(USE_XML_AUDIO_POLICY_CONF), 1)
