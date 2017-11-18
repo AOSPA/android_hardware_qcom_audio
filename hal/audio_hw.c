@@ -2845,6 +2845,10 @@ int start_output_stream(struct stream_out *out)
     if (ret == 0) {
         register_out_stream(out);
         if (out->realtime) {
+            if (out->pcm == NULL || !pcm_is_ready(out->pcm)) {
+                ALOGE("%s: pcm stream not ready", __func__);
+                goto error_open;
+            }
             ret = pcm_start(out->pcm);
             if (ret < 0)
                 goto error_open;
@@ -3488,9 +3492,9 @@ static bool stream_get_parameter_channels(struct str_parms *query,
             for (j = 0; j < ARRAY_SIZE(channels_name_to_enum_table); j++) {
                 if (channels_name_to_enum_table[j].value == supported_channel_masks[i]) {
                     if (!first)
-                        strcat(value, "|");
+                        strlcat(value, "|", sizeof(value));
 
-                    strcat(value, channels_name_to_enum_table[j].name);
+                    strlcat(value, channels_name_to_enum_table[j].name, sizeof(value));
                     first = false;
                     break;
                 }
@@ -3518,9 +3522,9 @@ static bool stream_get_parameter_formats(struct str_parms *query,
             for (j = 0; j < ARRAY_SIZE(formats_name_to_enum_table); j++) {
                 if (formats_name_to_enum_table[j].value == supported_formats[i]) {
                     if (!first) {
-                        strcat(value, "|");
+                        strlcat(value, "|", sizeof(value));
                     }
-                    strcat(value, formats_name_to_enum_table[j].name);
+                    strlcat(value, formats_name_to_enum_table[j].name, sizeof(value));
                     first = false;
                     break;
                 }
@@ -4356,10 +4360,10 @@ static int out_flush(struct audio_stream_out* stream)
         lock_output_stream(out);
         if (out->offload_state == OFFLOAD_STATE_PAUSED) {
             stop_compressed_output_l(out);
-            out->written = 0;
         } else {
             ALOGW("%s called in invalid state %d", __func__, out->offload_state);
         }
+        out->written = 0;
         pthread_mutex_unlock(&out->lock);
         ALOGD("copl(%p):out of compress flush", out);
         return 0;
@@ -5000,8 +5004,8 @@ static int in_create_mmap_buffer(const struct audio_stream_in *stream,
     struct stream_in *in = (struct stream_in *)stream;
     struct audio_device *adev = in->dev;
     int ret = 0;
-    unsigned int offset1;
-    unsigned int frames1;
+    unsigned int offset1 = 0;
+    unsigned int frames1 = 0;
     const char *step = "";
 
     pthread_mutex_lock(&adev->lock);
