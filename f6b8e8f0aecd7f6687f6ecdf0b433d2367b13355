@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "96fb0075_260a96bf",
+        "filename": "hal/msm8974/platform.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 1943,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-01-20T19:54:52Z",
+      "side": 1,
+      "message": "Don\u0027t we need an  !\u003d NULL check for the case where the prop is not set?",
+      "revId": "f6b8e8f0aecd7f6687f6ecdf0b433d2367b13355",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad",
+      "unresolved": false
+    }
+  ]
+}
