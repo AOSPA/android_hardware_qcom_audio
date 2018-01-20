@@ -1943,6 +1943,10 @@ void *platform_init(struct audio_device *adev)
                 MIXER_PATH_MAX_LENGTH);
         }
 
+        if (property_get("ro.vendor.audio.location.mixer_path", value, NULL) > 0) {
+            strlcpy(mixer_xml_file, value, MIXER_PATH_MAX_LENGTH);
+        }
+
         if (F_OK == access(mixer_xml_file, 0)) {
             ALOGD("%s: Loading mixer file: %s", __func__, mixer_xml_file);
             if (audio_extn_read_xml(adev, adev->snd_card, mixer_xml_file,
