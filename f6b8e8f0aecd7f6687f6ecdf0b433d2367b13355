@@ -34,6 +34,24 @@
       "revId": "f6b8e8f0aecd7f6687f6ecdf0b433d2367b13355",
       "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "730d6c77_0cb4d410",
+        "filename": "hal/msm8974/platform.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 1943,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-01-20T20:38:34Z",
+      "side": 1,
+      "message": "Ok, that\u0027s fine",
+      "parentUuid": "b867a68d_d3c6bd59",
+      "revId": "f6b8e8f0aecd7f6687f6ecdf0b433d2367b13355",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad",
+      "unresolved": false
     }
   ]
 }
