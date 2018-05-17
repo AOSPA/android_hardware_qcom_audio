@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ee9b0dd3_179c50f9",
+        "filename": "post_proc/Android.mk",
+        "patchSetId": 8
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-05-17T18:41:18Z",
+      "side": 1,
+      "message": "No space needed here",
+      "revId": "76eed968f2c62f3ff340ade368da61e1a13f9078",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad",
+      "unresolved": false
+    }
+  ]
+}
