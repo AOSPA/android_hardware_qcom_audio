@@ -457,8 +457,8 @@ int offload_effects_bundle_set_hpx_state(bool hpx_state)
  * but the interface itself can be utilized for any effect.
  */
 __attribute__ ((visibility ("default")))
-void offload_effects_bundle_get_parameters(struct str_parms *query,
-                                           struct str_parms *reply)
+void offload_effects_bundle_get_parameters(__unused struct str_parms *query,
+                                           __unused struct str_parms *reply)
 {
     (void)query;
     (void)reply;
@@ -466,7 +466,7 @@ void offload_effects_bundle_get_parameters(struct str_parms *query,
 }
 
 __attribute__ ((visibility ("default")))
-void offload_effects_bundle_set_parameters(struct str_parms *parms)
+void offload_effects_bundle_set_parameters(__unused struct str_parms *parms)
 {
     (void)parms;
     asphere_set_parameters(parms);
