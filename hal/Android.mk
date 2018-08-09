@@ -71,7 +71,7 @@ ifneq ($(filter sm8150,$(TARGET_BOARD_PLATFORM)),)
 endif
 endif
 
-ifneq ($(filter msm8916 msm8909 msm8952,$(TARGET_BOARD_PLATFORM)),)
+ifneq ($(filter msm8916 msm8909 msm8952 sdm660,$(TARGET_BOARD_PLATFORM)),)
   AUDIO_PLATFORM = msm8916
   LOCAL_CFLAGS := -DPLATFORM_MSM8916
 ifneq ($(filter msm8909,$(TARGET_BOARD_PLATFORM)),)
