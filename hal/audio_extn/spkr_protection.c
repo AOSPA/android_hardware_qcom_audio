@@ -53,6 +53,8 @@
 #include <log_xml_parser.h>
 #define LOG_MASK HAL_MOD_FILE_SPKR_PROT
 #include <log_utils.h>
+#else
+#include <pthread.h>
 #endif
 
 #ifdef SPKR_PROT_ENABLED

@@ -46,6 +46,8 @@
 #include <log_xml_parser.h>
 #define LOG_MASK HAL_MOD_FILE_A2DP
 #include <log_utils.h>
+#else
+#include <pthread.h>
 #endif
 
 #ifdef SPLIT_A2DP_ENABLED
