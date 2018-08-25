@@ -63,6 +63,8 @@
 #include <log_xml_parser.h>
 #define LOG_MASK HAL_MOD_FILE_SND_MONITOR
 #include <log_utils.h>
+#else
+#include <pthread.h>
 #endif
 
 //#define MONITOR_DEVICE_EVENTS
