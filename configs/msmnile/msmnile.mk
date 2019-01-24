@@ -230,6 +230,13 @@ vendor.audio.adm.buffering.ms=2
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.hal.output.suspend.supported=true
 
+# Enable AAudio MMAP/NOIRQ data path.
+# 2 is AAUDIO_POLICY_AUTO so it will try MMAP then fallback to Legacy path.
+PRODUCT_PROPERTY_OVERRIDES += aaudio.mmap_policy=2
+# Allow EXCLUSIVE then fall back to SHARED.
+PRODUCT_PROPERTY_OVERRIDES += aaudio.mmap_exclusive_policy=2
+PRODUCT_PROPERTY_OVERRIDES += aaudio.hw_burst_min_usec=2000
+
 #enable mirror-link feature
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.enable.mirrorlink=false
@@ -237,6 +244,10 @@ vendor.audio.enable.mirrorlink=false
 #enable voicecall speaker stereo
 PRODUCT_PROPERTY_OVERRIDES += \
 persist.vendor.audio.voicecall.speaker.stereo=true
+
+#enable AAC frame ctl for A2DP sinks
+PRODUCT_PROPERTY_OVERRIDES += \
+persist.vendor.bt.aac_frm_ctl.enabled=true
 
 # for HIDL related packages
 PRODUCT_PACKAGES += \

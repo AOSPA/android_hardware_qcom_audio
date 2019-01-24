@@ -89,6 +89,7 @@
 /*DIRECT PCM has same buffer sizes as DEEP Buffer*/
 #define DIRECT_PCM_NUM_FRAGMENTS 2
 #define COMPRESS_PLAYBACK_VOLUME_MAX 0x2000
+#define MMAP_PLAYBACK_VOLUME_MAX 0x2000
 #define VOIP_PLAYBACK_VOLUME_MAX 0x2000
 #define DSD_VOLUME_MIN_DB (-110)
 
@@ -444,6 +445,7 @@ static int last_known_cal_step = -1 ;
 
 static int check_a2dp_restore_l(struct audio_device *adev, struct stream_out *out, bool restore);
 static int out_set_compr_volume(struct audio_stream_out *stream, float left, float right);
+static int out_set_mmap_volume(struct audio_stream_out *stream, float left, float right);
 static int out_set_voip_volume(struct audio_stream_out *stream, float left, float right);
 
 static bool may_use_noirq_mode(struct audio_device *adev, audio_usecase_t uc_id,
@@ -964,6 +966,7 @@ int enable_audio_route(struct audio_device *adev,
     snd_device_t snd_device;
     char mixer_path[MIXER_PATH_MAX_LENGTH];
     struct stream_out *out = NULL;
+    int ret = 0;
 
     if (usecase == NULL)
         return -EINVAL;
@@ -993,7 +996,14 @@ int enable_audio_route(struct audio_device *adev,
     strlcpy(mixer_path, use_case_table[usecase->id], MIXER_PATH_MAX_LENGTH);
     platform_add_backend_name(mixer_path, snd_device, usecase);
     ALOGD("%s: apply mixer and update path: %s", __func__, mixer_path);
-    audio_route_apply_and_update_path(adev->audio_route, mixer_path);
+    ret = audio_route_apply_and_update_path(adev->audio_route, mixer_path);
+    if (!ret && usecase->id == USECASE_AUDIO_PLAYBACK_FM) {
+        struct str_parms *parms = str_parms_create_str("fm_restore_volume=1");
+        if (parms) {
+            audio_extn_fm_set_parameters(adev, parms);
+            str_parms_destroy(parms);
+        }
+    }
     ALOGV("%s: exit", __func__);
     return 0;
 }
@@ -1299,9 +1309,10 @@ static snd_device_t derive_playback_snd_device(void * platform,
         if (platform_check_backends_match(d3[0], d3[1])) {
             return d2; // case 5
         } else {
-            // check if d1 is related to any of d3's
-            if (d1 == d3[0] || d1 == d3[1])
-                return d1; // case 1
+            // check if d1 is related to any of d3's OR
+            // old uc is combo device but new_uc is one of the combo device
+            if (d1 == d3[0] || d1 == d3[1] || popcount(a1) > 1)
+                return d1; // case 1, 7
             else
                 return d3[1]; // case 8
         }
@@ -1473,11 +1484,6 @@ static void check_usecases_codec_backend(struct audio_device *adev,
                         out_set_voip_volume(&usecase->stream.out->stream,
                                             usecase->stream.out->volume_l,
                                             usecase->stream.out->volume_r);
-                    }
-                    if (usecase->id == USECASE_AUDIO_PLAYBACK_FM) {
-                        struct str_parms *parms = str_parms_create_str("fm_restore_volume=1");
-                        if (parms)
-                            audio_extn_fm_set_parameters(adev, parms);
                     }
                 }
             }
@@ -1697,28 +1703,25 @@ static inline int read_usb_sup_channel_masks(bool is_playback,
     if (channels > MAX_HIFI_CHANNEL_COUNT)
         channels = MAX_HIFI_CHANNEL_COUNT;
 
+    channel_count = DEFAULT_CHANNEL_COUNT;
+
     if (is_playback) {
         // For playback we never report mono because the framework always outputs stereo
-        channel_count = DEFAULT_CHANNEL_COUNT;
         // audio_channel_out_mask_from_count() does return positional masks for channel counts
-        // above 2 but we want indexed masks here. So we
-        for ( ; channel_count <= channels && num_masks < max_masks; channel_count++) {
-            supported_channel_masks[num_masks++] = audio_channel_out_mask_from_count(channel_count);
-        }
-        for ( ; channel_count <= channels && num_masks < max_masks; channel_count++) {
-            supported_channel_masks[num_masks++] =
-                    audio_channel_mask_for_index_assignment_from_count(channel_count);
-        }
+        // above 2 but we want indexed masks here.
+        supported_channel_masks[num_masks++] = audio_channel_out_mask_from_count(channel_count);
     } else {
-        // For capture we report all supported channel masks from 1 channel up.
-        channel_count = MIN_CHANNEL_COUNT;
         // audio_channel_in_mask_from_count() does the right conversion to either positional or
         // indexed mask
-        for ( ; channel_count <= channels && num_masks < max_masks; channel_count++) {
-            supported_channel_masks[num_masks++] =
-                    audio_channel_in_mask_from_count(channel_count);
-        }
+        supported_channel_masks[num_masks++] = audio_channel_in_mask_from_count(channel_count);
     }
+
+    for (channel_count = channels; ((channel_count >= DEFAULT_CHANNEL_COUNT) &&
+                                    (num_masks < max_masks)); channel_count--) {
+            supported_channel_masks[num_masks++] =
+                    audio_channel_mask_for_index_assignment_from_count(channel_count);
+    }
+
     ALOGV("%s: %s supported ch %d supported_channel_masks[0] %08x num_masks %d", __func__,
           is_playback ? "P" : "C", channels, supported_channel_masks[0], num_masks);
     return num_masks;
@@ -2416,6 +2419,11 @@ static int stop_input_stream(struct stream_in *in)
         return -EINVAL;
     }
 
+    if (uc_info->in_snd_device != SND_DEVICE_NONE) {
+        if (audio_extn_ext_hw_plugin_usecase_stop(adev->ext_hw_plugin, uc_info))
+            ALOGE("%s: failed to stop ext hw plugin", __func__);
+    }
+
     /* Close in-call recording streams */
     voice_check_and_stop_incall_rec_usecase(adev, in);
 
@@ -2511,6 +2519,11 @@ int start_input_stream(struct stream_in *in)
                                  adev->perf_lock_opts_size);
     select_devices(adev, in->usecase);
 
+    if (uc_info->in_snd_device != SND_DEVICE_NONE) {
+        if (audio_extn_ext_hw_plugin_usecase_start(adev->ext_hw_plugin, uc_info))
+            ALOGE("%s: failed to start ext hw plugin", __func__);
+    }
+
     if (audio_extn_cin_attached_usecase(in->usecase)) {
        ret = audio_extn_cin_start_input_stream(in);
        if (ret)
@@ -2552,6 +2565,14 @@ int start_input_stream(struct stream_in *in)
             in->pcm = pcm_open(adev->snd_card, in->pcm_device_id,
                                flags, &config);
             ATRACE_END();
+            if (errno == ENETRESET && !pcm_is_ready(in->pcm)) {
+                ALOGE("%s: pcm_open failed errno:%d\n", __func__, errno);
+                adev->card_status = CARD_STATUS_OFFLINE;
+                in->card_status = CARD_STATUS_OFFLINE;
+                ret = -EIO;
+                goto error_open;
+            }
+
             if (in->pcm == NULL || !pcm_is_ready(in->pcm)) {
                 ALOGE("%s: %s", __func__, pcm_get_error(in->pcm));
                 if (in->pcm != NULL) {
@@ -2931,6 +2952,11 @@ static int stop_output_stream(struct stream_out *out)
         return -EINVAL;
     }
 
+    if (uc_info->out_snd_device != SND_DEVICE_NONE) {
+        if (audio_extn_ext_hw_plugin_usecase_stop(adev->ext_hw_plugin, uc_info))
+            ALOGE("%s: failed to stop ext hw plugin", __func__);
+    }
+
     if (is_offload_usecase(out->usecase) &&
         !(audio_extn_passthru_is_passthrough_stream(out))) {
         if (adev->visualizer_stop_output != NULL)
@@ -2942,7 +2968,8 @@ static int stop_output_stream(struct stream_out *out)
             adev->offload_effects_stop_output(out->handle, out->pcm_device_id);
     }
 
-    if (out->usecase == USECASE_INCALL_MUSIC_UPLINK)
+    if (out->usecase == USECASE_INCALL_MUSIC_UPLINK ||
+                out->usecase == USECASE_INCALL_MUSIC_UPLINK2)
         voice_set_device_mute_flag(adev, false);
 
     /* 1. Get and set stream specific mixer controls */
@@ -3018,6 +3045,16 @@ int start_output_stream(struct stream_out *out)
         ALOGW("out->card_status or adev->card_status offline, try again");
         ret = -EIO;
         goto error_config;
+    }
+
+    //Update incall music usecase to reflect correct voice session
+    if (out->flags & AUDIO_OUTPUT_FLAG_INCALL_MUSIC) {
+        ret = voice_extn_check_and_set_incall_music_usecase(adev, out);
+        if (ret != 0) {
+            ALOGE("%s: Incall music delivery usecase cannot be set error:%d",
+                __func__, ret);
+            goto error_config;
+        }
     }
 
     if (out->devices & AUDIO_DEVICE_OUT_ALL_A2DP) {
@@ -3104,13 +3141,20 @@ int start_output_stream(struct stream_out *out)
          select_devices(adev, out->usecase);
     }
 
-    if (out->usecase == USECASE_INCALL_MUSIC_UPLINK)
+    if (out->usecase == USECASE_INCALL_MUSIC_UPLINK ||
+                out->usecase == USECASE_INCALL_MUSIC_UPLINK2)
         voice_set_device_mute_flag(adev, true);
+
+    if (uc_info->out_snd_device != SND_DEVICE_NONE) {
+        if (audio_extn_ext_hw_plugin_usecase_start(adev->ext_hw_plugin, uc_info))
+            ALOGE("%s: failed to start ext hw plugin", __func__);
+    }
 
     ALOGV("%s: Opening PCM device card_id(%d) device_id(%d) format(%#x)",
           __func__, adev->snd_card, out->pcm_device_id, out->config.format);
 
     if (out->usecase == USECASE_AUDIO_PLAYBACK_MMAP) {
+        ALOGD("%s: Starting MMAP stream", __func__);
         if (out->pcm == NULL || !pcm_is_ready(out->pcm)) {
             ALOGE("%s: pcm stream not ready", __func__);
             goto error_open;
@@ -3120,6 +3164,7 @@ int start_output_stream(struct stream_out *out)
             ALOGE("%s: MMAP pcm_start failed ret %d", __func__, ret);
             goto error_open;
         }
+        out_set_mmap_volume(&out->stream, out->volume_l, out->volume_r);
     } else if (!is_offload_usecase(out->usecase)) {
         unsigned int flags = PCM_OUT;
         unsigned int pcm_open_retry_count = 0;
@@ -3158,6 +3203,14 @@ int start_output_stream(struct stream_out *out)
             out->pcm = pcm_open(adev->snd_card, out->pcm_device_id,
                                flags, &out->config);
             ATRACE_END();
+            if (errno == ENETRESET && !pcm_is_ready(out->pcm)) {
+                ALOGE("%s: pcm_open failed errno:%d\n", __func__, errno);
+                out->card_status = CARD_STATUS_OFFLINE;
+                adev->card_status = CARD_STATUS_OFFLINE;
+                ret = -EIO;
+                goto error_open;
+            }
+
             if (out->pcm == NULL || !pcm_is_ready(out->pcm)) {
                 ALOGE("%s: %s", __func__, pcm_get_error(out->pcm));
                 if (out->pcm != NULL) {
@@ -3173,6 +3226,8 @@ int start_output_stream(struct stream_out *out)
             }
             break;
         }
+        platform_set_stream_channel_map(adev->platform, out->channel_mask,
+                   out->pcm_device_id, &out->channel_map_param.channel_map[0]);
 
         ALOGV("%s: pcm_prepare", __func__);
         if (pcm_is_ready(out->pcm)) {
@@ -3186,8 +3241,6 @@ int start_output_stream(struct stream_out *out)
                 goto error_open;
             }
         }
-        platform_set_stream_channel_map(adev->platform, out->channel_mask,
-                   out->pcm_device_id, &out->channel_map_param.channel_map[0]);
         // apply volume for voip playback after path is set up
         if (out->usecase == USECASE_AUDIO_PLAYBACK_VOIP)
             out_set_voip_volume(&out->stream, out->volume_l, out->volume_r);
@@ -3203,6 +3256,14 @@ int start_output_stream(struct stream_out *out)
                                    out->pcm_device_id,
                                    COMPRESS_IN, &out->compr_config);
         ATRACE_END();
+        if (errno == ENETRESET && !is_compress_ready(out->compr)) {
+                ALOGE("%s: compress_open failed errno:%d\n", __func__, errno);
+                adev->card_status = CARD_STATUS_OFFLINE;
+                out->card_status = CARD_STATUS_OFFLINE;
+                ret = -EIO;
+                goto error_open;
+        }
+
         if (out->compr && !is_compress_ready(out->compr)) {
             ALOGE("%s: failed /w error %s", __func__, compress_get_error(out->compr));
             compress_close(out->compr);
@@ -3384,12 +3445,47 @@ static void register_sample_rate(uint32_t sample_rate,
              "%s: stream can not declare supporting its sample rate %x", __func__, sample_rate);
 }
 
+static inline uint32_t lcm(uint32_t num1, uint32_t num2)
+{
+    uint32_t high = num1, low = num2, temp = 0;
+
+    if (!num1 || !num2)
+        return 0;
+
+    if (num1 < num2) {
+         high = num2;
+         low = num1;
+    }
+
+    while (low != 0) {
+        temp = low;
+        low = high % low;
+        high = temp;
+    }
+    return (num1 * num2)/high;
+}
+
+static inline uint32_t nearest_multiple(uint32_t num, uint32_t multiplier)
+{
+    uint32_t remainder = 0;
+
+    if (!multiplier)
+        return num;
+
+    remainder = num % multiplier;
+    if (remainder)
+        num += (multiplier - remainder);
+
+    return num;
+}
+
 static size_t get_input_buffer_size(uint32_t sample_rate,
                                     audio_format_t format,
                                     int channel_count,
                                     bool is_low_latency)
 {
     size_t size = 0;
+    uint32_t bytes_per_period_sample = 0;
 
     if (check_input_parameters(sample_rate, format, channel_count) != 0)
         return 0;
@@ -3398,15 +3494,16 @@ static size_t get_input_buffer_size(uint32_t sample_rate,
     if (is_low_latency)
         size = configured_low_latency_capture_period_size;
 
-    size *= audio_bytes_per_sample(format) * channel_count;
+    bytes_per_period_sample = audio_bytes_per_sample(format) * channel_count;
+    size *= bytes_per_period_sample;
 
     /* make sure the size is multiple of 32 bytes
      * At 48 kHz mono 16-bit PCM:
      *  5.000 ms = 240 frames = 15*16*1*2 = 480, a whole multiple of 32 (15)
      *  3.333 ms = 160 frames = 10*16*1*2 = 320, a whole multiple of 32 (10)
+     * Also, make sure the size is multiple of bytes per period sample
      */
-    size += 0x1f;
-    size &= ~0x1f;
+    size = nearest_multiple(size, lcm(32, bytes_per_period_sample));
 
     return size;
 }
@@ -3947,6 +4044,13 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
         pthread_mutex_unlock(&out->lock);
     }
 
+    err = str_parms_get_str(parms, AUDIO_PARAMETER_DUAL_MONO, value,
+                            sizeof(value));
+    if (err >= 0) {
+        if (!strncmp("true", value, sizeof("true")) || atoi(value))
+            audio_extn_send_dual_mono_mixing_coefficients(out);
+    }
+
     err = str_parms_get_str(parms, AUDIO_PARAMETER_STREAM_PROFILE, value, sizeof(value));
     if (err >= 0) {
         strlcpy(out->profile, value, sizeof(out->profile));
@@ -4269,6 +4373,38 @@ static float AmpToDb(float amplification)
     return db;
 }
 
+static int out_set_mmap_volume(struct audio_stream_out *stream, float left,
+                          float right)
+{
+    struct stream_out *out = (struct stream_out *)stream;
+    long volume = 0;
+    char mixer_ctl_name[128] = "";
+    struct audio_device *adev = out->dev;
+    struct mixer_ctl *ctl = NULL;
+    int pcm_device_id = platform_get_pcm_device_id(out->usecase,
+                                               PCM_PLAYBACK);
+
+    snprintf(mixer_ctl_name, sizeof(mixer_ctl_name),
+             "Playback %d Volume", pcm_device_id);
+    ctl = mixer_get_ctl_by_name(adev->mixer, mixer_ctl_name);
+    if (!ctl) {
+        ALOGE("%s: Could not get ctl for mixer cmd - %s",
+              __func__, mixer_ctl_name);
+        return -EINVAL;
+    }
+    if (left != right)
+        ALOGW("%s: Left and right channel volume mismatch:%f,%f",
+                 __func__, left, right);
+    volume = (long)(left * (MMAP_PLAYBACK_VOLUME_MAX*1.0));
+    if (mixer_ctl_set_value(ctl, 0, volume) < 0){
+        ALOGE("%s:ctl for mixer cmd - %s, volume %ld returned error",
+           __func__, mixer_ctl_name, volume);
+        return -EINVAL;
+    }
+    return 0;
+}
+
+
 static int out_set_compr_volume(struct audio_stream_out *stream, float left,
                           float right)
 {
@@ -4329,6 +4465,8 @@ static int out_set_volume(struct audio_stream_out *stream, float left,
     int volume[2];
     int ret = 0;
 
+    ALOGD("%s: called with left_vol=%f, right_vol=%f", __func__, left, right);
+
     if (out->usecase == USECASE_AUDIO_PLAYBACK_MULTI_CH) {
         /* only take left channel into account: the API is for stereo anyway */
         out->muted = (left == 0.0f);
@@ -4357,7 +4495,7 @@ static int out_set_volume(struct audio_stream_out *stream, float left,
             return 0;
         } else {
             pthread_mutex_lock(&out->compr_mute_lock);
-            ALOGE("%s: compress mute %d", __func__, out->a2dp_compress_mute);
+            ALOGV("%s: compress mute %d", __func__, out->a2dp_compress_mute);
             if (!out->a2dp_compress_mute)
                 ret = out_set_compr_volume(stream, left, right);
             out->volume_l = left;
@@ -4368,6 +4506,13 @@ static int out_set_volume(struct audio_stream_out *stream, float left,
     } else if (out->usecase == USECASE_AUDIO_PLAYBACK_VOIP) {
         if (!out->standby)
             ret = out_set_voip_volume(stream, left, right);
+        out->volume_l = left;
+        out->volume_r = right;
+        return ret;
+    } else if (out->usecase == USECASE_AUDIO_PLAYBACK_MMAP) {
+        ALOGV("%s: MMAP set volume called", __func__);
+        if (!out->standby)
+            ret = out_set_mmap_volume(stream, left, right);
         out->volume_l = left;
         out->volume_r = right;
         return ret;
@@ -4516,6 +4661,8 @@ static ssize_t out_write(struct audio_stream_out *stream, const void *buffer,
             ret = -EINVAL;
             goto exit;
         }
+        if (out->set_dual_mono)
+            audio_extn_send_dual_mono_mixing_coefficients(out);
     }
 
     if (adev->is_channel_status_set == false && (out->devices & AUDIO_DEVICE_OUT_AUX_DIGITAL)){
@@ -4615,7 +4762,8 @@ static ssize_t out_write(struct audio_stream_out *stream, const void *buffer,
             ALOGV("%s: frames=%zu, frame_size=%zu, bytes_to_write=%zu",
                      __func__, frames, frame_size, bytes_to_write);
 
-            if (out->usecase == USECASE_INCALL_MUSIC_UPLINK) {
+            if (out->usecase == USECASE_INCALL_MUSIC_UPLINK ||
+                        out->usecase == USECASE_INCALL_MUSIC_UPLINK2) {
                 size_t channel_count = audio_channel_count_from_out_mask(out->channel_mask);
                 int16_t *src = (int16_t *)buffer;
                 int16_t *dst = (int16_t *)buffer;
@@ -5064,10 +5212,18 @@ static int out_create_mmap_buffer(const struct audio_stream_out *stream,
     unsigned int frames1 = 0;
     const char *step = "";
     uint32_t mmap_size;
+    uint32_t buffer_size;
 
-    ALOGV("%s", __func__);
+    ALOGD("%s", __func__);
+    lock_output_stream(out);
     pthread_mutex_lock(&adev->lock);
 
+    if (CARD_STATUS_OFFLINE == out->card_status ||
+        CARD_STATUS_OFFLINE == adev->card_status) {
+        ALOGW("out->card_status or adev->card_status offline, try again");
+        ret = -EIO;
+        goto exit;
+    }
     if (info == NULL || min_size_frames == 0) {
         ALOGE("%s: info = %p, min_size_frames = %d", __func__, info, min_size_frames);
         ret = -EINVAL;
@@ -5088,10 +5244,18 @@ static int out_create_mmap_buffer(const struct audio_stream_out *stream,
 
     adjust_mmap_period_count(&out->config, min_size_frames);
 
-    ALOGV("%s: Opening PCM device card_id(%d) device_id(%d), channels %d",
+    ALOGD("%s: Opening PCM device card_id(%d) device_id(%d), channels %d",
           __func__, adev->snd_card, out->pcm_device_id, out->config.channels);
     out->pcm = pcm_open(adev->snd_card, out->pcm_device_id,
                         (PCM_OUT | PCM_MMAP | PCM_NOIRQ | PCM_MONOTONIC), &out->config);
+    if (errno == ENETRESET && !pcm_is_ready(out->pcm)) {
+        ALOGE("%s: pcm_open failed errno:%d\n", __func__, errno);
+        out->card_status = CARD_STATUS_OFFLINE;
+        adev->card_status = CARD_STATUS_OFFLINE;
+        ret = -EIO;
+        goto exit;
+    }
+
     if (out->pcm == NULL || !pcm_is_ready(out->pcm)) {
         step = "open";
         ret = -ENODEV;
@@ -5103,17 +5267,24 @@ static int out_create_mmap_buffer(const struct audio_stream_out *stream,
         goto exit;
     }
     info->buffer_size_frames = pcm_get_buffer_size(out->pcm);
+    buffer_size = pcm_frames_to_bytes(out->pcm, info->buffer_size_frames);
     info->burst_size_frames = out->config.period_size;
     ret = platform_get_mmap_data_fd(adev->platform,
                                     out->pcm_device_id, 0 /*playback*/,
                                     &info->shared_memory_fd,
                                     &mmap_size);
     if (ret < 0) {
-        step = "get_mmap_fd";
-        goto exit;
+        // Fall back to non exclusive mode
+        info->shared_memory_fd = pcm_get_poll_fd(out->pcm);
+    } else {
+        if (mmap_size < buffer_size) {
+            step = "mmap";
+            goto exit;
+        }
+        // FIXME: indicate exclusive mode support by returning a negative buffer size
+        info->buffer_size_frames *= -1;
     }
-    memset(info->shared_memory_address, 0, pcm_frames_to_bytes(out->pcm,
-                                                               info->buffer_size_frames));
+    memset(info->shared_memory_address, 0, buffer_size);
 
     ret = pcm_mmap_commit(out->pcm, 0, MMAP_PERIOD_SIZE);
     if (ret < 0) {
@@ -5124,7 +5295,7 @@ static int out_create_mmap_buffer(const struct audio_stream_out *stream,
     out->standby = false;
     ret = 0;
 
-    ALOGV("%s: got mmap buffer address %p info->buffer_size_frames %d",
+    ALOGD("%s: got mmap buffer address %p info->buffer_size_frames %d",
           __func__, info->shared_memory_address, info->buffer_size_frames);
 
 exit:
@@ -5138,6 +5309,7 @@ exit:
         }
     }
     pthread_mutex_unlock(&adev->lock);
+    pthread_mutex_unlock(&out->lock);
     return ret;
 }
 
@@ -5253,15 +5425,15 @@ static int in_standby(struct audio_stream *stream)
                 audio_extn_cin_stop_input_stream(in);
         }
 
-        if (do_stop) {
-            if (in->pcm) {
+        if (in->pcm) {
                 ATRACE_BEGIN("pcm_in_close");
                 pcm_close(in->pcm);
                 ATRACE_END();
                 in->pcm = NULL;
-            }
-            status = stop_input_stream(in);
         }
+
+        if (do_stop)
+            status = stop_input_stream(in);
         pthread_mutex_unlock(&adev->lock);
     }
     pthread_mutex_unlock(&in->lock);
@@ -5669,9 +5841,18 @@ static int in_create_mmap_buffer(const struct audio_stream_in *stream,
     unsigned int offset1 = 0;
     unsigned int frames1 = 0;
     const char *step = "";
+    uint32_t mmap_size = 0;
+    uint32_t buffer_size = 0;
 
     pthread_mutex_lock(&adev->lock);
     ALOGV("%s in %p", __func__, in);
+
+    if (CARD_STATUS_OFFLINE == in->card_status||
+        CARD_STATUS_OFFLINE == adev->card_status) {
+        ALOGW("in->card_status or adev->card_status offline, try again");
+        ret = -EIO;
+        goto exit;
+    }
 
     if (info == NULL || min_size_frames == 0) {
         ALOGE("%s invalid argument info %p min_size_frames %d", __func__, info, min_size_frames);
@@ -5698,6 +5879,14 @@ static int in_create_mmap_buffer(const struct audio_stream_in *stream,
           __func__, adev->snd_card, in->pcm_device_id, in->config.channels);
     in->pcm = pcm_open(adev->snd_card, in->pcm_device_id,
                         (PCM_IN | PCM_MMAP | PCM_NOIRQ | PCM_MONOTONIC), &in->config);
+    if (errno == ENETRESET && !pcm_is_ready(in->pcm)) {
+        ALOGE("%s: pcm_open failed errno:%d\n", __func__, errno);
+        in->card_status = CARD_STATUS_OFFLINE;
+        adev->card_status = CARD_STATUS_OFFLINE;
+        ret = -EIO;
+        goto exit;
+    }
+
     if (in->pcm == NULL || !pcm_is_ready(in->pcm)) {
         step = "open";
         ret = -ENODEV;
@@ -5709,12 +5898,27 @@ static int in_create_mmap_buffer(const struct audio_stream_in *stream,
         step = "begin";
         goto exit;
     }
-    info->buffer_size_frames = pcm_get_buffer_size(in->pcm);
-    info->burst_size_frames = in->config.period_size;
-    info->shared_memory_fd = pcm_get_poll_fd(in->pcm);
 
-    memset(info->shared_memory_address, 0, pcm_frames_to_bytes(in->pcm,
-                                                                info->buffer_size_frames));
+    info->buffer_size_frames = pcm_get_buffer_size(in->pcm);
+    buffer_size = pcm_frames_to_bytes(in->pcm, info->buffer_size_frames);
+    info->burst_size_frames = in->config.period_size;
+    ret = platform_get_mmap_data_fd(adev->platform,
+                                    in->pcm_device_id, 1 /*capture*/,
+                                    &info->shared_memory_fd,
+                                    &mmap_size);
+    if (ret < 0) {
+        // Fall back to non exclusive mode
+        info->shared_memory_fd = pcm_get_poll_fd(in->pcm);
+    } else {
+        if (mmap_size < buffer_size) {
+            step = "mmap";
+            goto exit;
+        }
+        // FIXME: indicate exclusive mode support by returning a negative buffer size
+        info->buffer_size_frames *= -1;
+    }
+
+    memset(info->shared_memory_address, 0, buffer_size);
 
     ret = pcm_mmap_commit(in->pcm, 0, MMAP_PERIOD_SIZE);
     if (ret < 0) {
@@ -5762,7 +5966,7 @@ static int in_get_mmap_position(const struct audio_stream_in *stream,
         ALOGE("%s: %s", __func__, pcm_get_error(in->pcm));
         return ret;
     }
-    position->time_nanoseconds = ts.tv_sec*1000000000L + ts.tv_nsec;
+    position->time_nanoseconds = ts.tv_sec*1000000000LL + ts.tv_nsec;
     return 0;
 }
 
@@ -5862,6 +6066,7 @@ int adev_open_output_stream(struct audio_hw_device *dev,
     out->a2dp_compress_mute = false;
     out->hal_output_suspend_supported = 0;
     out->dynamic_pm_qos_config_supported = 0;
+    out->set_dual_mono = false;
 
     if ((flags & AUDIO_OUTPUT_FLAG_BD) &&
         (property_get_bool("vendor.audio.matrix.limiter.enable", false)))
@@ -6723,9 +6928,12 @@ error:
 static char* adev_get_parameters(const struct audio_hw_device *dev,
                                  const char *keys)
 {
+    ALOGD("%s:%s", __func__, keys);
+
     struct audio_device *adev = (struct audio_device *)dev;
     struct str_parms *reply = str_parms_create();
     struct str_parms *query = str_parms_create_str(keys);
+
     char *str;
     char value[256] = {0};
     int ret = 0;
@@ -6777,7 +6985,7 @@ exit:
     str_parms_destroy(query);
     str_parms_destroy(reply);
 
-    ALOGV("%s: exit: returns - %s", __func__, str);
+    ALOGD("%s: exit: returns - %s", __func__, str);
     return str;
 }
 
@@ -6866,6 +7074,8 @@ static int adev_set_mic_mute(struct audio_hw_device *dev, bool state)
     pthread_mutex_lock(&adev->lock);
     ALOGD("%s state %d\n", __func__, state);
     ret = voice_set_mic_mute((struct audio_device *)dev, state);
+    if (adev->ext_hw_plugin)
+        ret = audio_extn_ext_hw_plugin_set_mic_mute(adev->ext_hw_plugin, state);
     pthread_mutex_unlock(&adev->lock);
 
     return ret;
@@ -7131,6 +7341,7 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
         in->usecase = USECASE_AUDIO_RECORD_MMAP;
         in->config = pcm_config_mmap_capture;
         in->config.format = pcm_format_from_audio_format(config->format);
+        in->config.channels = channel_count;
         in->stream.start = in_start;
         in->stream.stop = in_stop;
         in->stream.create_mmap_buffer = in_create_mmap_buffer;
@@ -7282,8 +7493,10 @@ static void adev_close_input_stream(struct audio_hw_device *dev,
     // between the callback and close_stream
     audio_extn_snd_mon_unregister_listener(stream);
 
-    /* Disable echo reference while closing input stream */
-    platform_set_echo_reference(adev, false, AUDIO_DEVICE_NONE);
+    // Disable echo reference if there are no active input and hfp call
+    // while closing input stream
+    if (!adev->active_input && !audio_extn_hfp_is_active(adev))
+        platform_set_echo_reference(adev, false, AUDIO_DEVICE_NONE);
 
     if (in == NULL) {
         ALOGE("%s: audio_stream_in ptr is NULL", __func__);
@@ -7399,6 +7612,8 @@ static int adev_close(hw_device_t *device)
             free(adev->device_cfg_params);
             adev->device_cfg_params = NULL;
         }
+        if(adev->ext_hw_plugin)
+            audio_extn_ext_hw_plugin_deinit(adev->ext_hw_plugin);
         free(device);
         adev = NULL;
     }
@@ -7651,6 +7866,8 @@ static int adev_open(const hw_module_t *module, const char *name,
         adev->device.open_output_stream = audio_extn_qaf_open_output_stream;
         adev->device.close_output_stream = audio_extn_qaf_close_output_stream;
     }
+
+    adev->ext_hw_plugin = audio_extn_ext_hw_plugin_init(adev);
 
     if (access(VISUALIZER_LIBRARY_PATH, R_OK) == 0) {
         adev->visualizer_lib = dlopen(VISUALIZER_LIBRARY_PATH, RTLD_NOW);
