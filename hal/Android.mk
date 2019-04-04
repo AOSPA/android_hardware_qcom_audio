@@ -317,6 +317,19 @@ ifeq ($(strip $(AUDIO_FEATURE_ENABLED_BT_HAL)),true)
     LOCAL_SRC_FILES += audio_extn/bt_hal.c
 endif
 
+ifeq ($(strip $(USE_LIB_PROCESS_GROUP)),true)
+LOCAL_SHARED_LIBRARIES := \
+        liblog \
+        libcutils \
+        libtinyalsa \
+        libtinycompress_vendor \
+        libaudioroute \
+        libdl \
+        libaudioutils \
+        libexpat \
+        libhidltransport \
+        libprocessgroup
+else
 LOCAL_SHARED_LIBRARIES := \
 	liblog \
 	libcutils \
@@ -325,6 +338,7 @@ LOCAL_SHARED_LIBRARIES := \
 	libdl \
 	libaudioutils \
 	libexpat
+endif
 
 ifneq ($(strip $(TARGET_USES_AOSP_FOR_AUDIO)),true)
     LOCAL_SHARED_LIBRARIES += libtinycompress_vendor
@@ -452,6 +466,16 @@ endif
 ifeq ($(strip $(AUDIO_FEATURE_ENABLED_EXT_HW_PLUGIN)),true)
     LOCAL_CFLAGS += -DEXT_HW_PLUGIN_ENABLED
     LOCAL_SRC_FILES += audio_extn/ext_hw_plugin.c
+endif
+
+ifeq ($(strip $(AUDIO_FEATURE_ENABLED_GCOV)),true)
+    LOCAL_CFLAGS += --coverage -fprofile-arcs -ftest-coverage
+    LOCAL_CPPFLAGS += --coverage -fprofile-arcs -ftest-coverage
+    LOCAL_STATIC_LIBRARIES += libprofile_rt
+endif
+
+ifeq ($(strip $(AUDIO_FEATURE_ENABLED_A2DP_DECODERS)), true)
+    LOCAL_CFLAGS += -DAPTX_DECODER_ENABLED
 endif
 
 LOCAL_MODULE := audio.primary.$(TARGET_BOARD_PLATFORM)
