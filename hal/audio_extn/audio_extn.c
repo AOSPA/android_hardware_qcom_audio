@@ -46,6 +46,7 @@
 #include <cutils/properties.h>
 #include <log/log.h>
 #include <unistd.h>
+
 #include "audio_hw.h"
 #include "audio_extn.h"
 #include "voice_extn.h"
@@ -409,6 +410,25 @@ void audio_extn_check_and_set_dts_hpx_state(const struct audio_device *adev)
 }
 #endif
 
+/* Affine AHAL thread to CPU core */
+void audio_extn_set_cpu_affinity()
+{
+    cpu_set_t cpuset;
+    struct sched_param sched_param;
+    int policy = SCHED_FIFO, rc = 0;
+
+    ALOGV("%s: Set CPU affinity for read thread", __func__);
+    CPU_ZERO(&cpuset);
+    if (sched_setaffinity(0, sizeof(cpuset), &cpuset) != 0)
+        ALOGE("%s: CPU Affinity allocation failed for Capture thread",
+               __func__);
+
+    sched_param.sched_priority = sched_get_priority_min(policy);
+    rc = sched_setscheduler(0, policy, &sched_param);
+    if (rc != 0)
+         ALOGE("%s: Failed to set realtime priority", __func__);
+}
+
 // START: VBAT =============================================================
 void vbat_feature_init(bool is_feature_enabled)
 {
@@ -616,7 +636,7 @@ void audio_extn_set_anc_parameters(struct audio_device *adev,
         str_parms_destroy(reply_44_1);
     }
 
-    ALOGD("%s: anc_enabled:%d", __func__, aextnmod.anc_enabled);
+    ALOGV("%s: anc_enabled:%d", __func__, aextnmod.anc_enabled);
 }
 // END: ANC_HEADSET -------------------------------------------------------
 

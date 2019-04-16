@@ -87,7 +87,8 @@
 #if defined (PLATFORM_MSM8998) || (PLATFORM_SDM845) || (PLATFORM_SDM710) || \
     defined (PLATFORM_QCS605) || defined (PLATFORM_MSMNILE) || \
     defined (PLATFORM_KONA) || defined (PLATFORM_MSMSTEPPE) || \
-    defined (PLATFORM_QCS405) || defined (PLATFORM_TRINKET)
+    defined (PLATFORM_QCS405) || defined (PLATFORM_TRINKET) || \
+    defined (PLATFORM_LITO)
 #include <sound/devdep_params.h>
 #endif
 
@@ -342,6 +343,8 @@ struct  spkr_device_chmap {
 static int pcm_device_table[AUDIO_USECASE_MAX][2] = {
     [USECASE_AUDIO_PLAYBACK_DEEP_BUFFER] = {DEEP_BUFFER_PCM_DEVICE,
                                             DEEP_BUFFER_PCM_DEVICE},
+    [USECASE_AUDIO_PLAYBACK_WITH_HAPTICS] = {AUDIO_HAPTICS_PCM_DEVICE,
+                                             AUDIO_HAPTICS_PCM_DEVICE},
     [USECASE_AUDIO_PLAYBACK_LOW_LATENCY] = {LOWLATENCY_PCM_DEVICE,
                                            LOWLATENCY_PCM_DEVICE},
     [USECASE_AUDIO_PLAYBACK_ULL]         = {MULTIMEDIA3_PCM_DEVICE,
@@ -1028,6 +1031,7 @@ static char * hw_interface_table[SND_DEVICE_MAX] = {0};
 
 static struct name_to_index usecase_name_index[AUDIO_USECASE_MAX] = {
     {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_DEEP_BUFFER)},
+    {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_WITH_HAPTICS)},
     {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_LOW_LATENCY)},
     {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_HIFI)},
     {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_TTS)},
@@ -3412,6 +3416,11 @@ int platform_get_pcm_device_id(audio_usecase_t usecase, int device_type)
     return device_id;
 }
 
+int platform_get_haptics_pcm_device_id()
+{
+    return HAPTICS_PCM_DEVICE;
+}
+
 static int find_index(struct name_to_index * table, int32_t len, const char * name)
 {
     int ret = 0;
@@ -4755,33 +4764,31 @@ snd_device_t platform_get_output_snd_device(void *platform, struct stream_out *o
             else
                 snd_device = SND_DEVICE_OUT_BT_SCO;
         } else if (devices & (AUDIO_DEVICE_OUT_SPEAKER | AUDIO_DEVICE_OUT_SPEAKER_SAFE)) {
-            if (!adev->enable_hfp) {
-                snd_device = SND_DEVICE_OUT_VOICE_SPEAKER;
-            } else {
-                snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_HFP;
-            }
-        } else if (devices & AUDIO_DEVICE_OUT_SPEAKER) {
-                if (my_data->is_vbat_speaker || my_data->is_bcl_speaker) {
-                    if (hw_info_is_stereo_spkr(my_data->hw_info)) {
-                        if (my_data->mono_speaker == SPKR_1)
-                            snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_VBAT;
-                        else
-                            snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_2_VBAT;
-                    } else
+            if (my_data->is_vbat_speaker || my_data->is_bcl_speaker) {
+                if (hw_info_is_stereo_spkr(my_data->hw_info)) {
+                    if (my_data->mono_speaker == SPKR_1)
                         snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_VBAT;
-                } else {
-                    if (hw_info_is_stereo_spkr(my_data->hw_info)) {
-                        if (my_data->voice_speaker_stereo)
-                            snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_STEREO;
-                        else {
-                            if (my_data->mono_speaker == SPKR_1)
-                                snd_device = SND_DEVICE_OUT_VOICE_SPEAKER;
-                            else
-                                snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_2;
-                        }
-                    } else
+                    else
+                        snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_2_VBAT;
+                } else
+                    snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_VBAT;
+            } else {
+                if (hw_info_is_stereo_spkr(my_data->hw_info)) {
+                    if (my_data->voice_speaker_stereo)
+                        snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_STEREO;
+                    else if (adev->enable_hfp)
+                        snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_HFP;
+                    else {
+                        if (my_data->mono_speaker == SPKR_1)
                             snd_device = SND_DEVICE_OUT_VOICE_SPEAKER;
-                }
+                        else
+                            snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_2;
+                    }
+                } else if (adev->enable_hfp)
+                    snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_HFP;
+                else
+                    snd_device = SND_DEVICE_OUT_VOICE_SPEAKER;
+            }
         } else if (devices & AUDIO_DEVICE_OUT_ALL_A2DP) {
             snd_device = SND_DEVICE_OUT_BT_A2DP;
         } else if (devices & AUDIO_DEVICE_OUT_ANLG_DOCK_HEADSET ||
@@ -6647,6 +6654,7 @@ int64_t platform_render_latency(audio_usecase_t usecase)
         case USECASE_AUDIO_PLAYBACK_DEEP_BUFFER:
             return DEEP_BUFFER_PLATFORM_DELAY;
         case USECASE_AUDIO_PLAYBACK_LOW_LATENCY:
+        case USECASE_AUDIO_PLAYBACK_WITH_HAPTICS:
             return LOW_LATENCY_PLATFORM_DELAY;
         case USECASE_AUDIO_PLAYBACK_OFFLOAD:
         case USECASE_AUDIO_PLAYBACK_OFFLOAD2:
@@ -9329,7 +9337,8 @@ int platform_get_supported_copp_sampling_rate(uint32_t stream_sr)
 #if defined (PLATFORM_MSM8998) || (PLATFORM_SDM845) || (PLATFORM_SDM710) || \
     defined (PLATFORM_QCS605) || defined (PLATFORM_MSMNILE) || \
     defined (PLATFORM_KONA) || defined (PLATFORM_MSMSTEPPE) || \
-    defined (PLATFORM_QCS405) || defined (PLATFORM_TRINKET)
+    defined (PLATFORM_QCS405) || defined (PLATFORM_TRINKET) || \
+    defined (PLATFORM_LITO)
 int platform_get_mmap_data_fd(void *platform, int fe_dev, int dir, int *fd,
                               uint32_t *size)
 {
