@@ -1120,6 +1120,8 @@ static void update_codec_type_and_interface(struct platform_data * my_data, cons
                    sizeof("kona-mtp-snd-card")) ||
          !strncmp(snd_card_name, "kona-qrd-snd-card",
                    sizeof("kona-qrd-snd-card")) ||
+         !strncmp(snd_card_name, "trinket-qrd-snd-card",
+                   sizeof("trinket-qrd-snd-card")) ||
          !strncmp(snd_card_name, "trinket-idp-snd-card",
                    sizeof("trinket-idp-snd-card"))) {
          ALOGI("%s: snd_card_name: %s",__func__,snd_card_name);
@@ -1139,6 +1141,7 @@ static bool can_enable_mbdrc_on_device(snd_device_t snd_device)
         snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_2_VBAT ||
         snd_device == SND_DEVICE_OUT_VOICE_SPEAKER ||
         snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_2 ||
+        snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_STEREO ||
         snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_WSA ||
         snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_2_WSA) {
         ret = true;
@@ -1248,10 +1251,12 @@ void platform_set_gsm_mode(void *platform, bool enable)
 }
 
 void platform_set_echo_reference(struct audio_device *adev, bool enable,
-                                 audio_devices_t out_device __unused)
+                                 audio_devices_t out_device)
 {
     struct platform_data *my_data = (struct platform_data *)adev->platform;
     char ec_ref_mixer_path[MIXER_PATH_MAX_LENGTH] = "echo-reference";
+
+    audio_extn_sound_trigger_update_ec_ref_status(enable);
 
     if (strcmp(my_data->ec_ref_mixer_path, "")) {
         ALOGV("%s: disabling %s", __func__, my_data->ec_ref_mixer_path);
@@ -1264,9 +1269,11 @@ void platform_set_echo_reference(struct audio_device *adev, bool enable,
         if (adev->mode == AUDIO_MODE_IN_COMMUNICATION)
             strlcat(ec_ref_mixer_path, "-voip", MIXER_PATH_MAX_LENGTH);
 #endif
+        strlcpy(my_data->ec_ref_mixer_path, ec_ref_mixer_path,
+                    MIXER_PATH_MAX_LENGTH);
         /*
          * If native audio device reference count > 0, then apply codec EC otherwise
-         * fallback to Speakers with VBat if enabled or default
+         * apply EC based on output device.
          */
         if (adev->snd_dev_ref_cnt[SND_DEVICE_OUT_HEADPHONES_44_1] > 0)
             strlcat(ec_ref_mixer_path, " headphones-44.1",
@@ -1277,12 +1284,24 @@ void platform_set_echo_reference(struct audio_device *adev, bool enable,
         else if (adev->snd_dev_ref_cnt[SND_DEVICE_OUT_DISPLAY_PORT] > 0)
             strlcat(ec_ref_mixer_path, " display-port",
                     MIXER_PATH_MAX_LENGTH);
+        else if (out_device & AUDIO_DEVICE_OUT_EARPIECE)
+            strlcat(ec_ref_mixer_path, " handset",
+                    MIXER_PATH_MAX_LENGTH);
+        else if (out_device & AUDIO_DEVICE_OUT_WIRED_HEADPHONE)
+            strlcat(ec_ref_mixer_path, " headphones",
+                    MIXER_PATH_MAX_LENGTH);
+        else if (out_device & AUDIO_DEVICE_OUT_USB_HEADSET)
+            strlcat(ec_ref_mixer_path, " usb-headphones",
+                    MIXER_PATH_MAX_LENGTH);
 
-        strlcpy(my_data->ec_ref_mixer_path, ec_ref_mixer_path,
-                MIXER_PATH_MAX_LENGTH);
+        if (audio_route_apply_and_update_path(adev->audio_route,
+                                              ec_ref_mixer_path) == 0)
+            strlcpy(my_data->ec_ref_mixer_path, ec_ref_mixer_path,
+                    MIXER_PATH_MAX_LENGTH);
+        else
+            audio_route_apply_and_update_path(adev->audio_route, my_data->ec_ref_mixer_path);
 
         ALOGD("%s: enabling %s", __func__, my_data->ec_ref_mixer_path);
-        audio_route_apply_and_update_path(adev->audio_route, my_data->ec_ref_mixer_path);
     }
 }
 
@@ -1916,6 +1935,10 @@ static int platform_acdb_init(void *platform)
     }
 
     snd_card_name = mixer_get_name(my_data->adev->mixer);
+    if (!snd_card_name) {
+        ALOGE("Failed to get snd_card_name");
+        goto cleanup;
+    }
     snd_card_name = platform_get_snd_card_name_for_acdb_loader(snd_card_name);
 
     my_data->acdb_init_data.cvd_version = cvd_version;
@@ -1939,6 +1962,7 @@ static int platform_acdb_init(void *platform)
     strlcpy(my_data->snd_card_name, snd_card_name,
                                                MAX_SND_CARD_STRING_SIZE);
 
+cleanup:
     if (cvd_version)
         free(cvd_version);
     if (!result) {
@@ -3480,11 +3504,15 @@ int platform_send_audio_calibration(void *platform, struct audio_usecase *usecas
     int snd_device = SND_DEVICE_OUT_SPEAKER;
     int new_snd_device[SND_DEVICE_OUT_END] = {0};
     int i, num_devices = 1;
+    bool is_incall_rec_usecase = false;
+    snd_device_t incall_rec_device;
+
+    if (voice_is_in_call(my_data->adev))
+        is_incall_rec_usecase = voice_is_in_call_rec_stream(usecase->stream.in);
 
     if (usecase->type == PCM_PLAYBACK)
         snd_device = usecase->out_snd_device;
-    else if ((usecase->type == PCM_CAPTURE) &&
-                   voice_is_in_call_rec_stream(usecase->stream.in))
+    else if ((usecase->type == PCM_CAPTURE) && is_incall_rec_usecase)
         snd_device = voice_get_incall_rec_snd_device(usecase->in_snd_device);
     else if ((usecase->type == PCM_HFP_CALL) || (usecase->type == PCM_CAPTURE))
         snd_device = usecase->in_snd_device;
@@ -3498,13 +3526,25 @@ int platform_send_audio_calibration(void *platform, struct audio_usecase *usecas
         return -EINVAL;
     }
 
-    if (platform_split_snd_device(my_data, snd_device,
-                                  &num_devices, new_snd_device) < 0) {
-        new_snd_device[0] = snd_device;
+    if (!is_incall_rec_usecase) {
+        if (platform_split_snd_device(my_data, snd_device,
+                                      &num_devices, new_snd_device) < 0) {
+            new_snd_device[0] = snd_device;
+        }
+    } else {
+        incall_rec_device = voice_get_incall_rec_backend_device(usecase->stream.in);
+        if (platform_split_snd_device(my_data, incall_rec_device,
+                                      &num_devices, new_snd_device) < 0) {
+            new_snd_device[0] = snd_device;
+        }
     }
 
     for (i = 0; i < num_devices; i++) {
-        acdb_dev_id = acdb_device_table[platform_get_spkr_prot_snd_device(new_snd_device[i])];
+        if (!is_incall_rec_usecase)
+            acdb_dev_id = acdb_device_table[platform_get_spkr_prot_snd_device(new_snd_device[i])];
+        else
+            // Use in_call_rec snd_device to extract the ACDB device ID instead of split snd devices
+            acdb_dev_id = acdb_device_table[platform_get_spkr_prot_snd_device(snd_device)];
 
         // Do not use Rx path default app type for TX path
         if ((usecase->type == PCM_CAPTURE) && (app_type == DEFAULT_APP_TYPE_RX_PATH)) {
@@ -3642,6 +3682,7 @@ int platform_switch_voice_call_usecase_route_post(void *platform,
 
     if ((out_snd_device == SND_DEVICE_OUT_VOICE_SPEAKER ||
          out_snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_2 ||
+         out_snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_STEREO ||
          out_snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_VBAT ||
          out_snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_2_VBAT) &&
          audio_extn_spkr_prot_is_enabled()) {
@@ -5948,7 +5989,10 @@ static int platform_get_voice_call_backend(struct audio_device* adev)
    if (voice_is_in_call(adev) || adev->mode == AUDIO_MODE_IN_COMMUNICATION) {
        list_for_each(node, &adev->usecase_list) {
            uc =  node_to_item(node, struct audio_usecase, list);
-           if (uc && (uc->type == VOICE_CALL || uc->type == VOIP_CALL) && uc->stream.out) {
+           if (uc && uc->stream.out &&
+               (uc->type == VOICE_CALL ||
+                uc->type == VOIP_CALL ||
+                uc->id == USECASE_AUDIO_PLAYBACK_VOIP)) {
                out_snd_device = platform_get_output_snd_device(adev->platform, uc->stream.out);
                backend_idx = platform_get_backend_index(out_snd_device);
                break;
@@ -6485,7 +6529,7 @@ static bool platform_check_codec_backend_cfg(struct audio_device* adev,
      * Handset and speaker may have diffrent backend. Check if the device is speaker or handset,
      * and these devices are restricited to 48kHz.
      */
-    if ((platform_get_backend_index(snd_device) == DEFAULT_CODEC_BACKEND) &&
+    if (!codec_device_supports_native_playback(usecase->devices) &&
         (platform_check_backends_match(SND_DEVICE_OUT_SPEAKER, snd_device) ||
          platform_check_backends_match(SND_DEVICE_OUT_HANDSET, snd_device))) {
         if (bit_width >= 24) {
@@ -7698,6 +7742,7 @@ bool platform_can_enable_spkr_prot_on_device(snd_device_t snd_device)
         snd_device == SND_DEVICE_OUT_SPEAKER_VBAT ||
         snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_VBAT ||
         snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_2_VBAT ||
+        snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_STEREO ||
         snd_device == SND_DEVICE_OUT_VOICE_SPEAKER ||
         snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_2) {
         ret = true;
