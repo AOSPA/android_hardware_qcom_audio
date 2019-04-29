@@ -46,7 +46,7 @@
 #include <cutils/properties.h>
 #include <cutils/log.h>
 #include <unistd.h>
-
+#include <sched.h>
 #include "audio_hw.h"
 #include "audio_extn.h"
 #include "audio_defs.h"
@@ -393,27 +393,56 @@ static int update_custom_mtmx_coefficients(struct audio_device *adev,
     char mixer_ctl_name[128] = {0};
     struct audio_custom_mtmx_params_info *pinfo = &params->info;
     int i = 0, err = 0;
+    int cust_ch_mixer_cfg[128], len = 0;
 
     ALOGI("%s: ip_channels %d, op_channels %d, pcm_device_id %d",
           __func__, pinfo->ip_channels, pinfo->op_channels, pcm_device_id);
 
-    for (i = 0; i < (int)pinfo->op_channels; i++) {
-         snprintf(mixer_ctl_name, sizeof(mixer_ctl_name), "%s %d %s %d",
-                  mixer_name_prefix, pcm_device_id, mixer_name_suffix, i+1);
-         ctl = mixer_get_ctl_by_name(adev->mixer, mixer_ctl_name);
-         if (!ctl) {
-             ALOGE("%s: ERROR. Could not get ctl for mixer cmd - %s",
-                   __func__, mixer_ctl_name);
-             return -EINVAL;
-         }
+    if (adev->use_old_pspd_mix_ctrl) {
+        /*
+         * Below code is to ensure backward compatibilty with older
+         * kernel version. Use old mixer control to set mixer coefficients
+         */
+        snprintf(mixer_ctl_name, sizeof(mixer_ctl_name),
+         "Audio Stream %d Channel Mix Cfg", pcm_device_id);
 
-         err = mixer_ctl_set_array(ctl,
-                                   &params->coeffs[pinfo->ip_channels * i],
-                                   pinfo->ip_channels);
-         if (err) {
-             ALOGE("%s: ERROR. Mixer ctl set failed", __func__);
-             return -EINVAL;
-         }
+        ctl = mixer_get_ctl_by_name(adev->mixer, mixer_ctl_name);
+        if (!ctl) {
+            ALOGE("%s: ERROR. Could not get ctl for mixer cmd - %s",
+                  __func__, mixer_ctl_name);
+            return -EINVAL;
+        }
+        cust_ch_mixer_cfg[len++] = pinfo->ip_channels;
+        cust_ch_mixer_cfg[len++] = pinfo->op_channels;
+        for (i = 0; i < (int) (pinfo->op_channels * pinfo->ip_channels); i++) {
+            ALOGV("%s: coeff[%d] %d", __func__, i, params->coeffs[i]);
+            cust_ch_mixer_cfg[len++] = params->coeffs[i];
+        }
+        err = mixer_ctl_set_array(ctl, cust_ch_mixer_cfg, len);
+        if (err) {
+            ALOGE("%s: ERROR. Mixer ctl set failed", __func__);
+            return -EINVAL;
+        }
+        ALOGD("%s: Mixer ctl set for %s success", __func__, mixer_ctl_name);
+    } else {
+        for (i = 0; i < (int)pinfo->op_channels; i++) {
+            snprintf(mixer_ctl_name, sizeof(mixer_ctl_name), "%s %d %s %d",
+                    mixer_name_prefix, pcm_device_id, mixer_name_suffix, i+1);
+
+            ctl = mixer_get_ctl_by_name(adev->mixer, mixer_ctl_name);
+            if (!ctl) {
+                ALOGE("%s: ERROR. Could not get ctl for mixer cmd - %s",
+                      __func__, mixer_ctl_name);
+                 return -EINVAL;
+            }
+            err = mixer_ctl_set_array(ctl,
+                                      &params->coeffs[pinfo->ip_channels * i],
+                                      pinfo->ip_channels);
+            if (err) {
+                ALOGE("%s: ERROR. Mixer ctl set failed", __func__);
+                return -EINVAL;
+            }
+        }
     }
     return 0;
 }
@@ -604,6 +633,25 @@ void audio_extn_check_and_set_dts_hpx_state(const struct audio_device *adev)
         adev->offload_effects_set_hpx_state(aextnmod.hpx_enabled);
 }
 #endif
+
+/* Affine AHAL thread to CPU core */
+void audio_extn_set_cpu_affinity()
+{
+    cpu_set_t cpuset;
+    struct sched_param sched_param;
+    int policy = SCHED_FIFO, rc = 0;
+
+    ALOGV("%s: Set CPU affinity for read thread", __func__);
+    CPU_ZERO(&cpuset);
+    if (sched_setaffinity(0, sizeof(cpuset), &cpuset) != 0)
+        ALOGE("%s: CPU Affinity allocation failed for Capture thread",
+               __func__);
+
+    sched_param.sched_priority = sched_get_priority_min(policy);
+    rc = sched_setscheduler(0, policy, &sched_param);
+    if (rc != 0)
+         ALOGE("%s: Failed to set realtime priority", __func__);
+}
 
 #ifdef HIFI_AUDIO_ENABLED
 bool audio_extn_is_hifi_audio_enabled(void)
@@ -880,12 +928,17 @@ done:
 #define audio_extn_get_afe_proxy_parameters(adev, query, reply) (0)
 #else
 static int32_t afe_proxy_set_channel_mapping(struct audio_device *adev,
-                                                     int channel_count)
+                                                     int channel_count,
+                                                     snd_device_t snd_device)
 {
-    struct mixer_ctl *ctl;
+    struct mixer_ctl *ctl = NULL, *be_ctl = NULL;
     const char *mixer_ctl_name = "Playback Device Channel Map";
-    long set_values[8] = {0};
-    int ret;
+    const char *be_mixer_ctl_name = "Backend Device Channel Map";
+    long set_values[FCC_8] = {0};
+    long be_set_values[FCC_8 + 1] = {0};
+    int ret = -1;
+    int be_idx = -1;
+
     ALOGV("%s channel_count:%d",__func__, channel_count);
 
     switch (channel_count) {
@@ -917,21 +970,42 @@ static int32_t afe_proxy_set_channel_mapping(struct audio_device *adev,
         return -EINVAL;
     }
 
-    ctl = mixer_get_ctl_by_name(adev->mixer, mixer_ctl_name);
+    be_idx = platform_get_snd_device_backend_index(snd_device);
+
+    if (be_idx >= 0) {
+        be_ctl = mixer_get_ctl_by_name(adev->mixer, be_mixer_ctl_name);
+        if (!be_ctl) {
+            ALOGD("%s: Could not get ctl for mixer cmd - %s, using default control",
+                  __func__, be_mixer_ctl_name);
+            ctl = mixer_get_ctl_by_name(adev->mixer, mixer_ctl_name);
+        } else
+            ctl = be_ctl;
+    } else
+         ctl = mixer_get_ctl_by_name(adev->mixer, mixer_ctl_name);
+
     if (!ctl) {
         ALOGE("%s: Could not get ctl for mixer cmd - %s",
               __func__, mixer_ctl_name);
         return -EINVAL;
     }
+
     ALOGV("AFE: set mapping(%ld %ld %ld %ld %ld %ld %ld %ld) for channel:%d",
         set_values[0], set_values[1], set_values[2], set_values[3], set_values[4],
         set_values[5], set_values[6], set_values[7], channel_count);
-    ret = mixer_ctl_set_array(ctl, set_values, channel_count);
+
+    if (!be_ctl)
+        ret = mixer_ctl_set_array(ctl, set_values, channel_count);
+    else {
+       be_set_values[0] = be_idx;
+       memcpy(&be_set_values[1], set_values, sizeof(long) * channel_count);
+       ret = mixer_ctl_set_array(ctl, be_set_values, ARRAY_SIZE(be_set_values));
+    }
+
     return ret;
 }
 
 int32_t audio_extn_set_afe_proxy_channel_mixer(struct audio_device *adev,
-                                    int channel_count)
+                                    int channel_count, snd_device_t snd_device)
 {
     int32_t ret = 0;
     const char *channel_cnt_str = NULL;
@@ -964,7 +1038,7 @@ int32_t audio_extn_set_afe_proxy_channel_mixer(struct audio_device *adev,
     mixer_ctl_set_enum_by_string(ctl, channel_cnt_str);
 
     if (channel_count == 6 || channel_count == 8 || channel_count == 2) {
-        ret = afe_proxy_set_channel_mapping(adev, channel_count);
+        ret = afe_proxy_set_channel_mapping(adev, channel_count, snd_device);
     } else {
         ALOGE("%s: set unsupported channel count(%d)",  __func__, channel_count);
         ret = -EINVAL;
