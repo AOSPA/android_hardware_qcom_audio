@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "72919127_6f13f815",
+        "filename": "hal/Android.mk",
+        "patchSetId": 1
+      },
+      "lineNbr": 429,
+      "author": {
+        "id": 1000400
+      },
+      "writtenOn": "2019-06-15T20:50:29Z",
+      "side": 1,
+      "message": "you might need enable AUDIO_FEATURE_ENABLED_SND_MONITOR instead of adding this.",
+      "revId": "5f844c467472111df518ccccf1e76709647a9d96",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad",
+      "unresolved": true
+    }
+  ]
+}
