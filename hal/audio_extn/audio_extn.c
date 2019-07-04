@@ -81,6 +81,7 @@
 #include <fcntl.h>
 #include <cutils/properties.h>
 #include <log/log.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <sched.h>
 
