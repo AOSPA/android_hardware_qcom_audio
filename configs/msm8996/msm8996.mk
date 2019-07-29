@@ -217,3 +217,14 @@ PRODUCT_PACKAGES += \
     android.hardware.audio@4.0-impl \
     android.hardware.audio.effect@4.0 \
     android.hardware.audio.effect@4.0-impl
+
+# Enable Audio HIDL HAL 5.0 for SDK 29 and above.
+ifeq ($(shell expr $(PLATFORM_SDK_VERSION) \>= 29), 1)
+PRODUCT_PACKAGES += \
+    android.hardware.audio@5.0 \
+    android.hardware.audio.common@5.0 \
+    android.hardware.audio.common@5.0-util \
+    android.hardware.audio@5.0-impl \
+    android.hardware.audio.effect@5.0 \
+    android.hardware.audio.effect@5.0-impl
+endif
