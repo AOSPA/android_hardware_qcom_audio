@@ -3567,6 +3567,17 @@ int platform_send_audio_calibration(void *platform, struct audio_usecase *usecas
                   __func__, new_snd_device[i]);
             return -EINVAL;
         }
+
+        /* Notify device change info to effect clients registered */
+        if (usecase->type == PCM_PLAYBACK) {
+            audio_extn_gef_notify_device_config(
+                    usecase->stream.out->devices,
+                    usecase->stream.out->channel_mask,
+                    sample_rate,
+                    acdb_dev_id,
+                    usecase->stream.out->app_type_cfg.app_type);
+        }
+
         ALOGV("%s: sending audio calibration for snd_device(%d) acdb_id(%d)",
               __func__, new_snd_device[i], acdb_dev_id);
         if (new_snd_device[i] >= SND_DEVICE_OUT_BEGIN &&
@@ -4074,7 +4085,7 @@ snd_device_t platform_get_output_snd_device(void *platform, struct stream_out *o
         * enforced audible (e.g. Camera shutter sound).
         */
         if ((mode == AUDIO_MODE_IN_CALL) ||
-            voice_is_in_call(adev) ||
+            voice_check_voicecall_usecases_active(adev) ||
             voice_extn_compress_voip_is_active(adev))
                 is_active_voice_call = true;
 
@@ -4159,7 +4170,7 @@ snd_device_t platform_get_output_snd_device(void *platform, struct stream_out *o
     }
 
     if ((mode == AUDIO_MODE_IN_CALL) ||
-        voice_is_in_call(adev) ||
+        voice_check_voicecall_usecases_active(adev) ||
         voice_extn_compress_voip_is_active(adev)) {
         if (devices & AUDIO_DEVICE_OUT_WIRED_HEADPHONE ||
             devices & AUDIO_DEVICE_OUT_WIRED_HEADSET ||
@@ -4547,8 +4558,10 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
     ALOGV("%s: enter: out_device(%#x) in_device(%#x) channel_count (%d) channel_mask (0x%x)",
           __func__, out_device, in_device, channel_count, channel_mask);
     if (my_data->external_mic) {
-        if ((out_device != AUDIO_DEVICE_NONE) && ((mode == AUDIO_MODE_IN_CALL) || voice_is_in_call(adev) ||
-            voice_extn_compress_voip_is_active(adev) || audio_extn_hfp_is_active(adev))) {
+        if ((out_device != AUDIO_DEVICE_NONE) && ((mode == AUDIO_MODE_IN_CALL) ||
+            voice_check_voicecall_usecases_active(adev) ||
+            voice_extn_compress_voip_is_active(adev) ||
+            audio_extn_hfp_is_active(adev))) {
             if (out_device & AUDIO_DEVICE_OUT_WIRED_HEADPHONE ||
                out_device & AUDIO_DEVICE_OUT_EARPIECE ||
                out_device & AUDIO_DEVICE_OUT_SPEAKER )
@@ -4562,8 +4575,10 @@ snd_device_t platform_get_input_snd_device(void *platform, audio_devices_t out_d
     if (snd_device != AUDIO_DEVICE_NONE)
         goto exit;
 
-    if ((out_device != AUDIO_DEVICE_NONE) && ((mode == AUDIO_MODE_IN_CALL) || voice_is_in_call(adev) ||
-        voice_extn_compress_voip_is_active(adev) || audio_extn_hfp_is_active(adev))) {
+    if ((out_device != AUDIO_DEVICE_NONE) && ((mode == AUDIO_MODE_IN_CALL) ||
+        voice_check_voicecall_usecases_active(adev) ||
+        voice_extn_compress_voip_is_active(adev) ||
+        audio_extn_hfp_is_active(adev))) {
         if ((adev->voice.tty_mode != TTY_MODE_OFF) &&
             !voice_extn_compress_voip_is_active(adev)) {
             if (out_device & AUDIO_DEVICE_OUT_WIRED_HEADPHONE ||
