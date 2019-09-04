@@ -1574,6 +1574,7 @@ static int platform_get_meta_info_key_from_list(void *platform, char *mod_name)
         }
     }
     return key;
+}
 
 int platform_set_effect_config_data(snd_device_t snd_device,
                                       struct audio_effect_config effect_config,
