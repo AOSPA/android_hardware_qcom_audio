@@ -101,7 +101,8 @@ hardware/qcom/audio/configs/msm8953/sound_trigger_mixer_paths_wcd9335.xml:$(TARG
 hardware/qcom/audio/configs/msm8953/sound_trigger_platform_info.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_platform_info.xml \
 hardware/qcom/audio/configs/msm8953/audio_platform_info.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info.xml \
 hardware/qcom/audio/configs/msm8953/audio_platform_info_extcodec.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_extcodec.xml \
-hardware/qcom/audio/configs/msm8953/audio_tuning_mixer.txt:$(TARGET_COPY_OUT_VENDOR)/etc/audio_tuning_mixer.txt
+hardware/qcom/audio/configs/msm8953/audio_tuning_mixer.txt:$(TARGET_COPY_OUT_VENDOR)/etc/audio_tuning_mixer.txt \
+frameworks/native/data/etc/android.software.midi.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.software.midi.xml
 
 #XML Audio configuration files
 ifeq ($(USE_XML_AUDIO_POLICY_CONF), 1)
@@ -237,6 +238,10 @@ vendor.audio.hw.aac.encoder=true
 #flac sw decoder 24 bit decode capability
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.flac.sw.decoder.24bit=true
+
+#read wsatz name from thermal zone type
+PRODUCT_PROPERTY_OVERRIDES += \
+vendor.audio.read.wsatz.type=true
 
 #Set AudioFlinger client heap size
 PRODUCT_PROPERTY_OVERRIDES += \
