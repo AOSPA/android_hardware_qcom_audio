@@ -11,7 +11,7 @@ LOCAL_VENDOR_MODULE := true
 
 AUDIO_PLATFORM := $(TARGET_BOARD_PLATFORM)
 
-LOCAL_SRC_FILES:= \
+LOCAL_SRC_FILES := \
         sndmonitor.c
 
 LOCAL_CFLAGS += \
@@ -534,7 +534,7 @@ ifneq ($(filter sdm845 sdm710 sdmshrike msmnile kona lito atoll sdm660 msm8937 m
   MULTIPLE_HW_VARIANTS_ENABLED := true
 endif
 
-LOCAL_SRC_FILES:= \
+LOCAL_SRC_FILES := \
         passthru.c
 
 LOCAL_CFLAGS += \
@@ -545,7 +545,6 @@ LOCAL_CFLAGS += \
     -DDTSHD_PARSER_ENABLED
 
 LOCAL_SHARED_LIBRARIES := \
-    libaudioparsers \
     libaudioroute \
     libaudioutils \
     libcutils \
