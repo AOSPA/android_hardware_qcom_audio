@@ -39,7 +39,7 @@
 #include <log/log.h>
 #include <hardware/audio_effect.h>
 #include <cutils/properties.h>
-#include <platform_api.h>
+#include "../hal/platform_api.h"
 
 #define PRIMARY_HAL_PATH XSTR(LIB_AUDIO_HAL)
 #define XSTR(x) STR(x)

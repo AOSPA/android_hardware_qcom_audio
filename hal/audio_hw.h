@@ -47,7 +47,7 @@
 
 #include <audio_route/audio_route.h>
 #include <audio_utils/ErrorLog.h>
-#include "audio_defs.h"
+#include "audio_extn/audio_defs.h"
 #include "voice.h"
 #include "audio_hw_extn_api.h"
 
