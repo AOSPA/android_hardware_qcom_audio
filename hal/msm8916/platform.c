@@ -5910,7 +5910,6 @@ bool platform_sound_trigger_usecase_needs_event(audio_usecase_t uc_id)
     case USECASE_VOICEMMODE1_CALL:
     case USECASE_VOICEMMODE2_CALL:
     case USECASE_COMPRESS_VOIP_CALL:
-    case USECASE_AUDIO_RECORD_FM_VIRTUAL:
     case USECASE_INCALL_REC_UPLINK:
     case USECASE_INCALL_REC_DOWNLINK:
     case USECASE_INCALL_REC_UPLINK_AND_DOWNLINK:
@@ -5919,8 +5918,6 @@ bool platform_sound_trigger_usecase_needs_event(audio_usecase_t uc_id)
     case USECASE_INCALL_REC_UPLINK_AND_DOWNLINK_COMPRESS:
     case USECASE_INCALL_MUSIC_UPLINK:
     case USECASE_INCALL_MUSIC_UPLINK2:
-    case USECASE_AUDIO_SPKR_CALIB_RX:
-    case USECASE_AUDIO_SPKR_CALIB_TX:
     case USECASE_AUDIO_RECORD_VOIP:
         needs_event = true;
         break;
@@ -6118,7 +6115,8 @@ static int platform_set_codec_backend_cfg(struct audio_device* adev,
             if (rate_str == NULL) {
                 switch (sample_rate) {
                 case 32000:
-                    if (passthrough_enabled || (backend_idx == HDMI_TX_BACKEND )) {
+                    if (passthrough_enabled || (backend_idx == HDMI_TX_BACKEND) ||
+                            (backend_idx == DISP_PORT_RX_BACKEND)) {
                         rate_str = "KHZ_32";
                         break;
                     }
@@ -7572,37 +7570,47 @@ int platform_set_edid_channels_configuration(void *platform, int channels, int b
     struct platform_data *my_data = (struct platform_data *)platform;
     struct audio_device *adev = my_data->adev;
     edid_audio_info *info = NULL;
-    int channel_count = 2;
-    int i, ret;
+    int ret;
     char default_channelMap[MAX_CHANNELS_SUPPORTED] = {0};
     struct audio_device_config_param *adev_device_cfg_ptr = adev->device_cfg_params;
+    int channel_alloc = 0;
+    int max_supported_channels = 0;
 
     ret = platform_get_edid_info(platform);
     info = (edid_audio_info *)my_data->edid_info;
     adev_device_cfg_ptr += HDMI_RX_BACKEND;
     if(ret == 0 && info != NULL) {
-        if (channels > 2) {
-
+        if ((channels > 2) && (channels <= MAX_HDMI_CHANNEL_CNT)) {
             ALOGV("%s:able to get HDMI sink capabilities multi channel playback",
                    __func__);
-            for (i = 0; i < info->audio_blocks && i < MAX_EDID_BLOCKS; i++) {
-                if (info->audio_blocks_array[i].format_id == LPCM &&
-                      info->audio_blocks_array[i].channels > channel_count &&
-                      info->audio_blocks_array[i].channels <= MAX_HDMI_CHANNEL_CNT) {
-                    channel_count = info->audio_blocks_array[i].channels;
-                }
+            max_supported_channels = platform_edid_get_max_channels(my_data);
+            if (channels > max_supported_channels)
+                channels = max_supported_channels;
+            // refer to HDMI spec CEA-861-E: Table 28 Audio InfoFrame Data Byte 4
+            switch (channels) {
+            case 3:
+                channel_alloc = 0x02; break;
+            case 4:
+                channel_alloc = 0x06; break;
+            case 5:
+                channel_alloc = 0x0A; break;
+            case 6:
+                channel_alloc = 0x0B; break;
+            case 7:
+                channel_alloc = 0x12; break;
+            case 8:
+                channel_alloc = 0x13; break;
+            default:
+                ALOGE("%s: invalid channel %d", __func__, channels);
+                return -EINVAL;
             }
-            ALOGV("%s:channel_count:%d", __func__, channel_count);
-            /*
-             * Channel map is set for supported hdmi max channel count even
-             * though the input channel count set on adm is less than or equal to
-             * max supported channel count
-             */
+            ALOGVV("%s:channels:%d", __func__, channels);
+
             if (adev_device_cfg_ptr->use_client_dev_cfg) {
                 platform_set_channel_map(platform, adev_device_cfg_ptr->dev_cfg_params.channels,
                                    (char *)adev_device_cfg_ptr->dev_cfg_params.channel_map, -1, -1);
             } else {
-                platform_set_channel_map(platform, channel_count, info->channel_map, -1, -1);
+                platform_set_channel_map(platform, channels, info->channel_map, -1, -1);
             }
 
             if (adev_device_cfg_ptr->use_client_dev_cfg) {
@@ -7611,8 +7619,8 @@ int platform_set_edid_channels_configuration(void *platform, int channels, int b
                 platform_set_channel_allocation(platform,
                        adev_device_cfg_ptr->dev_cfg_params.channel_allocation);
             } else {
-                platform_set_channel_allocation(platform, info->channel_allocation);
-           }
+                platform_set_channel_allocation(platform, channel_alloc);
+            }
         } else {
             if (adev_device_cfg_ptr->use_client_dev_cfg) {
                 default_channelMap[0] = adev_device_cfg_ptr->dev_cfg_params.channel_map[0];
@@ -7622,7 +7630,7 @@ int platform_set_edid_channels_configuration(void *platform, int channels, int b
                 default_channelMap[1] = PCM_CHANNEL_FR;
             }
             platform_set_channel_map(platform, 2, default_channelMap, -1, -1);
-            platform_set_channel_allocation(platform,0);
+            platform_set_channel_allocation(platform, 0);
         }
     }
 

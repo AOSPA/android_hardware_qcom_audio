@@ -64,7 +64,8 @@ static const snd_device_t wsa_combo_devices[] = {
     SND_DEVICE_OUT_SPEAKER_AND_LINE,
     SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES_EXTERNAL_1,
     SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES_EXTERNAL_2,
-    SND_DEVICE_OUT_SPEAKER_AND_ANC_HEADSET
+    SND_DEVICE_OUT_SPEAKER_AND_ANC_HEADSET,
+    SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES_HIFI_FILTER
 };
 
 static const snd_device_t taiko_fluid_variant_devices[] = {
@@ -531,6 +532,10 @@ static void update_hardware_info_kona(
     } else if (!strncmp(snd_card_name, "atoll-wcd937x-snd-card",
                  sizeof("atoll-wcd937x-snd-card"))) {
         strlcpy(hw_info->name, "atoll", sizeof(hw_info->name));
+    } else if (!strncmp(snd_card_name, "atoll-qrd-snd-card",
+                 sizeof("atoll-qrd-snd-card"))) {
+        strlcpy(hw_info->name, "atoll", sizeof(hw_info->name));
+        hw_info->is_stereo_spkr = false;
     } else if (!strncmp(snd_card_name, "kona-qrd-snd-card",
                  sizeof("kona-qrd-snd-card"))) {
         strlcpy(hw_info->name, "kona", sizeof(hw_info->name));
