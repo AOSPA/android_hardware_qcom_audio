@@ -1,3 +1,5 @@
+ifneq ($(strip $(TARGET_PROVIDES_AUDIO_EXTNS)),true)
+
 #--------------------------------------------
 #          Build SND_MONITOR LIB
 #--------------------------------------------
@@ -965,3 +967,4 @@ ifneq ($(filter kona lahaina holi,$(TARGET_BOARD_PLATFORM)),)
 LOCAL_SANITIZE := integer_overflow
 endif
 include $(BUILD_SHARED_LIBRARY)
+endif
