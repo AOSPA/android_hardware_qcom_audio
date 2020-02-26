@@ -3404,7 +3404,7 @@ acdb_init_fail:
         !strncmp("msm8996", platform, sizeof("msm8996")) ||
         !strncmp("sm6150", platform, sizeof("sm6150")) ||
         (!strncmp("msmnile", platform, sizeof("msmnile")) &&
-         !strncmp("hana55", snd_card_name, sizeof("hana55"))) ||
+         !strncmp("sm8150-hana55-snd-card", snd_card_name, sizeof("sm8150-hana55-snd-card"))) ||
         !strncmp("sdx", platform, sizeof("sdx")) ||
         !strncmp("sdm845", platform, sizeof("sdm845"))) &&
         ( !strncmp("mdm", baseband, (sizeof("mdm")-1)) ||
