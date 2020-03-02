@@ -616,6 +616,13 @@ enum {
 #define VOWLAN_CALL_PCM_DEVICE 36
 #endif
 
+#ifndef HOST_LESS_RX_ID
+#define HOST_LESS_RX_ID -1
+#endif
+#ifndef HOST_LESS_TX_ID
+#define HOST_LESS_TX_ID -1
+#endif
+
 #ifdef PLATFORM_MSM8996
 #define VOICEMMODE1_CALL_PCM_DEVICE 2
 #define VOICEMMODE2_CALL_PCM_DEVICE 22
