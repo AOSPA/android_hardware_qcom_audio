@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2013 The Android Open Source Project
@@ -1254,6 +1254,12 @@ static int32_t afe_proxy_set_channel_mapping(struct audio_device *adev,
         set_values[0] = PCM_CHANNEL_FL;
         set_values[1] = PCM_CHANNEL_FR;
         break;
+     case 4:
+        set_values[0] = PCM_CHANNEL_FL;
+        set_values[1] = PCM_CHANNEL_FR;
+        set_values[2] = PCM_CHANNEL_LS;
+        set_values[3] = PCM_CHANNEL_LFE;
+        break;
     case 6:
         set_values[0] = PCM_CHANNEL_FL;
         set_values[1] = PCM_CHANNEL_FR;
@@ -1350,7 +1356,7 @@ int32_t audio_extn_set_afe_proxy_channel_mixer(struct audio_device *adev,
     }
     mixer_ctl_set_enum_by_string(ctl, channel_cnt_str);
 
-    if (channel_count == 6 || channel_count == 8 || channel_count == 2) {
+    if (channel_count == 6 || channel_count == 8 || channel_count == 2 || channel_count == 4) {
         ret = afe_proxy_set_channel_mapping(adev, channel_count, snd_device);
     } else {
         ALOGE("%s: set unsupported channel count(%d)",  __func__, channel_count);
@@ -5217,7 +5223,8 @@ bool audio_extn_is_hifi_filter_enabled(struct audio_device* adev, struct stream_
     if (audio_extn_hifi_filter_enabled) {
         /*Restricting the feature for Tavil and WCD9375 codecs only*/
         if ((strstr(codec_variant, "WCD9385") || strstr(codec_variant, "WCD9375"))
-            && (na_mode == NATIVE_AUDIO_MODE_MULTIPLE_MIX_IN_DSP) && channels <=2) {
+            && (na_mode == NATIVE_AUDIO_MODE_MULTIPLE_MIX_IN_DSP || na_mode ==
+                       NATIVE_AUDIO_MODE_TRUE_44_1) && channels <=2) {
             /*Upsampling 8 time should be restricited to headphones playback only */
             if (snd_device == SND_DEVICE_OUT_HEADPHONES
                 || snd_device == SND_DEVICE_OUT_HEADPHONES_44_1
