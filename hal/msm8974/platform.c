@@ -71,6 +71,7 @@
 #define PLATFORM_INFO_XML_PATH_I2S "/etc/audio_platform_info_extcodec.xml"
 #define PLATFORM_INFO_XML_PATH_WSA  "/etc/audio_platform_info_wsa.xml"
 #define PLATFORM_INFO_XML_PATH_TDM  "/etc/audio_platform_info_tdm.xml"
+#define PLATFORM_INFO_XML_PATH_PCIE  "/etc/audio_platform_info_pcie.xml"
 #else
 #define PLATFORM_INFO_XML_PATH_INTCODEC  "/vendor/etc/audio_platform_info_intcodec.xml"
 #define PLATFORM_INFO_XML_PATH_SKUSH "/vendor/etc/audio_platform_info_skush.xml"
@@ -82,6 +83,7 @@
 #define PLATFORM_INFO_XML_PATH_I2S "/vendor/etc/audio_platform_info_i2s.xml"
 #define PLATFORM_INFO_XML_PATH_WSA  "/vendor/etc/audio_platform_info_wsa.xml"
 #define PLATFORM_INFO_XML_PATH_TDM  "/vendor/etc/audio_platform_info_tdm.xml"
+#define PLATFORM_INFO_XML_PATH_PCIE  "/vendor/etc/audio_platform_info_pcie.xml"
 #endif
 
 #include <linux/msm_audio.h>
@@ -3232,6 +3234,9 @@ void *platform_init(struct audio_device *adev)
     else if (!strncmp(snd_card_name, "qcs405-tdm-snd-card",
                sizeof("qcs405-tdm-snd-card")))
         platform_info_init(PLATFORM_INFO_XML_PATH_TDM, my_data, PLATFORM);
+    else if (!strncmp(snd_card_name, "sm8150-pcie-snd-card",
+               sizeof("sm8150-pcie-snd-card")))
+        platform_info_init(PLATFORM_INFO_XML_PATH_PCIE, my_data, PLATFORM);
     else if (my_data->is_internal_codec)
         platform_info_init(PLATFORM_INFO_XML_PATH_INTCODEC, my_data, PLATFORM);
     else {
@@ -3414,6 +3419,8 @@ acdb_init_fail:
         !strncmp("sm6150", platform, sizeof("sm6150")) ||
         (!strncmp("msmnile", platform, sizeof("msmnile")) &&
          !strncmp("sm8150-hana55-snd-card", snd_card_name, sizeof("sm8150-hana55-snd-card"))) ||
+        (!strncmp("msmnile", platform, sizeof("msmnile")) &&
+         !strncmp("sm8150-pcie-snd-card", snd_card_name, sizeof("sm8150-pcie-snd-card"))) ||
         !strncmp("sdx", platform, sizeof("sdx")) ||
         !strncmp("sdm845", platform, sizeof("sdm845"))) &&
         ( !strncmp("mdm", baseband, (sizeof("mdm")-1)) ||
