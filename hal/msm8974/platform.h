@@ -627,6 +627,13 @@ enum {
 #define HOST_LESS_TX_ID -1
 #endif
 
+#ifndef PCIE_HOST_LESS_RX_ID
+#define PCIE_HOST_LESS_RX_ID -1
+#endif
+#ifndef PCIE_HOST_LESS_TX_ID
+#define PCIE_HOST_LESS_TX_ID -1
+#endif
+
 #ifdef PLATFORM_MSM8996
 #define VOICEMMODE1_CALL_PCM_DEVICE 2
 #define VOICEMMODE2_CALL_PCM_DEVICE 22
