@@ -377,7 +377,11 @@ LOCAL_MODULE_TAGS := optional
 
 LOCAL_MODULE_OWNER := qti
 
+ifneq ($(TARGET_OVERLAYS_AUDIOHAL), true)
 LOCAL_VENDOR_MODULE := true
+else
+LOCAL_VENDOR_OVERLAY_MODULE := true
+endif
 
 LOCAL_CFLAGS += -Wno-unused-variable
 LOCAL_CFLAGS += -Wno-sign-compare
