@@ -601,6 +601,8 @@ enum {
 #elif PLATFORM_AUTO
 #define HOST_LESS_RX_ID 41
 #define HOST_LESS_TX_ID 42
+#define PCIE_HOST_LESS_RX_ID 47
+#define PCIE_HOST_LESS_TX_ID 48
 #define VOICE_CALL_PCM_DEVICE 8
 #define VOICE2_CALL_PCM_DEVICE -1
 #define VOLTE_CALL_PCM_DEVICE -1
@@ -609,6 +611,8 @@ enum {
 #else
 #define HOST_LESS_RX_ID 44
 #define HOST_LESS_TX_ID 45
+#define PCIE_HOST_LESS_RX_ID 47
+#define PCIE_HOST_LESS_TX_ID 48
 #define VOICE_CALL_PCM_DEVICE 2
 #define VOICE2_CALL_PCM_DEVICE 22
 #define VOLTE_CALL_PCM_DEVICE 14
@@ -621,6 +625,13 @@ enum {
 #endif
 #ifndef HOST_LESS_TX_ID
 #define HOST_LESS_TX_ID -1
+#endif
+
+#ifndef PCIE_HOST_LESS_RX_ID
+#define PCIE_HOST_LESS_RX_ID -1
+#endif
+#ifndef PCIE_HOST_LESS_TX_ID
+#define PCIE_HOST_LESS_TX_ID -1
 #endif
 
 #ifdef PLATFORM_MSM8996
