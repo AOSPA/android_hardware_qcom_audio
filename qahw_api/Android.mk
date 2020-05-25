@@ -11,6 +11,9 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_C_INCLUDES   := $(libqahwapi-inc)
 LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/mm-audio/qahw/inc
 
+LOCAL_HEADER_LIBRARIES := \
+    libutils_headers \
+
 LOCAL_SRC_FILES := \
     src/qahw_api.cpp
 
@@ -31,6 +34,7 @@ LOCAL_CFLAGS += -Wall -Werror
 
 LOCAL_COPY_HEADERS_TO   := mm-audio/qahw_api/inc
 LOCAL_COPY_HEADERS      := inc/qahw_api.h
+LOCAL_COPY_HEADERS      += inc/qahw_defs.h
 LOCAL_COPY_HEADERS      += inc/qahw_effect_audiosphere.h
 LOCAL_COPY_HEADERS      += inc/qahw_effect_bassboost.h
 LOCAL_COPY_HEADERS      += inc/qahw_effect_environmentalreverb.h
