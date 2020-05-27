@@ -6823,7 +6823,6 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
     int val;
     int ret;
     int status = 0;
-    struct listnode *node;
 
     ALOGD("%s: enter: %s", __func__, kvpairs);
     parms = str_parms_create_str(kvpairs);
@@ -6846,7 +6845,7 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
     ret = str_parms_get_str(parms, "A2dpSuspended", value, sizeof(value));
     if (ret>=0) {
         if (!strncmp(value, "false", 5) &&
-            audio_extn_a2dp_source_is_suspended()) {
+            !audio_extn_a2dp_is_ready()) {
             struct audio_usecase *usecase;
             struct listnode *node;
             list_for_each(node, &adev->usecase_list) {
