@@ -161,6 +161,7 @@ enum {
     USECASE_AUDIO_PLAYBACK_ULL,
     USECASE_AUDIO_PLAYBACK_MMAP,
     USECASE_AUDIO_PLAYBACK_WITH_HAPTICS,
+    USECASE_AUDIO_PLAYBACK_HAPTICS,
     USECASE_AUDIO_PLAYBACK_HIFI,
     USECASE_AUDIO_PLAYBACK_TTS,
 
@@ -215,6 +216,7 @@ enum {
 
     USECASE_AUDIO_PLAYBACK_AFE_PROXY,
     USECASE_AUDIO_RECORD_AFE_PROXY,
+    USECASE_AUDIO_RECORD_AFE_PROXY2,
     USECASE_AUDIO_DSM_FEEDBACK,
 
     USECASE_AUDIO_PLAYBACK_SILENCE,
@@ -737,6 +739,7 @@ struct audio_device {
     struct listnode audio_patch_record_list;
     Hashmap *patch_map;
     Hashmap *io_streams_map;
+    bool ha_proxy_enable;
 };
 
 struct audio_patch_record {
