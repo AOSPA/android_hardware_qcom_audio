@@ -47,6 +47,12 @@ AUDIO_FEATURE_ENABLED_COMPRESS_INPUT := true
 AUDIO_FEATURE_ENABLED_CUSTOMSTEREO := true
 COMPILE_HAL_TEST_APPS_IN_VENDOR_IMAGE := true
 
+ifeq (0, $(shell test $(TARGET_KERNEL_VERSION) -le 3.18; echo $$?))
+    AUDIO_FEATURE_ENABLED_DLKM := false
+else
+    AUDIO_FEATURE_ENABLED_DLKM := true
+endif
+
 ##AUDIO_FEATURE_FLAGS
 
 #Audio Specific device overlays
