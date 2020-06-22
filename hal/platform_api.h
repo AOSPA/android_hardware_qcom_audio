@@ -381,7 +381,6 @@ int platform_get_active_microphones(void *platform, unsigned int channels,
 
 int platform_get_license_by_product(void *platform, const char* product_name, int *product_id, char* product_license);
 bool platform_get_eccarstate(void *platform);
-int platform_get_haptics_pcm_device_id();
 int platform_set_qtime(void *platform, int audio_pcm_device_id,
                        int haptic_pcm_device_id);
 int platform_get_delay(void *platform, int pcm_device_id);
@@ -424,5 +423,14 @@ void platform_set_snd_device_delay(snd_device_t snd_device, int delay_ms);
 void platform_set_audio_source_delay(audio_source_t audio_source, int delay_ms);
 
 int platform_get_audio_source_index(const char *audio_source_name);
-
+bool platform_check_and_update_island_power_status(void *platform,
+                                                   struct audio_usecase* usecase,
+                                                    snd_device_t snd_device);
+bool platform_get_power_mode_on_device(void *platform, snd_device_t snd_device);
+bool platform_get_island_cfg_on_device(void *platform, snd_device_t snd_device);
+int platform_set_power_mode_on_device(struct audio_device* adev, snd_device_t snd_device,
+                                      bool enable);
+int platform_set_island_cfg_on_device(struct audio_device* adev, snd_device_t snd_device,
+                                      bool enable);
+void platform_reset_island_power_status(void *platform, snd_device_t snd_device);
 #endif // AUDIO_PLATFORM_API_H

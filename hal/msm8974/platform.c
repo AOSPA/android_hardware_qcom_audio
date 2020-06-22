@@ -189,6 +189,25 @@
 
 #define GET_IN_DEVICE_INDEX(SND_DEVICE) ((SND_DEVICE) - (SND_DEVICE_IN_BEGIN))
 
+#define is_usb_in_snd_dev(x) \
+    (((x) == SND_DEVICE_IN_USB_HEADSET_MIC) ||                           \
+    ((x) == SND_DEVICE_IN_USB_HEADSET_MIC_AEC) ||                        \
+    ((x) == SND_DEVICE_IN_VOICE_USB_HEADSET_MIC) ||                      \
+    ((x) == SND_DEVICE_IN_UNPROCESSED_USB_HEADSET_MIC) ||                \
+    ((x) == SND_DEVICE_IN_UNPROCESSED_USB_HEADSET_MIC) ||                \
+    ((x) == SND_DEVICE_IN_USB_HEADSET_MULTI_CHANNEL_MIC) ||              \
+    ((x) == SND_DEVICE_IN_USB_HEADSET_MULTI_CHANNEL_MIC_AEC) ||          \
+    ((x) == SND_DEVICE_IN_UNPROCESSED_USB_HEADSET_MULTI_CHANNEL_MIC) ||  \
+    ((x) == SND_DEVICE_IN_VOICE_RECOG_USB_HEADSET_MULTI_CHANNEL_MIC))
+
+#define is_usb_out_snd_dev(x) \
+    (((x) == SND_DEVICE_OUT_USB_HEADSET) ||         \
+    ((x) == SND_DEVICE_OUT_USB_HEADPHONES) ||       \
+    ((x) == SND_DEVICE_OUT_VOICE_USB_HEADPHONES) || \
+    ((x) == SND_DEVICE_OUT_VOICE_USB_HEADSET) ||    \
+    ((x) == SND_DEVICE_OUT_VOICE_TTY_FULL_USB) ||   \
+    ((x) == SND_DEVICE_OUT_VOICE_TTY_VCO_USB))
+
 #ifdef DYNAMIC_LOG_ENABLED
 extern void log_utils_init(void);
 extern void log_utils_deinit(void);
@@ -367,6 +386,8 @@ struct platform_data {
     bool is_multiple_sample_rate_combo_supported;
     struct listnode custom_mtmx_params_list;
     struct listnode custom_mtmx_in_params_list;
+    struct power_mode_cfg power_mode_cfg[SND_DEVICE_MAX];
+    struct island_cfg island_cfg[SND_DEVICE_MAX];
 };
 
 struct  spkr_device_chmap {
@@ -379,6 +400,8 @@ static int pcm_device_table[AUDIO_USECASE_MAX][2] = {
                                             DEEP_BUFFER_PCM_DEVICE},
     [USECASE_AUDIO_PLAYBACK_WITH_HAPTICS] = {AUDIO_HAPTICS_PCM_DEVICE,
                                              AUDIO_HAPTICS_PCM_DEVICE},
+    [USECASE_AUDIO_PLAYBACK_HAPTICS] = {HAPTICS_PCM_DEVICE,
+                                             HAPTICS_PCM_DEVICE},
     [USECASE_AUDIO_PLAYBACK_LOW_LATENCY] = {LOWLATENCY_PCM_DEVICE,
                                            LOWLATENCY_PCM_DEVICE},
     [USECASE_AUDIO_PLAYBACK_ULL]         = {MULTIMEDIA3_PCM_DEVICE,
@@ -523,6 +546,8 @@ static const char * const device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES_HIFI_FILTER] = "speaker-and-headphones-hifi-filter",
     [SND_DEVICE_OUT_HEADPHONES_44_1] = "headphones-44.1",
     [SND_DEVICE_OUT_LINE] = "line",
+    [SND_DEVICE_OUT_SPEAKER_AND_HAPTICS] = "speaker-and-haptics",
+    [SND_DEVICE_OUT_HEADPHONES_AND_HAPTICS] = "headphones-and-haptics",
     [SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES] = "speaker-and-headphones",
     [SND_DEVICE_OUT_SPEAKER_SAFE_AND_HEADPHONES] = "speaker-safe-and-headphones",
     [SND_DEVICE_OUT_SPEAKER_AND_LINE] = "speaker-and-line",
@@ -557,7 +582,6 @@ static const char * const device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_OUT_VOICE_TTY_FULL_HEADPHONES] = "voice-tty-full-headphones",
     [SND_DEVICE_OUT_VOICE_TTY_FULL_HEADSET] = "voice-tty-full-headset",
     [SND_DEVICE_OUT_VOICE_TTY_VCO_HEADPHONES] = "voice-tty-vco-headphones",
-    [SND_DEVICE_OUT_VOICE_TTY_VCO_HEADSET] = "voice-tty-vco-headset",
     [SND_DEVICE_OUT_VOICE_TTY_HCO_HANDSET] = "voice-tty-hco-handset",
     [SND_DEVICE_OUT_VOICE_TTY_FULL_USB] = "voice-tty-full-usb",
     [SND_DEVICE_OUT_VOICE_TTY_VCO_USB] = "voice-tty-vco-usb",
@@ -819,6 +843,8 @@ static int acdb_device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_OUT_HEADPHONES] = 10,
     [SND_DEVICE_OUT_HEADPHONES_DSD] = 10,
     [SND_DEVICE_OUT_HEADPHONES_44_1] = 10,
+    [SND_DEVICE_OUT_HEADPHONES_AND_HAPTICS] = 10,
+    [SND_DEVICE_OUT_SPEAKER_AND_HAPTICS] = 10,
     [SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES] = 10,
     [SND_DEVICE_OUT_SPEAKER_SAFE_AND_HEADPHONES] = 10,
     [SND_DEVICE_OUT_SPEAKER_AND_LINE] = 10,
@@ -862,7 +888,6 @@ static int acdb_device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_OUT_VOICE_TTY_FULL_HEADPHONES] = 17,
     [SND_DEVICE_OUT_VOICE_TTY_FULL_HEADSET] = 17,
     [SND_DEVICE_OUT_VOICE_TTY_VCO_HEADPHONES] = 17,
-    [SND_DEVICE_OUT_VOICE_TTY_VCO_HEADSET] = 17,
     [SND_DEVICE_OUT_VOICE_TTY_HCO_HANDSET] = 37,
     [SND_DEVICE_OUT_VOICE_TTY_FULL_USB] = 17,
     [SND_DEVICE_OUT_VOICE_TTY_VCO_USB] = 17,
@@ -1068,6 +1093,8 @@ static struct name_to_index snd_device_name_index[SND_DEVICE_MAX] = {
     {TO_NAME_INDEX(SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES_HIFI_FILTER)},
     {TO_NAME_INDEX(SND_DEVICE_OUT_HEADPHONES_44_1)},
     {TO_NAME_INDEX(SND_DEVICE_OUT_LINE)},
+    {TO_NAME_INDEX(SND_DEVICE_OUT_SPEAKER_AND_HAPTICS)},
+    {TO_NAME_INDEX(SND_DEVICE_OUT_HEADPHONES_AND_HAPTICS)},
     {TO_NAME_INDEX(SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES)},
     {TO_NAME_INDEX(SND_DEVICE_OUT_SPEAKER_SAFE_AND_HEADPHONES)},
     {TO_NAME_INDEX(SND_DEVICE_OUT_SPEAKER_AND_LINE)},
@@ -1105,7 +1132,6 @@ static struct name_to_index snd_device_name_index[SND_DEVICE_MAX] = {
     {TO_NAME_INDEX(SND_DEVICE_OUT_VOICE_TTY_FULL_HEADPHONES)},
     {TO_NAME_INDEX(SND_DEVICE_OUT_VOICE_TTY_FULL_HEADSET)},
     {TO_NAME_INDEX(SND_DEVICE_OUT_VOICE_TTY_VCO_HEADPHONES)},
-    {TO_NAME_INDEX(SND_DEVICE_OUT_VOICE_TTY_VCO_HEADSET)},
     {TO_NAME_INDEX(SND_DEVICE_OUT_VOICE_TTY_HCO_HANDSET)},
     {TO_NAME_INDEX(SND_DEVICE_OUT_SPEAKER_AND_BT_SCO)},
     {TO_NAME_INDEX(SND_DEVICE_OUT_SPEAKER_AND_BT_SCO_WB)},
@@ -1306,6 +1332,7 @@ static char * hw_interface_table[SND_DEVICE_MAX] = {0};
 static struct name_to_index usecase_name_index[AUDIO_USECASE_MAX] = {
     {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_DEEP_BUFFER)},
     {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_WITH_HAPTICS)},
+    {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_HAPTICS)},
     {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_LOW_LATENCY)},
     {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_HIFI)},
     {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_TTS)},
@@ -1588,23 +1615,7 @@ static struct name_to_index audio_source_index[AUDIO_SOURCE_CNT] = {
 
 static bool is_usb_snd_dev(snd_device_t snd_device)
 {
-    if (snd_device < SND_DEVICE_IN_BEGIN) {
-        if (snd_device == SND_DEVICE_OUT_USB_HEADSET ||\
-            snd_device == SND_DEVICE_OUT_USB_HEADPHONES ||\
-            snd_device == SND_DEVICE_OUT_VOICE_USB_HEADPHONES ||\
-            snd_device == SND_DEVICE_OUT_VOICE_USB_HEADSET ||\
-            snd_device == SND_DEVICE_OUT_VOICE_TTY_FULL_USB ||\
-            snd_device == SND_DEVICE_OUT_VOICE_TTY_VCO_USB)
-            return true;
-    } else {
-        if (snd_device == SND_DEVICE_IN_USB_HEADSET_MIC ||\
-            snd_device == SND_DEVICE_IN_USB_HEADSET_MIC_AEC ||\
-            snd_device == SND_DEVICE_IN_VOICE_USB_HEADSET_MIC ||\
-            snd_device == SND_DEVICE_IN_UNPROCESSED_USB_HEADSET_MIC ||\
-            snd_device == SND_DEVICE_IN_VOICE_RECOG_USB_HEADSET_MIC)
-            return true;
-    }
-    return false;
+    return is_usb_in_snd_dev(snd_device) || is_usb_out_snd_dev(snd_device);
 }
 
 bool is_operator_tmus()
@@ -1751,6 +1762,8 @@ static void update_codec_type_and_interface(struct platform_data * my_data,
                    sizeof("lahaina-mtp-snd-card")) ||
          !strncmp(snd_card_name, "lahaina-qrd-snd-card",
                    sizeof("lahaina-qrd-snd-card")) ||
+         !strncmp(snd_card_name, "lahaina-cdp-snd-card",
+                   sizeof("lahaina-cdp-snd-card")) ||
          !strncmp(snd_card_name, "kona-mtp-snd-card",
                    sizeof("kona-mtp-snd-card")) ||
          !strncmp(snd_card_name, "kona-qrd-snd-card",
@@ -2215,6 +2228,11 @@ static void set_platform_defaults(struct platform_data * my_data)
         operator_specific_device_table[dev] = NULL;
         external_specific_device_table[dev] = NULL;
         snd_device_delay_ms[dev] = 0;
+        /* Init island cfg and power mode */
+        my_data->island_cfg[dev].mixer_ctl = NULL;
+        my_data->power_mode_cfg[dev].mixer_ctl = NULL;
+        my_data->island_cfg[dev].enable = false;
+        my_data->power_mode_cfg[dev].enable = false;
     }
     for (dev = 0; dev < SND_DEVICE_MAX; dev++) {
         backend_bit_width_table[dev] = CODEC_BACKEND_DEFAULT_BIT_WIDTH;
@@ -2275,6 +2293,10 @@ static void set_platform_defaults(struct platform_data * my_data)
     backend_tag_table[SND_DEVICE_OUT_HEADPHONES_HIFI_FILTER] = strdup("headphones-hifi-filter");
     backend_tag_table[SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES_HIFI_FILTER] =
         strdup("speaker-and-headphones-hifi-filter");
+    backend_tag_table[SND_DEVICE_OUT_SPEAKER_AND_HAPTICS] =
+        strdup("speaker-and-haptics");
+    backend_tag_table[SND_DEVICE_OUT_HEADPHONES_AND_HAPTICS] =
+        strdup("headphones-and-haptics");
     backend_tag_table[SND_DEVICE_OUT_HEADPHONES_44_1] = strdup("headphones-44.1");
     backend_tag_table[SND_DEVICE_OUT_VOICE_SPEAKER_VBAT] = strdup("voice-speaker-vbat");
     backend_tag_table[SND_DEVICE_OUT_VOICE_SPEAKER_2_VBAT] = strdup("voice-speaker-2-vbat");
@@ -2345,7 +2367,6 @@ static void set_platform_defaults(struct platform_data * my_data)
     hw_interface_table[SND_DEVICE_OUT_VOICE_TTY_FULL_HEADPHONES] = strdup("SLIMBUS_6_RX");
     hw_interface_table[SND_DEVICE_OUT_VOICE_TTY_FULL_HEADSET] = strdup("SLIMBUS_6_RX");
     hw_interface_table[SND_DEVICE_OUT_VOICE_TTY_VCO_HEADPHONES] = strdup("SLIMBUS_6_RX");
-    hw_interface_table[SND_DEVICE_OUT_VOICE_TTY_VCO_HEADSET] = strdup("SLIMBUS_6_RX");
     hw_interface_table[SND_DEVICE_OUT_VOICE_TTY_HCO_HANDSET] = strdup("SLIMBUS_0_RX");
     hw_interface_table[SND_DEVICE_OUT_VOICE_TTY_FULL_USB] = strdup("USB_AUDIO_RX");
     hw_interface_table[SND_DEVICE_OUT_VOICE_TTY_VCO_USB] = strdup("USB_AUDIO_RX");
@@ -4432,11 +4453,6 @@ int platform_get_pcm_device_id(audio_usecase_t usecase, int device_type)
     return device_id;
 }
 
-int platform_get_haptics_pcm_device_id()
-{
-    return HAPTICS_PCM_DEVICE;
-}
-
 uint64_t getQtime()
 {
     uint64_t qTimerCount = 0;
@@ -5213,6 +5229,9 @@ int platform_get_backend_index(snd_device_t snd_device)
                         port = USB_AUDIO_RX_BACKEND;
                 else if (strcmp(backend_tag_table[snd_device], "call-proxy") == 0)
                         port = CALL_PROXY_RX_BACKEND;
+                else if (strncmp(backend_tag_table[snd_device], "headphones-and-haptics",
+                            sizeof("headphones-and-haptics")) == 0)
+                        port = HEADPHONE_BACKEND;
         }
     } else if (snd_device >= SND_DEVICE_IN_BEGIN && snd_device < SND_DEVICE_IN_END) {
         port = DEFAULT_CODEC_TX_BACKEND;
@@ -6327,13 +6346,7 @@ snd_device_t platform_get_output_snd_device(void *platform, struct stream_out *o
                     }
                     break;
                 case TTY_MODE_VCO:
-                    if (audio_extn_is_concurrent_capture_enabled() &&
-                         compare_device_type(&devices, AUDIO_DEVICE_OUT_WIRED_HEADSET)) {
-                        //Separate backend is added for headset-mic as part of concurrent capture
-                        snd_device = SND_DEVICE_OUT_VOICE_TTY_VCO_HEADSET;
-                    } else {
-                        snd_device = SND_DEVICE_OUT_VOICE_TTY_VCO_HEADPHONES;
-                    }
+                    snd_device = SND_DEVICE_OUT_VOICE_TTY_VCO_HEADPHONES;
                     break;
                 case TTY_MODE_HCO:
                     snd_device = SND_DEVICE_OUT_VOICE_TTY_HCO_HANDSET;
@@ -6488,8 +6501,12 @@ snd_device_t platform_get_output_snd_device(void *platform, struct stream_out *o
                 snd_device = SND_DEVICE_OUT_HEADPHONES_HIFI_FILTER;
         } else if (compare_device_type(&devices, AUDIO_DEVICE_OUT_LINE)) {
                 snd_device = SND_DEVICE_OUT_LINE;
-        } else
-                snd_device = SND_DEVICE_OUT_HEADPHONES;
+        } else {
+                if (out->usecase == USECASE_AUDIO_PLAYBACK_WITH_HAPTICS)
+                        snd_device = SND_DEVICE_OUT_HEADPHONES_AND_HAPTICS;
+                else
+                        snd_device = SND_DEVICE_OUT_HEADPHONES;
+        }
     } else if (compare_device_type(&devices, AUDIO_DEVICE_OUT_LINE)) {
         snd_device = SND_DEVICE_OUT_LINE;
     } else if (compare_device_type(&devices, AUDIO_DEVICE_OUT_SPEAKER_SAFE)) {
@@ -6515,8 +6532,12 @@ snd_device_t platform_get_output_snd_device(void *platform, struct stream_out *o
             snd_device = SND_DEVICE_OUT_SPEAKER_VBAT;
           else if (my_data->is_wsa_speaker)
             snd_device = SND_DEVICE_OUT_SPEAKER_WSA;
-        else
-            snd_device = SND_DEVICE_OUT_SPEAKER;
+          else {
+            if (out->usecase == USECASE_AUDIO_PLAYBACK_WITH_HAPTICS)
+                    snd_device = SND_DEVICE_OUT_SPEAKER_AND_HAPTICS;
+            else
+                    snd_device = SND_DEVICE_OUT_SPEAKER;
+          }
     } else if (is_sco_out_device_type(&devices)) {
         if (adev->swb_speech_mode != SPEECH_MODE_INVALID)
                 snd_device = SND_DEVICE_OUT_BT_SCO_SWB;
@@ -6891,9 +6912,7 @@ snd_device_t platform_get_input_snd_device(void *platform,
                 goto exit;
             }
         }
-        if (compare_device_type(out_devices, AUDIO_DEVICE_OUT_EARPIECE) ||
-            compare_device_type(out_devices, AUDIO_DEVICE_OUT_WIRED_HEADPHONE) ||
-            compare_device_type(out_devices, AUDIO_DEVICE_OUT_LINE)) {
+        if (compare_device_type(out_devices, AUDIO_DEVICE_OUT_EARPIECE)) {
             if (compare_device_type(out_devices, AUDIO_DEVICE_OUT_EARPIECE) &&
                 audio_extn_should_use_handset_anc(channel_count)) {
                 if ((my_data->fluence_type != FLUENCE_NONE) &&
@@ -6907,20 +6926,11 @@ snd_device_t platform_get_input_snd_device(void *platform,
             } else if (my_data->fluence_type == FLUENCE_NONE ||
                 (my_data->fluence_in_voice_call == false &&
                  my_data->fluence_in_hfp_call == false)) {
-                 if (compare_device_type(out_devices, AUDIO_DEVICE_OUT_LINE) &&
-                     audio_extn_hfp_is_active(adev)) {
-                     snd_device = my_data->fluence_sb_enabled ?
-                                      SND_DEVICE_IN_VOICE_SPEAKER_MIC_SB
-                                      : (my_data->fluence_nn_enabled ?
-                                            SND_DEVICE_IN_VOICE_SPEAKER_MIC_NN
-                                            : SND_DEVICE_IN_VOICE_SPEAKER_MIC);
-                 } else {
-                     snd_device = my_data->fluence_sb_enabled ?
-                                     SND_DEVICE_IN_HANDSET_MIC_SB
-                                     : (my_data->fluence_nn_enabled ?
-                                            SND_DEVICE_IN_HANDSET_MIC_NN
-                                            : SND_DEVICE_IN_HANDSET_MIC);
-                 }
+                 snd_device = my_data->fluence_sb_enabled ?
+                                 SND_DEVICE_IN_HANDSET_MIC_SB
+                                 : (my_data->fluence_nn_enabled ?
+                                        SND_DEVICE_IN_HANDSET_MIC_NN
+                                        : SND_DEVICE_IN_HANDSET_MIC);
                  if (audio_extn_hfp_is_active(adev))
                      platform_set_echo_reference(adev, true, out_devices);
             } else {
@@ -9014,6 +9024,154 @@ static int platform_get_voice_call_backend(struct audio_device* adev)
    return backend_idx;
 }
 
+bool platform_get_power_mode_on_device(void *platform, snd_device_t snd_device) {
+    struct platform_data *my_data = (struct platform_data *)platform;
+
+    ALOGD("%s:power mode status on snd_device = (%s %d)", __func__,
+           platform_get_snd_device_name(snd_device),
+           my_data->power_mode_cfg[snd_device].enable);
+    return my_data->power_mode_cfg[snd_device].enable;
+
+}
+
+bool platform_get_island_cfg_on_device(void *platform, snd_device_t snd_device) {
+    struct platform_data *my_data = (struct platform_data *)platform;
+
+    ALOGD("%s:island cfg status on snd_device = (%s %d)", __func__,
+           platform_get_snd_device_name(snd_device),
+           my_data->island_cfg[snd_device].enable);
+    return my_data->island_cfg[snd_device].enable;
+}
+
+int platform_set_power_mode_on_device(struct audio_device* adev,
+                                      snd_device_t snd_device,
+                                      bool enable)
+{
+    int ret = 0;
+    struct  mixer_ctl *ctl;
+    struct platform_data *my_data = (struct platform_data *)adev->platform;
+
+    ctl = mixer_get_ctl_by_name(adev->mixer,
+                                my_data->power_mode_cfg[snd_device].mixer_ctl);
+
+    if (ctl) {
+        ALOGD("%s:set power mode to %s",
+               __func__, (enable == true) ? "true" : "false");
+        mixer_ctl_set_value(ctl, 0, (int)enable);
+    } else {
+        ALOGE("%s:Could not get ctl for power mode mixer", __func__);
+        ret = -EINVAL;
+        goto error;
+    }
+    return ret;
+
+error:
+    my_data->power_mode_cfg[snd_device].enable = false;
+    my_data->power_mode_cfg[snd_device].mixer_ctl = NULL;
+    return ret;
+}
+
+int platform_set_island_cfg_on_device(struct audio_device* adev,
+                                      snd_device_t snd_device,
+                                      bool enable)
+{
+    int ret = 0;
+    struct  mixer_ctl *ctl;
+    struct platform_data *my_data = (struct platform_data *)adev->platform;
+
+    ctl = mixer_get_ctl_by_name(adev->mixer,
+                                my_data->island_cfg[snd_device].mixer_ctl);
+
+    if (ctl) {
+        ALOGD("%s:set island cfg to %s",
+               __func__, (enable == true) ? "true" : "false");
+        mixer_ctl_set_value(ctl, 0, (int)enable);
+    } else {
+        ALOGE("%s:Could not get ctl for island cfg mixer", __func__);
+        return -EINVAL;
+        goto error;
+    }
+    return ret;
+
+error:
+    my_data->island_cfg[snd_device].enable = false;
+    my_data->island_cfg[snd_device].mixer_ctl = NULL;
+    return ret;
+}
+
+char * platform_update_power_mode_mixer_ctrl(snd_device_t snd_device)
+{
+    char mixer_ctl[MIXER_PATH_MAX_LENGTH];
+    char *power_mode_mixer_ctrl = NULL;
+    char * be_itf = hw_interface_table[snd_device];
+
+    if (be_itf != NULL) {
+        snprintf(mixer_ctl, sizeof(mixer_ctl),
+                 "%s Power Mode", be_itf);
+        power_mode_mixer_ctrl = strdup(mixer_ctl);
+        ALOGD("%s: power mode mixer ctrl %s\n",
+              __func__, power_mode_mixer_ctrl);
+    }
+
+    return power_mode_mixer_ctrl;
+}
+
+char * platform_update_island_cfg_mixer_ctrl(snd_device_t snd_device)
+{
+    char mixer_ctl[MIXER_PATH_MAX_LENGTH];
+    char *island_cfg_mixer_ctrl = NULL;
+    char * be_itf = hw_interface_table[snd_device];
+
+    if (be_itf != NULL) {
+        snprintf(mixer_ctl, sizeof(mixer_ctl),
+                 "%s Island Config", be_itf);
+        island_cfg_mixer_ctrl = strdup(mixer_ctl);
+        ALOGD("%s: island cfg mixer ctrl %s\n",
+              __func__, island_cfg_mixer_ctrl);
+    }
+
+    return island_cfg_mixer_ctrl;
+}
+
+bool platform_check_and_update_island_power_status(void *platform,
+                                          struct audio_usecase* usecase,
+                                          snd_device_t snd_device)
+{
+    bool ret = false;
+    struct platform_data *my_data = (struct platform_data *)platform;
+
+    if (compare_device_type(&usecase->device_list, AUDIO_DEVICE_OUT_EARPIECE) ||
+        compare_device_type(&usecase->device_list, AUDIO_DEVICE_OUT_WIRED_HEADSET) ||
+        compare_device_type(&usecase->device_list, AUDIO_DEVICE_OUT_WIRED_HEADPHONE)) {
+        if (snd_device >= SND_DEVICE_MIN && snd_device < SND_DEVICE_MAX) {
+            /* update island and power mode in current device */
+            my_data->island_cfg[snd_device].mixer_ctl =
+                            platform_update_island_cfg_mixer_ctrl(snd_device);
+            my_data->power_mode_cfg[snd_device].mixer_ctl =
+                            platform_update_power_mode_mixer_ctrl(snd_device);
+            if (my_data->island_cfg[snd_device].mixer_ctl != NULL &&
+                my_data->power_mode_cfg[snd_device].mixer_ctl != NULL) {
+                /* enable island and power mode in current device */
+                my_data->island_cfg[snd_device].enable = true;
+                my_data->power_mode_cfg[snd_device].enable = true;
+                ret = true;
+            }
+        }
+    }
+
+    return ret;
+}
+
+void platform_reset_island_power_status(void *platform, snd_device_t snd_device)
+{
+     struct platform_data *my_data = (struct platform_data *)platform;
+
+     my_data->island_cfg[snd_device].mixer_ctl = NULL;
+     my_data->power_mode_cfg[snd_device].mixer_ctl = NULL;
+     my_data->island_cfg[snd_device].enable = false;
+     my_data->power_mode_cfg[snd_device].enable = false;
+}
+
 /*
  * configures afe with bit width and Sample Rate
  */
@@ -9977,7 +10135,7 @@ static bool platform_check_capture_codec_backend_cfg(struct audio_device* adev,
         channels = CODEC_BACKEND_DEFAULT_TX_CHANNELS;
     } else if (my_data->is_internal_codec &&
                my_data->is_default_be_config &&
-               !audio_is_usb_in_device(snd_device)) {
+               !is_usb_in_snd_dev(snd_device)) {
         sample_rate =  CODEC_BACKEND_DEFAULT_SAMPLE_RATE;
         channels = CODEC_BACKEND_DEFAULT_TX_CHANNELS;
         if (in && in->bit_width == 24)
@@ -10009,7 +10167,7 @@ static bool platform_check_capture_codec_backend_cfg(struct audio_device* adev,
             }
         }
         if ((sample_rate % INPUT_SAMPLING_RATE_11025 == 0) &&
-            (!audio_is_usb_in_device(snd_device))) {
+            (!is_usb_in_snd_dev(snd_device))) {
             ALOGV("%s:txbecf: afe: set sample rate to default Sample Rate(48k)",__func__);
             sample_rate = CODEC_BACKEND_DEFAULT_SAMPLE_RATE;
         }

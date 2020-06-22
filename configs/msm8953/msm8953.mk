@@ -93,7 +93,6 @@ vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8953/sound_trigger_mixer
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8953/sound_trigger_mixer_paths_wcd9330.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_wcd9330.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8953/sound_trigger_mixer_paths_wcd9335.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_wcd9335.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8953/sound_trigger_platform_info.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_platform_info.xml \
-vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8953/audio_platform_info.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8953/audio_platform_info_intcodec.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_intcodec.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8953/audio_platform_info_tashalite.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_tashalite.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8953/audio_platform_info_sku3_tasha.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_sku3_tasha.xml \
@@ -280,8 +279,8 @@ vendor.audio.feature.maxx_audio.enable=false \
 vendor.audio.feature.audiozoom.enable=false \
 vendor.audio.feature.auto_hal.enable=false \
 vendor.audio.read.wsatz.type=true \
-vendor.audio.feature.multi_voice_session.enable=true
-
+vendor.audio.feature.multi_voice_session.enable=true \
+vendor.audio.feature.incall_music.enable=true
 
 # for HIDL related packages
 PRODUCT_PACKAGES += \
