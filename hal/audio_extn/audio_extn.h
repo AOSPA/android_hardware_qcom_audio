@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2013 The Android Open Source Project
@@ -144,6 +144,14 @@ int audio_extn_parse_compress_metadata(struct stream_out *out,
 #ifndef AUDIO_HW_EXTN_API_ENABLED
 #define compress_set_metadata(compress, metadata) (0)
 #define compress_get_metadata(compress, metadata) (0)
+#else
+/* set metadata */
+int compress_set_metadata(struct compress *compress,
+            struct snd_compr_metadata *mdata);
+
+/* get metadata */
+int compress_get_metadata(struct compress *compress,
+            struct snd_compr_metadata *mdata);
 #endif
 
 #define MAX_LENGTH_MIXER_CONTROL_IN_INT                  (128)
