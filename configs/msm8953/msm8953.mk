@@ -131,8 +131,13 @@ PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio_hal.period_size=192
 
 ##fluencetype can be "fluence" or "fluencepro" or "none"
+ifeq ($(AUDIO_SDK_FLUENCETYPE),)
+PRODUCT_PROPERTY_OVERRIDES += ro.vendor.audio.sdk.fluencetype=none
+else
+PRODUCT_PROPERTY_OVERRIDES += ro.vendor.audio.sdk.fluencetype=$(AUDIO_SDK_FLUENCETYPE)
+endif
+
 PRODUCT_PROPERTY_OVERRIDES += \
-ro.vendor.audio.sdk.fluencetype=none\
 persist.vendor.audio.fluence.voicecall=true\
 persist.vendor.audio.fluence.voicerec=false\
 persist.vendor.audio.fluence.speaker=true
