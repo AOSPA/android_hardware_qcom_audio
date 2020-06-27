@@ -169,10 +169,6 @@ vendor.audio.offload.multiple.enabled=false
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.offload.passthrough=false
 
-#Disable surround sound recording
-PRODUCT_PROPERTY_OVERRIDES += \
-ro.vendor.audio.sdk.ssr=false
-
 #enable dsp gapless mode by default
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.offload.gapless.enabled=true
