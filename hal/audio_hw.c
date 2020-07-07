@@ -9169,6 +9169,12 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
             }
         }
     }
+    if (in->realtime) {
+        in->config = pcm_config_audio_capture_rt;
+        in->config.format = pcm_format_from_audio_format(config->format);
+        in->af_period_multiplier = af_period_multiplier;
+    }
+
     if (audio_extn_ssr_get_stream() != in)
         in->config.channels = channel_count;
 
