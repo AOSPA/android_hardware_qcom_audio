@@ -1291,6 +1291,31 @@ int disable_audio_route(struct audio_device *adev,
         snd_device = usecase->in_snd_device;
     else
         snd_device = usecase->out_snd_device;
+
+    /* disable island and power mode on supported device for voice call */
+    if (usecase->type == VOICE_CALL) {
+        if (usecase->in_snd_device != SND_DEVICE_NONE) {
+            if (platform_get_island_cfg_on_device(adev->platform, usecase->in_snd_device) &&
+                platform_get_power_mode_on_device(adev->platform, usecase->in_snd_device)) {
+                platform_set_island_cfg_on_device(adev, usecase->in_snd_device, false);
+                platform_set_power_mode_on_device(adev, usecase->in_snd_device, false);
+                platform_reset_island_power_status(adev->platform, usecase->in_snd_device);
+                ALOGD("%s: disable island cfg and power mode in voice tx path",
+                      __func__);
+            }
+        }
+        if (usecase->out_snd_device != SND_DEVICE_NONE) {
+            if (platform_get_island_cfg_on_device(adev->platform, usecase->out_snd_device) &&
+                platform_get_power_mode_on_device(adev->platform, usecase->out_snd_device)) {
+                platform_set_island_cfg_on_device(adev, usecase->out_snd_device, false);
+                platform_set_power_mode_on_device(adev, usecase->out_snd_device, false);
+                platform_reset_island_power_status(adev->platform, usecase->out_snd_device);
+                ALOGD("%s: disable island cfg and power mode in voice rx path",
+                       __func__);
+            }
+        }
+    }
+
     // we shouldn't truncate mixer_path
     ALOGW_IF(strlcpy(mixer_path, use_case_table[usecase->id], sizeof(mixer_path))
             >= sizeof(mixer_path), "%s: truncation on mixer path", __func__);
@@ -1385,6 +1410,14 @@ int enable_snd_device(struct audio_device *adev,
     } else {
         ALOGD("%s: snd_device(%d: %s)", __func__, snd_device, device_name);
 
+        /* enable island and power mode on supported device */
+        if (platform_get_island_cfg_on_device(adev->platform, snd_device) &&
+            platform_get_power_mode_on_device(adev->platform, snd_device)) {
+            platform_set_island_cfg_on_device(adev, snd_device, true);
+            platform_set_power_mode_on_device(adev, snd_device, true);
+            ALOGD("%s: enable island cfg and power mode on: %s",
+                   __func__, device_name);
+        }
 
         if ((SND_DEVICE_OUT_BT_A2DP == snd_device) &&
             (audio_extn_a2dp_start_playback() < 0)) {
@@ -1600,6 +1633,15 @@ case 8
   new_uc->dev d11 (a1), d2 (a2)  B1, B2
   resolution: compared to case 1, for this case, d1 and d11 are related
   then need to do the same as case 2 to siwtch to new uc
+
+case 9
+  uc->dev d1 (a1), d2(a2)        B1  B2
+  new_uc->dev d1 (a1), d22 (a2)  B1, B2
+  resolution: disable enable uc-dev on d2 since backends match
+  we cannot enable two streams on two different devices if they
+  share the same backend. This is special case for combo use case
+  with a2dp and sco devices which uses same backend.
+  e.g. speaker-a2dp and speaker-btsco
 */
 static snd_device_t derive_playback_snd_device(void * platform,
                                                struct audio_usecase *uc,
@@ -1646,6 +1688,9 @@ static snd_device_t derive_playback_snd_device(void * platform,
         if (platform_check_backends_match(d3[0], d3[1])) {
             return d2; // case 5
         } else {
+            if ((list_length(&a1) > 1) && (list_length(&a2) > 1) &&
+                 platform_check_backends_match(d1, d2))
+                return d2; //case 9
             if (list_length(&a1) > 1)
                 return d1; //case 7
             // check if d1 is related to any of d3's
@@ -1702,10 +1747,25 @@ static void check_usecases_codec_backend(struct audio_device *adev,
      * with new AFE encoder format based on a2dp state
      */
     if ((SND_DEVICE_OUT_BT_A2DP == snd_device ||
-         SND_DEVICE_OUT_SPEAKER_AND_BT_A2DP == snd_device) &&
+         SND_DEVICE_OUT_SPEAKER_AND_BT_A2DP == snd_device ||
+         SND_DEVICE_OUT_SPEAKER_SAFE_AND_BT_A2DP == snd_device) &&
          audio_extn_a2dp_is_force_device_switch()) {
          force_routing = true;
          force_restart_session = true;
+    }
+
+    /*
+     * Island cfg and power mode config needs to set before AFE port start.
+     * Set force routing in case of voice device was enable before.
+     */
+    if (uc_info->type == VOICE_CALL &&
+        voice_extn_is_voice_power_mode_supported() &&
+        platform_check_and_update_island_power_status(adev->platform,
+                                             uc_info,
+                                             snd_device)) {
+        force_routing = true;
+        ALOGD("%s:becf: force routing %d for power mode supported device",
+               __func__, force_routing);
     }
     ALOGD("%s:becf: force routing %d", __func__, force_routing);
 
@@ -1851,6 +1911,22 @@ static void check_usecases_capture_codec_backend(struct audio_device *adev,
      */
     if (uc_info->type == PCM_CAPTURE)
         backend_check_cond = is_codec_backend_in_device_type(&uc_info->device_list);
+
+    /*
+     * Island cfg and power mode config needs to set before AFE port start.
+     * Set force routing in case of voice device was enable before.
+     */
+
+    if (uc_info->type == VOICE_CALL &&
+        voice_extn_is_voice_power_mode_supported() &&
+        platform_check_and_update_island_power_status(adev->platform,
+                                             uc_info,
+                                             snd_device)) {
+        force_routing = true;
+        ALOGD("%s:becf: force routing %d for power mode supported device",
+               __func__, force_routing);
+    }
+
     /*
      * This function is to make sure that all the active capture usecases
      * are always routed to the same input sound device.
@@ -4305,28 +4381,34 @@ size_t get_output_period_size(uint32_t sample_rate,
 static uint64_t get_actual_pcm_frames_rendered(struct stream_out *out, struct timespec *timestamp)
 {
     uint64_t actual_frames_rendered = 0;
-    size_t kernel_buffer_size = out->compr_config.fragment_size * out->compr_config.fragments;
+    uint64_t written_frames = 0;
+    uint64_t kernel_frames = 0;
+    uint64_t dsp_frames = 0;
+    uint64_t signed_frames = 0;
+    size_t kernel_buffer_size = 0;
 
     /* This adjustment accounts for buffering after app processor.
      * It is based on estimated DSP latency per use case, rather than exact.
      */
     pthread_mutex_lock(&adev->lock);
-    int64_t platform_latency =  platform_render_latency(out->dev, out->usecase) *
-                                out->sample_rate / 1000000LL;
+    dsp_frames = platform_render_latency(out->dev, out->usecase) *
+        out->sample_rate / 1000000LL;
     pthread_mutex_unlock(&adev->lock);
 
     pthread_mutex_lock(&out->position_query_lock);
+    written_frames = out->written /
+        (audio_bytes_per_sample(out->hal_ip_format) * popcount(out->channel_mask));
+
     /* not querying actual state of buffering in kernel as it would involve an ioctl call
      * which then needs protection, this causes delay in TS query for pcm_offload usecase
      * hence only estimate.
      */
-    uint64_t signed_frames = 0;
-    if (out->written >= kernel_buffer_size)
-        signed_frames = out->written - kernel_buffer_size;
+    kernel_buffer_size = out->compr_config.fragment_size * out->compr_config.fragments;
+    kernel_frames = kernel_buffer_size /
+        (audio_bytes_per_sample(out->hal_op_format) * popcount(out->channel_mask));
 
-    signed_frames = signed_frames / (audio_bytes_per_sample(out->format) * popcount(out->channel_mask));
-    if (signed_frames >= platform_latency)
-        signed_frames = signed_frames - platform_latency;
+    if (written_frames >= (kernel_frames + dsp_frames))
+        signed_frames = written_frames - kernel_frames - dsp_frames;
 
     if (signed_frames > 0) {
         actual_frames_rendered = signed_frames;
@@ -4337,11 +4419,8 @@ static uint64_t get_actual_pcm_frames_rendered(struct stream_out *out, struct ti
     }
     pthread_mutex_unlock(&out->position_query_lock);
 
-    ALOGVV("%s signed frames %lld out_written %lld kernel_buffer_size %d"
-            "bytes/sample %zu channel count %d", __func__, signed_frames,
-             (long long int)out->written, (int)kernel_buffer_size,
-             audio_bytes_per_sample(out->compr_config.codec->format),
-             popcount(out->channel_mask));
+    ALOGVV("%s signed frames %lld written frames %lld kernel frames %lld dsp frames %lld",
+            __func__, signed_frames, written_frames, kernel_frames, dsp_frames);
 
     return actual_frames_rendered;
 }
@@ -5287,7 +5366,7 @@ static uint32_t out_get_latency(const struct audio_stream_out *stream)
            (out->config.rate);
     }
 
-    if (is_a2dp_out_device_type(&out->device_list))
+    if (!out->standby && is_a2dp_out_device_type(&out->device_list))
         latency += audio_extn_a2dp_get_encoder_latency();
 
     ALOGV("%s: Latency %d", __func__, latency);
@@ -7765,7 +7844,7 @@ int adev_open_output_stream(struct audio_hw_device *dev,
             if (out->sample_rate == 8000 || out->sample_rate == 16000 ||
              out->sample_rate == 32000 || out->sample_rate == 48000) {
                 out->channel_mask = audio_extn_utils_is_vendor_enhanced_fwk() ?
-                                        AUDIO_CHANNEL_OUT_MONO : AUDIO_CHANNEL_OUT_STEREO;
+                                        config->channel_mask : AUDIO_CHANNEL_OUT_STEREO;
                 out->usecase = USECASE_AUDIO_PLAYBACK_VOIP;
                 out->format = AUDIO_FORMAT_PCM_16_BIT;
                 out->volume_l = INVALID_OUT_VOLUME;

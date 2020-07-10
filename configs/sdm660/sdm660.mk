@@ -68,6 +68,14 @@ AUDIO_FEATURE_ENABLED_SOURCE_TRACKING := true
 AUDIO_FEATURE_ENABLED_GEF_SUPPORT := true
 AUDIO_FEATURE_ENABLED_RAS := true
 AUDIO_FEATURE_ENABLED_SND_MONITOR := true
+AUDIO_FEATURE_ENABLED_SVA_MULTI_STAGE := true
+
+ifeq ($(TARGET_KERNEL_VERSION), 4.4)
+   AUDIO_FEATURE_ENABLED_DLKM := false
+else
+    AUDIO_FEATURE_ENABLED_DLKM := true
+endif
+
 ##AUDIO_FEATURE_FLAGS
 
 #Audio Specific device overlays
@@ -218,6 +226,11 @@ vendor.audio.parser.ip.buffer.size=262144
 #flac sw decoder 24 bit decode capability
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.flac.sw.decoder.24bit=true
+
+#timeout crash duration set to 20sec before system is ready.
+#timeout duration updates to default timeout of 5sec once the system is ready.
+PRODUCT_PRODUCT_PROPERTIES += \
+vendor.audio.hal.boot.timeout.ms=20000
 
 #split a2dp DSP supported encoder list
 PRODUCT_PROPERTY_OVERRIDES += \

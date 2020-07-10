@@ -72,6 +72,7 @@
 #define PLATFORM_INFO_XML_PATH_I2S "/etc/audio_platform_info_extcodec.xml"
 #define PLATFORM_INFO_XML_PATH_WSA  "/etc/audio_platform_info_wsa.xml"
 #define PLATFORM_INFO_XML_PATH_TDM  "/etc/audio_platform_info_tdm.xml"
+#define PLATFORM_INFO_XML_PATH_SCUBA_IDP "/etc/audio_platform_info_scubaidp.xml"
 #else
 #define PLATFORM_INFO_XML_PATH_INTCODEC  "/vendor/etc/audio_platform_info_intcodec.xml"
 #define PLATFORM_INFO_XML_PATH_SKUSH "/vendor/etc/audio_platform_info_skush.xml"
@@ -84,6 +85,7 @@
 #define PLATFORM_INFO_XML_PATH_I2S "/vendor/etc/audio_platform_info_i2s.xml"
 #define PLATFORM_INFO_XML_PATH_WSA  "/vendor/etc/audio_platform_info_wsa.xml"
 #define PLATFORM_INFO_XML_PATH_TDM  "/vendor/etc/audio_platform_info_tdm.xml"
+#define PLATFORM_INFO_XML_PATH_SCUBA_IDP "/vendor/etc/audio_platform_info_scubaidp.xml"
 #endif
 
 #include <linux/msm_audio.h>
@@ -386,6 +388,8 @@ struct platform_data {
     bool is_multiple_sample_rate_combo_supported;
     struct listnode custom_mtmx_params_list;
     struct listnode custom_mtmx_in_params_list;
+    struct power_mode_cfg power_mode_cfg[SND_DEVICE_MAX];
+    struct island_cfg island_cfg[SND_DEVICE_MAX];
 };
 
 struct  spkr_device_chmap {
@@ -1760,6 +1764,8 @@ static void update_codec_type_and_interface(struct platform_data * my_data,
                    sizeof("lahaina-mtp-snd-card")) ||
          !strncmp(snd_card_name, "lahaina-qrd-snd-card",
                    sizeof("lahaina-qrd-snd-card")) ||
+         !strncmp(snd_card_name, "lahaina-cdp-snd-card",
+                   sizeof("lahaina-cdp-snd-card")) ||
          !strncmp(snd_card_name, "kona-mtp-snd-card",
                    sizeof("kona-mtp-snd-card")) ||
          !strncmp(snd_card_name, "kona-qrd-snd-card",
@@ -1788,6 +1794,8 @@ static void update_codec_type_and_interface(struct platform_data * my_data,
                    sizeof("atoll-qrd-snd-card")) ||
          !strncmp(snd_card_name, "bengal-idp-snd-card",
                    sizeof("bengal-idp-snd-card")) ||
+         !strncmp(snd_card_name, "bengal-scubaidp-snd-card",
+                   sizeof("bengal-scubaidp-snd-card")) ||
          !strncmp(snd_card_name, "bengal-qrd-snd-card",
                    sizeof("bengal-qrd-snd-card")) ||
          !strncmp(snd_card_name, "msm8937-snd-card-mtp",
@@ -2224,6 +2232,11 @@ static void set_platform_defaults(struct platform_data * my_data)
         operator_specific_device_table[dev] = NULL;
         external_specific_device_table[dev] = NULL;
         snd_device_delay_ms[dev] = 0;
+        /* Init island cfg and power mode */
+        my_data->island_cfg[dev].mixer_ctl = NULL;
+        my_data->power_mode_cfg[dev].mixer_ctl = NULL;
+        my_data->island_cfg[dev].enable = false;
+        my_data->power_mode_cfg[dev].enable = false;
     }
     for (dev = 0; dev < SND_DEVICE_MAX; dev++) {
         backend_bit_width_table[dev] = CODEC_BACKEND_DEFAULT_BIT_WIDTH;
@@ -2295,6 +2308,8 @@ static void set_platform_defaults(struct platform_data * my_data)
     backend_tag_table[SND_DEVICE_IN_BT_A2DP] = strdup("bt-a2dp-cap");
     backend_tag_table[SND_DEVICE_OUT_SPEAKER_AND_BT_A2DP] = strdup("speaker-and-bt-a2dp");
     backend_tag_table[SND_DEVICE_OUT_SPEAKER_SAFE_AND_BT_A2DP] = strdup("speaker-safe-and-bt-a2dp");
+    backend_tag_table[SND_DEVICE_OUT_SPEAKER_SAFE_AND_HEADPHONES] = strdup("speaker-safe-and-headphones");
+    backend_tag_table[SND_DEVICE_OUT_SPEAKER_SAFE_AND_LINE] = strdup("speaker-safe-and-line");
     backend_tag_table[SND_DEVICE_OUT_USB_HEADSET_SPEC] = strdup("usb-headset");
     backend_tag_table[SND_DEVICE_OUT_VOICE_SPEAKER_AND_VOICE_HEADPHONES] = strdup("speaker-and-headphones");
     backend_tag_table[SND_DEVICE_OUT_VOICE_SPEAKER_AND_VOICE_ANC_HEADSET] = strdup("speaker-and-headphones");
@@ -3341,6 +3356,9 @@ void *platform_init(struct audio_device *adev)
     else if (!strncmp(snd_card_name, "bengal-qrd-snd-card",
                sizeof("bengal-qrd-snd-card")))
         platform_info_init(PLATFORM_INFO_XML_PATH_QRD, my_data, PLATFORM);
+    else if (!strncmp(snd_card_name, "bengal-scubaidp-snd-card",
+               sizeof("bengal-scubaidp-snd-card")))
+        platform_info_init(PLATFORM_INFO_XML_PATH_SCUBA_IDP, my_data, PLATFORM);
     else if (!strncmp(snd_card_name, "qcs405-wsa-snd-card",
                sizeof("qcs405-wsa-snd-card")))
         platform_info_init(PLATFORM_INFO_XML_PATH_WSA, my_data, PLATFORM);
@@ -3710,7 +3728,8 @@ acdb_init_fail:
             if (default_rx_backend)
                 free(default_rx_backend);
             default_rx_backend = strdup("WSA_CDC_DMA_RX_0");
-            if(!strncmp(snd_card_name, "bengal", strlen("bengal"))) {
+            if(!strncmp(snd_card_name, "bengal", strlen("bengal")) &&
+               strncmp(snd_card_name, "bengal-scuba", strlen("bengal-scuba"))) {
                 my_data->current_backend_cfg[DEFAULT_CODEC_BACKEND].bitwidth_mixer_ctl =
                         strdup("RX_CDC_DMA_RX_1 Format");
                 my_data->current_backend_cfg[DEFAULT_CODEC_BACKEND].samplerate_mixer_ctl =
@@ -3718,6 +3737,9 @@ acdb_init_fail:
                 default_rx_backend = strdup("RX_CDC_DMA_RX_1");
                 my_data->is_multiple_sample_rate_combo_supported = false;
             }
+
+            if (!strncmp(snd_card_name, "bengal-scuba", strlen("bengal-scuba")))
+                my_data->is_multiple_sample_rate_combo_supported = false;
         } else if (!strncmp(snd_card_name, "sdm660", strlen("sdm660")) ||
                !strncmp(snd_card_name, "sdm670", strlen("sdm670")) ||
                !strncmp(snd_card_name, "qcs605", strlen("qcs605"))) {
@@ -6903,9 +6925,7 @@ snd_device_t platform_get_input_snd_device(void *platform,
                 goto exit;
             }
         }
-        if (compare_device_type(out_devices, AUDIO_DEVICE_OUT_EARPIECE) ||
-            compare_device_type(out_devices, AUDIO_DEVICE_OUT_WIRED_HEADPHONE) ||
-            compare_device_type(out_devices, AUDIO_DEVICE_OUT_LINE)) {
+        if (compare_device_type(out_devices, AUDIO_DEVICE_OUT_EARPIECE)) {
             if (compare_device_type(out_devices, AUDIO_DEVICE_OUT_EARPIECE) &&
                 audio_extn_should_use_handset_anc(channel_count)) {
                 if ((my_data->fluence_type != FLUENCE_NONE) &&
@@ -6919,20 +6939,11 @@ snd_device_t platform_get_input_snd_device(void *platform,
             } else if (my_data->fluence_type == FLUENCE_NONE ||
                 (my_data->fluence_in_voice_call == false &&
                  my_data->fluence_in_hfp_call == false)) {
-                 if (compare_device_type(out_devices, AUDIO_DEVICE_OUT_LINE) &&
-                     audio_extn_hfp_is_active(adev)) {
-                     snd_device = my_data->fluence_sb_enabled ?
-                                      SND_DEVICE_IN_VOICE_SPEAKER_MIC_SB
-                                      : (my_data->fluence_nn_enabled ?
-                                            SND_DEVICE_IN_VOICE_SPEAKER_MIC_NN
-                                            : SND_DEVICE_IN_VOICE_SPEAKER_MIC);
-                 } else {
-                     snd_device = my_data->fluence_sb_enabled ?
-                                     SND_DEVICE_IN_HANDSET_MIC_SB
-                                     : (my_data->fluence_nn_enabled ?
-                                            SND_DEVICE_IN_HANDSET_MIC_NN
-                                            : SND_DEVICE_IN_HANDSET_MIC);
-                 }
+                 snd_device = my_data->fluence_sb_enabled ?
+                                 SND_DEVICE_IN_HANDSET_MIC_SB
+                                 : (my_data->fluence_nn_enabled ?
+                                        SND_DEVICE_IN_HANDSET_MIC_NN
+                                        : SND_DEVICE_IN_HANDSET_MIC);
                  if (audio_extn_hfp_is_active(adev))
                      platform_set_echo_reference(adev, true, out_devices);
             } else {
@@ -9024,6 +9035,154 @@ static int platform_get_voice_call_backend(struct audio_device* adev)
        }
    }
    return backend_idx;
+}
+
+bool platform_get_power_mode_on_device(void *platform, snd_device_t snd_device) {
+    struct platform_data *my_data = (struct platform_data *)platform;
+
+    ALOGD("%s:power mode status on snd_device = (%s %d)", __func__,
+           platform_get_snd_device_name(snd_device),
+           my_data->power_mode_cfg[snd_device].enable);
+    return my_data->power_mode_cfg[snd_device].enable;
+
+}
+
+bool platform_get_island_cfg_on_device(void *platform, snd_device_t snd_device) {
+    struct platform_data *my_data = (struct platform_data *)platform;
+
+    ALOGD("%s:island cfg status on snd_device = (%s %d)", __func__,
+           platform_get_snd_device_name(snd_device),
+           my_data->island_cfg[snd_device].enable);
+    return my_data->island_cfg[snd_device].enable;
+}
+
+int platform_set_power_mode_on_device(struct audio_device* adev,
+                                      snd_device_t snd_device,
+                                      bool enable)
+{
+    int ret = 0;
+    struct  mixer_ctl *ctl;
+    struct platform_data *my_data = (struct platform_data *)adev->platform;
+
+    ctl = mixer_get_ctl_by_name(adev->mixer,
+                                my_data->power_mode_cfg[snd_device].mixer_ctl);
+
+    if (ctl) {
+        ALOGD("%s:set power mode to %s",
+               __func__, (enable == true) ? "true" : "false");
+        mixer_ctl_set_value(ctl, 0, (int)enable);
+    } else {
+        ALOGE("%s:Could not get ctl for power mode mixer", __func__);
+        ret = -EINVAL;
+        goto error;
+    }
+    return ret;
+
+error:
+    my_data->power_mode_cfg[snd_device].enable = false;
+    my_data->power_mode_cfg[snd_device].mixer_ctl = NULL;
+    return ret;
+}
+
+int platform_set_island_cfg_on_device(struct audio_device* adev,
+                                      snd_device_t snd_device,
+                                      bool enable)
+{
+    int ret = 0;
+    struct  mixer_ctl *ctl;
+    struct platform_data *my_data = (struct platform_data *)adev->platform;
+
+    ctl = mixer_get_ctl_by_name(adev->mixer,
+                                my_data->island_cfg[snd_device].mixer_ctl);
+
+    if (ctl) {
+        ALOGD("%s:set island cfg to %s",
+               __func__, (enable == true) ? "true" : "false");
+        mixer_ctl_set_value(ctl, 0, (int)enable);
+    } else {
+        ALOGE("%s:Could not get ctl for island cfg mixer", __func__);
+        return -EINVAL;
+        goto error;
+    }
+    return ret;
+
+error:
+    my_data->island_cfg[snd_device].enable = false;
+    my_data->island_cfg[snd_device].mixer_ctl = NULL;
+    return ret;
+}
+
+char * platform_update_power_mode_mixer_ctrl(snd_device_t snd_device)
+{
+    char mixer_ctl[MIXER_PATH_MAX_LENGTH];
+    char *power_mode_mixer_ctrl = NULL;
+    char * be_itf = hw_interface_table[snd_device];
+
+    if (be_itf != NULL) {
+        snprintf(mixer_ctl, sizeof(mixer_ctl),
+                 "%s Power Mode", be_itf);
+        power_mode_mixer_ctrl = strdup(mixer_ctl);
+        ALOGD("%s: power mode mixer ctrl %s\n",
+              __func__, power_mode_mixer_ctrl);
+    }
+
+    return power_mode_mixer_ctrl;
+}
+
+char * platform_update_island_cfg_mixer_ctrl(snd_device_t snd_device)
+{
+    char mixer_ctl[MIXER_PATH_MAX_LENGTH];
+    char *island_cfg_mixer_ctrl = NULL;
+    char * be_itf = hw_interface_table[snd_device];
+
+    if (be_itf != NULL) {
+        snprintf(mixer_ctl, sizeof(mixer_ctl),
+                 "%s Island Config", be_itf);
+        island_cfg_mixer_ctrl = strdup(mixer_ctl);
+        ALOGD("%s: island cfg mixer ctrl %s\n",
+              __func__, island_cfg_mixer_ctrl);
+    }
+
+    return island_cfg_mixer_ctrl;
+}
+
+bool platform_check_and_update_island_power_status(void *platform,
+                                          struct audio_usecase* usecase,
+                                          snd_device_t snd_device)
+{
+    bool ret = false;
+    struct platform_data *my_data = (struct platform_data *)platform;
+
+    if (compare_device_type(&usecase->device_list, AUDIO_DEVICE_OUT_EARPIECE) ||
+        compare_device_type(&usecase->device_list, AUDIO_DEVICE_OUT_WIRED_HEADSET) ||
+        compare_device_type(&usecase->device_list, AUDIO_DEVICE_OUT_WIRED_HEADPHONE)) {
+        if (snd_device >= SND_DEVICE_MIN && snd_device < SND_DEVICE_MAX) {
+            /* update island and power mode in current device */
+            my_data->island_cfg[snd_device].mixer_ctl =
+                            platform_update_island_cfg_mixer_ctrl(snd_device);
+            my_data->power_mode_cfg[snd_device].mixer_ctl =
+                            platform_update_power_mode_mixer_ctrl(snd_device);
+            if (my_data->island_cfg[snd_device].mixer_ctl != NULL &&
+                my_data->power_mode_cfg[snd_device].mixer_ctl != NULL) {
+                /* enable island and power mode in current device */
+                my_data->island_cfg[snd_device].enable = true;
+                my_data->power_mode_cfg[snd_device].enable = true;
+                ret = true;
+            }
+        }
+    }
+
+    return ret;
+}
+
+void platform_reset_island_power_status(void *platform, snd_device_t snd_device)
+{
+     struct platform_data *my_data = (struct platform_data *)platform;
+
+     my_data->island_cfg[snd_device].mixer_ctl = NULL;
+     my_data->power_mode_cfg[snd_device].mixer_ctl = NULL;
+     my_data->island_cfg[snd_device].enable = false;
+     my_data->power_mode_cfg[snd_device].enable = false;
 }
 
 /*
