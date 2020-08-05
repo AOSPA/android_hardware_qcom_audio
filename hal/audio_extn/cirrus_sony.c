@@ -92,7 +92,7 @@ struct cirrus_playback_session {
 };
 
 /* TA handling */
-#define LIB_MISCTA	"libmiscta.so"
+#define LIB_MISCTA	"libMiscTaWrapper.so"
 #define TA_DEBUG 1
 
 /* TA functions */
