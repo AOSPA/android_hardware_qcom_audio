@@ -2626,7 +2626,9 @@ int select_devices(struct audio_device *adev, audio_usecase_t uc_id)
                     /* get the input with the highest priority source*/
                     priority_in = get_priority_input(adev);
 
-                    if (!priority_in)
+                    /* prefer current input if its source is equally the highest */
+                    if (!priority_in ||
+                        (priority_in->source == usecase->stream.in->source))
                         priority_in = usecase->stream.in;
                 }
 
