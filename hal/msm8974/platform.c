@@ -71,6 +71,8 @@
 #define PLATFORM_INFO_XML_PATH_I2S_NAME "audio_platform_info_extcodec.xml"
 #define PLATFORM_INFO_XML_PATH_WSA_NAME  "audio_platform_info_wsa.xml"
 #define PLATFORM_INFO_XML_PATH_TDM_NAME  "audio_platform_info_tdm.xml"
+#define PLATFORM_INFO_XML_PATH_SHIMA_IDP "audio_platform_info_shimaidp.xml"
+#define PLATFORM_INFO_XML_PATH_SHIMA_QRD "audio_platform_info_shimaqrd.xml"
 
 #include <linux/msm_audio.h>
 #if defined (PLATFORM_MSM8998) || (PLATFORM_SDM845) || (PLATFORM_SDM710) || \
@@ -485,6 +487,7 @@ static int pcm_device_table[AUDIO_USECASE_MAX][2] = {
 
     [USECASE_AUDIO_PLAYBACK_VOIP] = {AUDIO_PLAYBACK_VOIP_PCM_DEVICE, AUDIO_PLAYBACK_VOIP_PCM_DEVICE},
     [USECASE_AUDIO_RECORD_VOIP] = {AUDIO_RECORD_VOIP_PCM_DEVICE, AUDIO_RECORD_VOIP_PCM_DEVICE},
+    [USECASE_AUDIO_RECORD_VOIP_LOW_LATENCY] = {LOWLATENCY_PCM_DEVICE, LOWLATENCY_PCM_DEVICE},
     [USECASE_AUDIO_PLAYBACK_INTERACTIVE_STREAM1] =
                      {PLAYBACK_INTERACTIVE_STRM_DEVICE1, PLAYBACK_INTERACTIVE_STRM_DEVICE1},
     [USECASE_AUDIO_PLAYBACK_INTERACTIVE_STREAM2] =
@@ -1418,6 +1421,7 @@ static struct name_to_index usecase_name_index[AUDIO_USECASE_MAX] = {
     {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_PHONE)},
     {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_FRONT_PASSENGER)},
     {TO_NAME_INDEX(USECASE_AUDIO_PLAYBACK_REAR_SEAT)},
+    {TO_NAME_INDEX(USECASE_AUDIO_RECORD_VOIP_LOW_LATENCY)},
 };
 
 static const struct name_to_index usecase_type_index[USECASE_TYPE_MAX] = {
@@ -1795,6 +1799,12 @@ static void update_codec_type_and_interface(struct platform_data * my_data,
                    sizeof("lahaina-cdp-snd-card")) ||
          !strncmp(snd_card_name, "kona-mtp-snd-card",
                    sizeof("kona-mtp-snd-card")) ||
+         !strncmp(snd_card_name, "lahaina-shimaidp-snd-card",
+                   sizeof("lahaina-shimaidp-snd-card")) ||
+         !strncmp(snd_card_name, "lahaina-shimaidps-snd-card",
+                   sizeof("lahaina-shimaidps-snd-card")) ||
+         !strncmp(snd_card_name, "lahaina-shimaqrd-snd-card",
+                   sizeof("lahaina-shimaqrd-snd-card")) ||
          !strncmp(snd_card_name, "kona-qrd-snd-card",
                    sizeof("kona-qrd-snd-card")) ||
          !strncmp(snd_card_name, "lito-mtp-snd-card",
@@ -1995,6 +2005,8 @@ void platform_set_echo_reference(struct audio_device *adev, bool enable,
 {
     struct platform_data *my_data = (struct platform_data *)adev->platform;
     char ec_ref_mixer_path[MIXER_PATH_MAX_LENGTH] = "echo-reference";
+    struct audio_usecase *uc = NULL;
+    struct listnode *node;
 
     audio_extn_sound_trigger_update_ec_ref_status(enable);
 
@@ -2006,8 +2018,14 @@ void platform_set_echo_reference(struct audio_device *adev, bool enable,
 
     if (enable) {
         if (!voice_extn_is_compress_voip_supported()) {
-            if (adev->mode == AUDIO_MODE_IN_COMMUNICATION)
+            if (adev->mode == AUDIO_MODE_IN_COMMUNICATION) {
                 strlcat(ec_ref_mixer_path, "-voip", MIXER_PATH_MAX_LENGTH);
+                list_for_each(node, &adev->usecase_list) {
+                    uc =  node_to_item(node, struct audio_usecase, list);
+                    if (uc->id == USECASE_AUDIO_RECORD_VOIP_LOW_LATENCY)
+                        strlcat(ec_ref_mixer_path, "-low-latency", MIXER_PATH_MAX_LENGTH);
+                }
+            }
         }
         strlcpy(my_data->ec_ref_mixer_path, ec_ref_mixer_path,
                     MIXER_PATH_MAX_LENGTH);
@@ -3409,11 +3427,20 @@ void *platform_init(struct audio_device *adev)
                sizeof("qcs405-tdm-snd-card"))) {
         platform_info_init(get_xml_file_path(PLATFORM_INFO_XML_PATH_TDM_NAME),
             my_data, PLATFORM);
+    } else if (!strncmp(snd_card_name, "lahaina-shimaidp-snd-card",
+               sizeof("lahaina-shimaidp-snd-card")) ||
+               !strncmp(snd_card_name, "lahaina-shimaidps-snd-card",
+               sizeof("lahaina-shimaidps-snd-card"))) {
+        platform_info_init(get_xml_file_path(PLATFORM_INFO_XML_PATH_SHIMA_IDP),
+            my_data, PLATFORM);
+    } else if (!strncmp(snd_card_name, "lahaina-shimaqrd-snd-card",
+               sizeof("lahaina-shimaqrd-snd-card"))) {
+        platform_info_init(get_xml_file_path(PLATFORM_INFO_XML_PATH_SHIMA_QRD),
+            my_data, PLATFORM);
     } else if (my_data->is_internal_codec) {
         platform_info_init(get_xml_file_path(PLATFORM_INFO_XML_PATH_INTCODEC_NAME),
             my_data, PLATFORM);
-    }
-    else {
+    } else {
         // Try to load pixel or default
         audio_extn_utils_get_platform_info(snd_card_name, platform_info_file);
         platform_info_init(platform_info_file, my_data, PLATFORM);
@@ -3741,6 +3768,7 @@ acdb_init_fail:
         //TODO:: make generic interfaceface to check Slimbus/I2S/CDC_DMA
         if (!strncmp(snd_card_name, "sm6150", strlen("sm6150")) ||
             !strncmp(snd_card_name, "kona", strlen("kona")) ||
+            !strncmp(snd_card_name, "shima", strlen("shima")) ||
             !strncmp(snd_card_name, "lahaina", strlen("lahaina")) ||
             !strncmp(snd_card_name, "lito", strlen("lito")) ||
             !strncmp(snd_card_name, "atoll", strlen("atoll")) ||
@@ -6580,7 +6608,10 @@ snd_device_t platform_get_output_snd_device(void *platform, struct stream_out *o
                         snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_2_WSA;
             } else {
                 if (hw_info_is_stereo_spkr(my_data->hw_info)) {
-                    if (my_data->voice_speaker_stereo)
+                    if (my_data->fluence_type & FLUENCE_QUAD_MIC &&
+                        hw_info_use_mono_spkr_for_qmic(my_data->hw_info))
+                         snd_device = SND_DEVICE_OUT_VOICE_SPEAKER;
+                    else if (my_data->voice_speaker_stereo)
                         snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_STEREO;
                     else if (adev->enable_hfp)
                         snd_device = SND_DEVICE_OUT_VOICE_SPEAKER_HFP;
@@ -9048,6 +9079,7 @@ bool platform_sound_trigger_usecase_needs_event(audio_usecase_t uc_id)
     case USECASE_INCALL_MUSIC_UPLINK:
     case USECASE_INCALL_MUSIC_UPLINK2:
     case USECASE_AUDIO_RECORD_VOIP:
+    case USECASE_AUDIO_RECORD_VOIP_LOW_LATENCY:
         needs_event = true;
         break;
     default:

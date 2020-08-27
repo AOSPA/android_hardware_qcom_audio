@@ -913,7 +913,8 @@ void audio_extn_utils_update_stream_app_type_cfg_for_usecase(
         ALOGV("%s Selected apptype: %d", __func__, usecase->stream.out->app_type_cfg.app_type);
         break;
     case PCM_CAPTURE:
-        if (usecase->id == USECASE_AUDIO_RECORD_VOIP)
+        if (usecase->id == USECASE_AUDIO_RECORD_VOIP
+                              || usecase->id == USECASE_AUDIO_RECORD_VOIP_LOW_LATENCY)
             usecase->stream.in->app_type_cfg.app_type = APP_TYPE_VOIP_AUDIO;
         else
             audio_extn_utils_update_stream_input_app_type_cfg(adev->platform,
@@ -1200,7 +1201,8 @@ int audio_extn_utils_get_app_sample_rate_for_device(
         }
     } else if (usecase->type == PCM_CAPTURE) {
         if (usecase->stream.in != NULL) {
-            if (usecase->id == USECASE_AUDIO_RECORD_VOIP)
+            if (usecase->id == USECASE_AUDIO_RECORD_VOIP
+                                  || usecase->id == USECASE_AUDIO_RECORD_VOIP_LOW_LATENCY)
                 usecase->stream.in->app_type_cfg.sample_rate = usecase->stream.in->sample_rate;
             if (voice_is_in_call_rec_stream(usecase->stream.in)) {
                 audio_extn_btsco_get_sample_rate(usecase->in_snd_device,
@@ -2618,29 +2620,19 @@ int audio_extn_utils_pcm_get_dsp_presentation_pos(struct stream_out *out __unuse
 #define PLATFORM_INFO_XML_PATH          "audio_platform_info.xml"
 #define PLATFORM_INFO_XML_BASE_STRING   "audio_platform_info"
 
-#ifdef LINUX_ENABLED
-static const char *kConfigLocationList[] =
-        {"/etc"};
-#else
-static const char *kConfigLocationList[] =
-        {"/vendor/etc"};
-#endif
-static const int kConfigLocationListSize =
-        (sizeof(kConfigLocationList) / sizeof(kConfigLocationList[0]));
-
 bool audio_extn_utils_resolve_config_file(char file_name[MIXER_PATH_MAX_LENGTH])
 {
     char full_config_path[MIXER_PATH_MAX_LENGTH];
-    for (int i = 0; i < kConfigLocationListSize; i++) {
-        snprintf(full_config_path,
-                 MIXER_PATH_MAX_LENGTH,
-                 "%s/%s",
-                 kConfigLocationList[i],
-                 file_name);
-        if (F_OK == access(full_config_path, 0)) {
-            strlcpy(file_name, full_config_path, MIXER_PATH_MAX_LENGTH);
-            return true;
-        }
+    char vendor_config_path[VENDOR_CONFIG_PATH_MAX_LENGTH];
+
+    /* Get path for audio configuration files in vendor */
+    audio_get_vendor_config_path(vendor_config_path,
+        sizeof(vendor_config_path));
+    snprintf(full_config_path, sizeof(full_config_path),
+        "%s/%s", vendor_config_path, file_name);
+    if (F_OK == access(full_config_path, 0)) {
+        strlcpy(file_name, full_config_path, MIXER_PATH_MAX_LENGTH);
+        return true;
     }
     return false;
 }

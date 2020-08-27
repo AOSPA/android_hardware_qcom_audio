@@ -399,6 +399,7 @@ const char * const use_case_table[AUDIO_USECASE_MAX] = {
 
     [USECASE_AUDIO_PLAYBACK_VOIP] = "audio-playback-voip",
     [USECASE_AUDIO_RECORD_VOIP] = "audio-record-voip",
+    [USECASE_AUDIO_RECORD_VOIP_LOW_LATENCY] = "audio-record-voip-low-latency",
     /* For Interactive Audio Streams */
     [USECASE_AUDIO_PLAYBACK_INTERACTIVE_STREAM1] = "audio-interactive-stream1",
     [USECASE_AUDIO_PLAYBACK_INTERACTIVE_STREAM2] = "audio-interactive-stream2",
@@ -549,6 +550,7 @@ static bool may_use_noirq_mode(struct audio_device *adev, audio_usecase_t uc_id,
     int dir = 0;
     switch (uc_id) {
         case USECASE_AUDIO_RECORD_LOW_LATENCY:
+        case USECASE_AUDIO_RECORD_VOIP_LOW_LATENCY:
             dir = 1;
         case USECASE_AUDIO_PLAYBACK_ULL:
             break;
@@ -3735,7 +3737,8 @@ static int stop_output_stream(struct stream_out *out)
         list_for_each(node, &adev->usecase_list) {
             usecase = node_to_item(node, struct audio_usecase, list);
             if ((usecase->type == PCM_CAPTURE &&
-                     usecase->id != USECASE_AUDIO_RECORD_VOIP)
+                     usecase->id != USECASE_AUDIO_RECORD_VOIP &&
+                          usecase->id != USECASE_AUDIO_RECORD_VOIP_LOW_LATENCY)
                 || usecase == uc_info)
                 continue;
 
@@ -7881,6 +7884,8 @@ int adev_open_output_stream(struct audio_hw_device *dev,
                 out->config.rate = out->sample_rate;
                 uint32_t channel_count =
                         audio_channel_count_from_out_mask(out->channel_mask);
+                out->config.channels = channel_count;
+
                 uint32_t buffer_size = get_stream_buffer_size(DEFAULT_VOIP_BUF_DURATION_MS,
                                                               out->sample_rate, out->format,
                                                               channel_count, false);
@@ -9422,7 +9427,10 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
             (flags & AUDIO_INPUT_FLAG_FAST) != 0) {
         is_low_latency = true;
 #if LOW_LATENCY_CAPTURE_USE_CASE
-        in->usecase = USECASE_AUDIO_RECORD_LOW_LATENCY;
+        if ((flags & AUDIO_INPUT_FLAG_VOIP_TX) != 0)
+            in->usecase = USECASE_AUDIO_RECORD_VOIP_LOW_LATENCY;
+        else
+            in->usecase = USECASE_AUDIO_RECORD_LOW_LATENCY;
 #endif
         in->realtime = may_use_noirq_mode(adev, in->usecase, in->flags);
         if (!in->realtime) {
@@ -9503,6 +9511,10 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
         in->config = pcm_config_afe_proxy_record;
         in->config.rate = config->sample_rate;
         in->af_period_multiplier = 1;
+    } else if (in->realtime) {
+        in->config = pcm_config_audio_capture_rt;
+        in->config.format = pcm_format_from_audio_format(config->format);
+        in->af_period_multiplier = af_period_multiplier;
     } else if (in->source == AUDIO_SOURCE_VOICE_COMMUNICATION &&
                in->flags & AUDIO_INPUT_FLAG_VOIP_TX &&
                (config->sample_rate == 8000 ||
