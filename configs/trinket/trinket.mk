@@ -129,9 +129,14 @@ else
 PRODUCT_PROPERTY_OVERRIDES += ro.vendor.audio.sdk.fluencetype=$(AUDIO_SDK_FLUENCETYPE)
 endif
 
+ifeq ($(AUDIO_VOICEREC_FLUENCE),)
+PRODUCT_PROPERTY_OVERRIDES += persist.vendor.audio.fluence.voicerec=false
+else
+PRODUCT_PROPERTY_OVERRIDES += persist.vendor.audio.fluence.voicerec=$(AUDIO_SDK_FLUENCETYPE)
+endif
+
 PRODUCT_PROPERTY_OVERRIDES += \
 persist.vendor.audio.fluence.voicecall=true \
-persist.vendor.audio.fluence.voicerec=false \
 persist.vendor.audio.fluence.speaker=true
 
 #disable tunnel encoding
