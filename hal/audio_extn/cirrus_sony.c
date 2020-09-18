@@ -1434,6 +1434,9 @@ int spkr_prot_start_processing(__unused snd_device_t snd_device) {
 
     pthread_mutex_lock(&handle.fb_prot_mutex);
 
+    audio_route_apply_and_update_path(adev->audio_route,
+                                      fp_platform_get_snd_device_name(snd_device));
+
     if (handle.state == IDLE)
         (void)pthread_create(&handle.failure_detect_thread,
                     (const pthread_attr_t *) NULL,
@@ -1452,6 +1455,9 @@ void spkr_prot_stop_processing(__unused snd_device_t snd_device) {
     struct audio_device *adev = handle.adev_handle;
 
     ALOGV("%s: Entry", __func__);
+
+    audio_route_reset_path(adev->audio_route,
+                           fp_platform_get_snd_device_name(snd_device));
 
     pthread_mutex_lock(&handle.fb_prot_mutex);
 
