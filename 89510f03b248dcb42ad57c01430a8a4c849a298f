@@ -16,6 +16,24 @@
       "revId": "89510f03b248dcb42ad57c01430a8a4c849a298f",
       "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c4eedb88_6d1e29af",
+        "filename": "configs/msm8953/msm8953.mk",
+        "patchSetId": 4
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1000468
+      },
+      "writtenOn": "2020-10-09T19:27:00Z",
+      "side": 0,
+      "message": "I had OEM changes in it\nNow I am using pure caf changes\nSo waiting for myself to add it back",
+      "parentUuid": "0394de0e_25320102",
+      "revId": "89510f03b248dcb42ad57c01430a8a4c849a298f",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad",
+      "unresolved": true
     }
   ]
 }
