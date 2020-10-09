@@ -34,6 +34,24 @@
       "revId": "89510f03b248dcb42ad57c01430a8a4c849a298f",
       "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0311ac1d_578e5ed5",
+        "filename": "configs/msm8953/msm8953.mk",
+        "patchSetId": 4
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1000488
+      },
+      "writtenOn": "2020-10-09T20:28:54Z",
+      "side": 0,
+      "message": "Then let\u0027s remove only the mixer paths and keep everything else.\nEven i tuned my ACDBs to follow what CAF does with the device/ACDB id.\nLow latency audio finally works here, so pretty sure we don\u0027t need to nuke anything except mixer path. Surprise, VOIP works without that compress flag :)",
+      "parentUuid": "c4eedb88_6d1e29af",
+      "revId": "89510f03b248dcb42ad57c01430a8a4c849a298f",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad",
+      "unresolved": true
     }
   ]
 }
