@@ -1456,8 +1456,8 @@ void spkr_prot_stop_processing(__unused snd_device_t snd_device) {
 
     ALOGV("%s: Entry", __func__);
 
-    audio_route_reset_path(adev->audio_route,
-                           fp_platform_get_snd_device_name(snd_device));
+    audio_route_reset_and_update_path(adev->audio_route,
+                                      fp_platform_get_snd_device_name(snd_device));
 
     pthread_mutex_lock(&handle.fb_prot_mutex);
 
