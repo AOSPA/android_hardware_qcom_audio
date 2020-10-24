@@ -103,6 +103,7 @@ PRODUCT_PACKAGES += $(AUDIO_HARDWARE)
 PRODUCT_PACKAGES += $(AUDIO_WRAPPER)
 PRODUCT_PACKAGES += $(AUDIO_HAL_TEST_APPS)
 PRODUCT_PACKAGES += ftm_test_config_lahaina-qrd-snd-card
+PRODUCT_PACKAGES += ftm_test_config_lahaina-hdk-snd-card
 PRODUCT_PACKAGES += ftm_test_config_lahaina-shimaidp-snd-card
 PRODUCT_PACKAGES += ftm_test_config_lahaina-shimaidps-snd-card
 PRODUCT_PACKAGES += ftm_test_config_lahaina-shimaqrd-snd-card
@@ -315,6 +316,11 @@ vendor.audio.parser.ip.buffer.size=262144
 #flac sw decoder 24 bit decode capability
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.flac.sw.decoder.24bit=true
+
+#timeout crash duration set to 20sec before system is ready.
+#timeout duration updates to default timeout of 5sec once the system is ready.
+PRODUCT_PROPERTY_OVERRIDES += \
+vendor.audio.hal.boot.timeout.ms=20000
 
 #split a2dp DSP supported encoder list
 PRODUCT_PROPERTY_OVERRIDES += \
