@@ -671,20 +671,11 @@ exit:
 }
 
 static inline int cirrus_set_force_wake(bool enable) {
-    char *ctl_name;
-    int ctl_sz = CIRRUS_CTL_NAME_BUF;
     int ret = 0;
 
     if (handle.is_stereo) {
-        ctl_name = (char *)calloc(ctl_sz, sizeof(char));
-        ret = cirrus_format_mixer_name(CIRRUS_CTL_FORCE_WAKE, "L",
-                                        &ctl_name, ctl_sz);
-        ret += cirrus_set_mixer_value_by_name(ctl_name, (int)enable);
-
-        ret += cirrus_format_mixer_name(CIRRUS_CTL_FORCE_WAKE, "R",
-                                        &ctl_name, ctl_sz);
-        ret += cirrus_set_mixer_value_by_name(ctl_name, (int)enable);
-        free(ctl_name);
+        ret = cirrus_set_mixer_value_by_name_lr(CIRRUS_CTL_FORCE_WAKE,
+                                                (int)enable);
     } else {
         ret = cirrus_set_mixer_value_by_name(CIRRUS_CTL_FORCE_WAKE,
                                              (int)enable);
@@ -976,14 +967,8 @@ static int cirrus_stereo_calibration(void) {
         goto exit;
 
     /* Same CAL_AMBIENT for both speakers */
-    ret = cirrus_format_mixer_name(CIRRUS_CTL_CALI_CAL_AMBIENT, "L",
-                                   &ctl_name, ctl_sz);
-    ret += cirrus_set_mixer_array_by_name(CIRRUS_CTL_CALI_CAL_AMBIENT,
-                                          cal_ambient, 4);
-    ret += cirrus_format_mixer_name(CIRRUS_CTL_CALI_CAL_AMBIENT, "R",
-                                   &ctl_name, ctl_sz);
-    ret += cirrus_set_mixer_array_by_name(CIRRUS_CTL_CALI_CAL_AMBIENT,
-                                          cal_ambient, 4);
+    ret = cirrus_set_mixer_value_by_name_lr(CIRRUS_CTL_CALI_CAL_AMBIENT,
+                                            4);
     if (ret < 0) {
         ALOGE("%s: Cannot set ambient calibration", __func__);
         goto exit;
