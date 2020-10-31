@@ -466,25 +466,21 @@ exit:
 }
 
 static int cirrus_set_mixer_value_by_name_lr(char* ctl_base_name, int value) {
-    char *ctl_name;
-    int ctl_sz = CIRRUS_CTL_NAME_BUF;
+    char ctl_name[CIRRUS_CTL_NAME_BUF];
     int ret = 0;
 
-    ctl_name = (char *)calloc(ctl_sz, sizeof(char));
-
-    ret = cirrus_format_mixer_name(ctl_base_name, "L", ctl_name, ctl_sz);
+    ret = cirrus_format_mixer_name(ctl_base_name, "L", ctl_name, sizeof(ctl_name));
     ret += cirrus_set_mixer_value_by_name(ctl_name, value);
     if (ret < 0) {
         ALOGE("%s: Cannot set mixer %s to %d", __func__, ctl_name, value);
         goto end;
     }
 
-    ret = cirrus_format_mixer_name(ctl_base_name, "R", ctl_name, ctl_sz);
+    ret = cirrus_format_mixer_name(ctl_base_name, "R", ctl_name, sizeof(ctl_name));
     ret += cirrus_set_mixer_value_by_name(ctl_name, value);
     if (ret < 0)
         ALOGE("%s: Cannot set mixer %s to %d", __func__, ctl_name, value);
 end:
-    free(ctl_name);
     return ret;
 }
 
@@ -691,12 +687,10 @@ static inline int cirrus_set_force_wake(bool enable) {
 }
 
 static int cirrus_do_reset(const char *channel) {
-    char *ctl_name;
-    int ctl_sz = CIRRUS_CTL_NAME_BUF;
+    char ctl_name[CIRRUS_CTL_NAME_BUF];
     int ret = 0;
 
-    ctl_name = (char *)calloc(ctl_sz, sizeof(char));
-    ret = cirrus_format_mixer_name("CCM Reset", channel, ctl_name, ctl_sz);
+    ret = cirrus_format_mixer_name("CCM Reset", channel, ctl_name, sizeof(ctl_name));
     ret += cirrus_get_mixer_value_by_name(ctl_name);
     if (ret < 0) {
         ALOGE("%s: CCM Reset is missing!!!", __func__);
@@ -705,14 +699,12 @@ static int cirrus_do_reset(const char *channel) {
         ALOGI("%s: CCM Reset done.", __func__);
     }
 
-    free(ctl_name);
     return ret;
 }
 
 static int cirrus_exec_fw_download(const char *fw_type, const char *channel,
                                    int do_reset) {
-    char *ctl_name;
-    int ctl_sz = CIRRUS_CTL_NAME_BUF;
+    char ctl_name[CIRRUS_CTL_NAME_BUF];
     uint8_t cspl_ena[4] = { 0 };
     int retry = 0, ret;
 
@@ -722,10 +714,8 @@ static int cirrus_exec_fw_download(const char *fw_type, const char *channel,
     if (do_reset)
         ret = cirrus_do_reset(channel);
 
-    ctl_name = (char *)calloc(ctl_sz, sizeof(char));
-
     /* If this one is missing, we're not using our Cirrus codec... */
-    ret = cirrus_format_mixer_name("DSP Booted", channel, ctl_name, ctl_sz);
+    ret = cirrus_format_mixer_name("DSP Booted", channel, ctl_name, sizeof(ctl_name));
     ret += cirrus_get_mixer_value_by_name(ctl_name);
     if (ret < 0) {
         ALOGE("%s: %s control is missing. Bailing out.", __func__, ctl_name);
@@ -743,7 +733,7 @@ static int cirrus_exec_fw_download(const char *fw_type, const char *channel,
     usleep(5000);
 
     ret = cirrus_format_mixer_name("DSP1 Preload Switch",
-                                   channel, ctl_name, ctl_sz);
+                                   channel, ctl_name, sizeof(ctl_name));
     ret += cirrus_set_mixer_value_by_name(ctl_name, 0);
     if (ret < 0) {
         ALOGE("%s: Cannot reset %s", __func__, ctl_name);
@@ -752,14 +742,14 @@ static int cirrus_exec_fw_download(const char *fw_type, const char *channel,
     usleep(5000);
 
     /* Determine what firmware to load and configure DSP */
-    ret = cirrus_format_mixer_name("DSP1 Firmware", channel, ctl_name, ctl_sz);
+    ret = cirrus_format_mixer_name("DSP1 Firmware", channel, ctl_name, sizeof(ctl_name));
     ret += cirrus_set_mixer_enum_by_name(ctl_name, fw_type);
     if (ret < 0) {
         ALOGE("%s: Cannot set %s to %s", __func__, ctl_name, fw_type);
         goto exit;
     }
 
-    ret = cirrus_format_mixer_name("PCM Source", channel, ctl_name, ctl_sz);
+    ret = cirrus_format_mixer_name("PCM Source", channel, ctl_name, sizeof(ctl_name));
     ret += cirrus_set_mixer_enum_by_name(ctl_name, "DSP");
     if (ret < 0) {
         ALOGE("%s: Cannot set %s to DSP", __func__, ctl_name);
@@ -768,7 +758,7 @@ static int cirrus_exec_fw_download(const char *fw_type, const char *channel,
 
     /* Send the firmware! */
     ret = cirrus_format_mixer_name("DSP1 Preload Switch",
-                                   channel, ctl_name, ctl_sz);
+                                   channel, ctl_name, sizeof(ctl_name));
     ret += cirrus_set_mixer_value_by_name(ctl_name, 1);
     if (ret < 0) {
         ALOGE("%s: Cannot set %s to %s", __func__, ctl_name, fw_type);
@@ -777,10 +767,10 @@ static int cirrus_exec_fw_download(const char *fw_type, const char *channel,
 
     if (!strcmp(fw_type, "Protection")) {
         ret = cirrus_format_mixer_name("DSP1 Protection cd CSPL_ENABLE",
-                                       channel, ctl_name, ctl_sz);
+                                       channel, ctl_name, sizeof(ctl_name));
     } else if (!strcmp(fw_type, "Calibration")) {
         ret = cirrus_format_mixer_name("DSP1 Calibration cd CSPL_ENABLE",
-                                       channel, ctl_name, ctl_sz);
+                                       channel, ctl_name, sizeof(ctl_name));
     } else {
         ret = -EINVAL;
         ALOGE("%s: ERROR! Unsupported firmware type passed: %s",
@@ -827,8 +817,6 @@ retry_fw:
     }
 
 exit:
-    free(ctl_name);
-
     usleep(10000);
     return ret;
 }
@@ -955,12 +943,9 @@ exit:
 /* TODO: Implement diagnostics for stereo -- left because too messy now */
 static int cirrus_stereo_calibration(void) {
     struct audio_device *adev = handle.adev_handle;
-    char *ctl_name;
-    int ctl_sz = CIRRUS_CTL_NAME_BUF;
+    char ctl_name[CIRRUS_CTL_NAME_BUF];
     bool stat_l_nok = true, stat_r_nok = true;
     int ret = 0;
-
-    ctl_name = (char *)calloc(ctl_sz, sizeof(char));
 
     ret = cirrus_set_force_wake(true);
     if (ret < 0)
@@ -981,7 +966,7 @@ static int cirrus_stereo_calibration(void) {
               __func__);
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_CALI_CAL_STATUS, "L",
-                                   ctl_name, ctl_sz);
+                                   ctl_name, sizeof(ctl_name));
     ret += cirrus_get_mixer_array_by_name(ctl_name,
                                           &handle.spkl.status, 4);
     if (ret < 0) {
@@ -990,7 +975,7 @@ static int cirrus_stereo_calibration(void) {
     }
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_CALI_CAL_STATUS, "R",
-                                   ctl_name, ctl_sz);
+                                   ctl_name, sizeof(ctl_name));
     ret += cirrus_get_mixer_array_by_name(ctl_name,
                                           &handle.spkr.status, 4);
     if (ret < 0) {
@@ -1023,7 +1008,7 @@ static int cirrus_stereo_calibration(void) {
     }
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_CALI_CAL_CHECKSUM, "L",
-                                   ctl_name, ctl_sz);
+                                   ctl_name, sizeof(ctl_name));
     ret += cirrus_get_mixer_array_by_name(ctl_name,
                                          &handle.spkl.checksum, 4);
     if (ret < 0) {
@@ -1032,7 +1017,7 @@ static int cirrus_stereo_calibration(void) {
     }
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_CALI_CAL_CHECKSUM, "R",
-                                   ctl_name, ctl_sz);
+                                   ctl_name, sizeof(ctl_name));
     ret += cirrus_get_mixer_array_by_name(ctl_name,
                                          &handle.spkr.checksum, 4);
     if (ret < 0) {
@@ -1041,7 +1026,7 @@ static int cirrus_stereo_calibration(void) {
     }
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_CALI_CAL_R, "L",
-                                   ctl_name, ctl_sz);
+                                   ctl_name, sizeof(ctl_name));
     ret += cirrus_get_mixer_array_by_name(ctl_name,
                                          &handle.spkl.cal_r, 4);
     if (ret < 0) {
@@ -1050,7 +1035,7 @@ static int cirrus_stereo_calibration(void) {
     }
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_CALI_CAL_R, "R",
-                                   ctl_name, ctl_sz);
+                                   ctl_name, sizeof(ctl_name));
     ret += cirrus_get_mixer_array_by_name(ctl_name,
                                          &handle.spkr.cal_r, 4);
     if (ret < 0) {
@@ -1067,7 +1052,6 @@ static int cirrus_stereo_calibration(void) {
     handle.spkr.cal_ok = true;
 
 exit:
-    free(ctl_name);
     return ret;
 }
 
@@ -1122,19 +1106,16 @@ exit:
 }
 
 static int cirrus_do_fw_stereo_download(int do_reset) {
-    char *ctl_name;
-    int ctl_sz = CIRRUS_CTL_NAME_BUF;
+    char ctl_name[CIRRUS_CTL_NAME_BUF];
     bool cal_valid = false, status_ok = false, checksum_ok = false;
     int ret = 0;
 
     ALOGI("%s: Sending speaker protection stereo firmware", __func__);
 
-    ctl_name = (char *)calloc(ctl_sz, sizeof(char));
     ret = cirrus_exec_fw_download("Protection", "L", do_reset);
     if (ret != 0) {
         ALOGE("%s: Cannot send Protection L firmware: bailing out.",
               __func__);
-        free(ctl_name);
         return -EINVAL;
     }
 
@@ -1142,13 +1123,11 @@ static int cirrus_do_fw_stereo_download(int do_reset) {
     if (ret != 0) {
         ALOGE("%s: Cannot send Protection R firmware: bailing out.",
               __func__);
-        free(ctl_name);
         return -EINVAL;
     }
 
     /* If the calibration is not valid, keep the fw loaded but get out. */
     if (!handle.spkl.cal_ok || !handle.spkr.cal_ok) {
-        free(ctl_name);
         return -EINVAL;
     }
 
@@ -1157,7 +1136,7 @@ static int cirrus_do_fw_stereo_download(int do_reset) {
         goto exit;
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_R, "L",
-                                    ctl_name, ctl_sz);
+                                    ctl_name, sizeof(ctl_name));
     ret += cirrus_set_mixer_array_by_name(ctl_name,
                                          &handle.spkl.cal_r, 4);
     if (ret < 0) {
@@ -1166,7 +1145,7 @@ static int cirrus_do_fw_stereo_download(int do_reset) {
     }
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_R, "R",
-                                    ctl_name, ctl_sz);
+                                    ctl_name, sizeof(ctl_name));
     ret += cirrus_set_mixer_array_by_name(ctl_name,
                                          &handle.spkr.cal_r, 4);
     if (ret < 0) {
@@ -1175,7 +1154,7 @@ static int cirrus_do_fw_stereo_download(int do_reset) {
     }
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_STATUS, "L",
-                                    ctl_name, ctl_sz);
+                                    ctl_name, sizeof(ctl_name));
     ret += cirrus_set_mixer_array_by_name(ctl_name,
                                          &handle.spkl.status, 4);
     if (ret < 0) {
@@ -1184,7 +1163,7 @@ static int cirrus_do_fw_stereo_download(int do_reset) {
     }
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_STATUS, "R",
-                                    ctl_name, ctl_sz);
+                                    ctl_name, sizeof(ctl_name));
     ret += cirrus_set_mixer_array_by_name(ctl_name,
                                          &handle.spkr.status, 4);
     if (ret < 0) {
@@ -1193,7 +1172,7 @@ static int cirrus_do_fw_stereo_download(int do_reset) {
     }
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_CHECKSUM, "L",
-                                    ctl_name, ctl_sz);
+                                    ctl_name, sizeof(ctl_name));
     ret += cirrus_set_mixer_array_by_name(ctl_name,
                                          &handle.spkl.checksum, 4);
     if (ret < 0) {
@@ -1202,7 +1181,7 @@ static int cirrus_do_fw_stereo_download(int do_reset) {
     }
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_CHECKSUM, "R",
-                                    ctl_name, ctl_sz);
+                                    ctl_name, sizeof(ctl_name));
     ret += cirrus_set_mixer_array_by_name(ctl_name,
                                          &handle.spkr.checksum, 4);
     if (ret < 0) {
@@ -1216,7 +1195,6 @@ static int cirrus_do_fw_stereo_download(int do_reset) {
         goto exit;
 
 exit:
-    free(ctl_name);
     ret += cirrus_play_silence(0);
     return ret;
 }
@@ -1307,8 +1285,7 @@ exit:
 }
 
 static int cirrus_check_error_state_stereo(void) {
-    char *ctl_name;
-    int ctl_sz = CIRRUS_CTL_NAME_BUF;
+    char ctl_name[CIRRUS_CTL_NAME_BUF];
     uint8_t cspl_error[4] = { 0 };
     int ret = 0;
 
@@ -1316,9 +1293,8 @@ static int cirrus_check_error_state_stereo(void) {
     if (ret < 0)
         return ret;
 
-    ctl_name = (char *)calloc(ctl_sz, sizeof(char));
     ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CSPL_ERRORNO, "L",
-                                   ctl_name, ctl_sz);
+                                   ctl_name, sizeof(ctl_name));
     ret += cirrus_get_mixer_array_by_name(ctl_name, &cspl_error, 4);
     if (ret < 0) {
         ALOGE("%s: Cannot get %s", __func__, ctl_name);
@@ -1332,7 +1308,7 @@ static int cirrus_check_error_state_stereo(void) {
     }
 
     ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CSPL_ERRORNO, "R",
-                                   ctl_name, ctl_sz);
+                                   ctl_name, sizeof(ctl_name));
     ret += cirrus_get_mixer_array_by_name(ctl_name, &cspl_error, 4);
     if (ret < 0) {
         ALOGE("%s: Cannot get %s", __func__, ctl_name);
@@ -1346,7 +1322,6 @@ static int cirrus_check_error_state_stereo(void) {
     }
 
 exit:
-    free(ctl_name);
     ret = cirrus_set_force_wake(false);
     return ret;
 }
