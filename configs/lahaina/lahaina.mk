@@ -6,7 +6,16 @@ ifeq ($(TARGET_USES_QMAA),true)
 AUDIO_USE_STUB_HAL := true
 endif
 endif
+##mixer xml generation
+#BASE_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/common/base
+#OVERLAY_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/shima_overlay
+#TARGET_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina
+#SCRIPT := vendor/qcom/opensource/audio-hal/primary-hal/configs/common/mixer_xml_utils.py
 
+#$(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/mixer_paths_base.xml --overlay $(OVERLAY_PATH)/mixer_paths_shimaidp_overlay.xml $(OVERLAY_PATH)/mixer_paths_shimaidps_overlay.xml $(OVERLAY_PATH)/mixer_paths_shimaqrd_overlay.xml --out_dir $(TARGET_PATH) --out mixer_paths_shimaidp.xml mixer_paths_shimaidps.xml mixer_paths_shimaqrd.xml )
+
+#$(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/sound_trigger_mixer_paths_base.xml --overlay $(OVERLAY_PATH)/sound_trigger_mixer_paths_shimaidp_overlay.xml $(OVERLAY_PATH)/sound_trigger_mixer_paths_shimaidps_overlay.xml $(OVERLAY_PATH)/sound_trigger_mixer_paths_shimaqrd_overlay.xml --out_dir $(TARGET_PATH) --out sound_trigger_mixer_paths_shimaidp.xml sound_trigger_mixer_paths_shimaidps.xml sound_trigger_mixer_paths_shimaqrd.xml )
+##
 ifneq ($(AUDIO_USE_STUB_HAL), true)
 BOARD_USES_ALSA_AUDIO := true
 TARGET_USES_AOSP_FOR_AUDIO := false
@@ -205,7 +214,11 @@ PRODUCT_COPY_FILES += \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_shimaidp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/mixer_paths_shimaidp.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_shimaidps.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/mixer_paths_shimaidps.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_shimaqrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/mixer_paths_shimaqrd.xml \
-    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_tuning_mixer.txt:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_tuning_mixer.txt
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_tuning_mixer.txt:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_tuning_mixer.txt \
+    frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/default_volume_tables.xml \
+    frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/r_submix_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_policy_volumes.xml
+
 
 #Copy generic APM XML file to common folder for runtime copy
 PRODUCT_COPY_FILES += \
@@ -215,10 +228,6 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
 $(foreach DEVICE_SKU, $(QCV_FAMILY_SKUS), \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)_qssi/audio_policy_configuration.xml)
-
-# Reduce client buffer size for fast audio output tracks
-PRODUCT_PROPERTY_OVERRIDES += \
-    af.fast_track_multiplier=1
 
 # Low latency audio buffer size in frames
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -246,6 +255,11 @@ persist.vendor.audio.speaker.prot.enable=true\
 persist.vendor.audio.spv4.enable=true\
 persist.vendor.audio.avs.afe_api_version=9
 
+##bcl aka vbat monitor feature enable by default
+PRODUCT_PROPERTY_OVERRIDES += \
+persist.vendor.audio.vbat.enabled=true\
+persist.vendor.audio.bcl.enabled=true\
+
 #disable tunnel encoding
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.tunnel.encode=false
@@ -258,17 +272,9 @@ persist.vendor.audio.ras.enabled=false
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.offload.buffer.size.kb=32
 
-#Enable offload audio video playback by default
-PRODUCT_PROPERTY_OVERRIDES += \
-audio.offload.video=true
-
 #Enable audio track offload by default
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.offload.track.enable=true
-
-#Enable music through deep buffer
-PRODUCT_PROPERTY_OVERRIDES += \
-audio.deep_buffer.media=true
 
 #enable voice path for PCM VoIP by default
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -345,10 +351,6 @@ vendor.audio.use.sw.mpegh.decoder=true
 #enable hw aac encoder by default
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.hw.aac.encoder=true
-
-#Set AudioFlinger client heap size
-PRODUCT_PROPERTY_OVERRIDES += \
-ro.af.client_heap_size_kbyte=7168
 
 #Set HAL buffer size to samples equal to 3 ms
 PRODUCT_PROPERTY_OVERRIDES += \

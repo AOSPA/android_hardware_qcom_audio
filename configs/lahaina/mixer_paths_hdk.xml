@@ -407,7 +407,7 @@
     <ctl name="BCS Channel" value="CH6" />
 
     <!-- Volume controls -->
-    <ctl name="WSA_RX0 Digital Volume" value="78" />
+    <ctl name="WSA_RX0 Digital Volume" value="84" />
     <ctl name="WSA_RX1 Digital Volume" value="84" />
     <ctl name="RX_RX0 Digital Volume" value="84" />
     <ctl name="RX_RX1 Digital Volume" value="84" />
@@ -924,6 +924,11 @@
 
     <path name="audio-ull-playback speaker-and-bt-sco-swb">
         <path name="audio-ull-playback bt-sco-swb" />
+        <path name="audio-ull-playback" />
+    </path>
+
+    <path name="audio-ull-playback speaker-and-usb-headphones">
+        <path name="audio-ull-playback usb-headphones" />
         <path name="audio-ull-playback" />
     </path>
 

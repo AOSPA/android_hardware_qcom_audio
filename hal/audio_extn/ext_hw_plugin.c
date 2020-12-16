@@ -62,7 +62,11 @@ struct ext_hw_plugin_data {
 };
 
 /* This can be defined in platform specific file or use compile flag */
+#ifdef DAEMON_SUPPORT_AUTO
+#define LIB_PLUGIN_DRIVER "libaudiohalpluginclient.so"
+#else
 #define LIB_PLUGIN_DRIVER "libaudiohalplugin.so"
+#endif
 
 void* ext_hw_plugin_init(struct audio_device *adev, ext_hw_plugin_init_config_t init_config)
 {
@@ -201,6 +205,7 @@ static int32_t ext_hw_plugin_check_plugin_usecase(audio_usecase_t hal_usecase,
         break;
     case USECASE_ICC_CALL:
         *plugin_usecase = AUDIO_HAL_PLUGIN_USECASE_ICC;
+        break;
     default:
         ret = -EINVAL;
     }
