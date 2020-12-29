@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0946971e_5a9bd543",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000447
+      },
+      "writtenOn": "2020-12-29T00:11:56Z",
+      "side": 1,
+      "message": "I\u0027d prefer to actually create libfastrpcshippable_headers in QCOM common.",
+      "revId": "e47aa074e988323f97ddadaf394d965ad52b625e",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    }
+  ]
+}
