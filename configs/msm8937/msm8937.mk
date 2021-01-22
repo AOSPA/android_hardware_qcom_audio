@@ -71,13 +71,37 @@ endif
 #Audio Specific device overlays
 DEVICE_PACKAGE_OVERLAYS += vendor/qcom/opensource/audio-hal/primary-hal/configs/common/overlay
 
+
+ifeq ($(TARGET_SUPPORTS_WEARABLES),true)
+ ifeq ($(TARGET_KERNEL_VERSION), 4.14)
+   TARGET_SUPPORTS_A2DP_SLIMBUS_INTERFACE := true
+ else
+   TARGET_SUPPORTS_A2DP_SLIMBUS_INTERFACE := false
+  endif
+endif
+
 # Audio configuration file
 ifeq ($(TARGET_USES_AOSP_FOR_AUDIO), true)
-PRODUCT_COPY_FILES += \
-    device/qcom/common/media/audio_policy.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy.conf
+   ifeq ($(TARGET_SUPPORTS_WEARABLES), true)
+      ifeq ($(AUDIO_FEATURE_ENABLED_SPLIT_A2DP), true)
+         PRODUCT_COPY_FILES += \
+              vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy.conf
+      else
+          PRODUCT_COPY_FILES += \
+                  $(BOARD_COMMON_DIR)/media/audio_policy.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy.conf
+      endif
+   else
+        PRODUCT_COPY_FILES += \
+             device/qcom/common/media/audio_policy.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy.conf
+   endif
 else
 PRODUCT_COPY_FILES += \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy.conf
+endif
+
+# Target supports smartPA
+ifeq ($(TARGET_SUPPORTS_WEARABLES), true)
+WEARABLE_SUPPORTS_TFA_SMARTPA := true
 endif
 
 PRODUCT_COPY_FILES +=\
@@ -86,9 +110,10 @@ vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_effects.conf:
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_effects.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/mixer_paths_tasha.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_tasha.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/mixer_paths_tashalite.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_tashalite.xml \
-vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/mixer_paths.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/mixer_paths_mtp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_mtp.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/mixer_paths_sku1.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_sku1.xml \
+vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/mixer_paths_sdm429w.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_wtp.xml \
+vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/mixer_paths_sdm429w_dvt2.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_wtp_newport.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/sound_trigger_mixer_paths.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/sound_trigger_mixer_paths_wcd9306.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_wcd9306.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/sound_trigger_mixer_paths_wcd9330.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_wcd9330.xml \
@@ -98,9 +123,26 @@ vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_platform_info
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_platform_info_tashalite.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_tashalite.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_platform_info_tasha.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_tasha.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_platform_info_mtp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_mtp.xml \
-vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_platform_info.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info.xml \
+vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_platform_info_sdm429w.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_wtp.xml \
+vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_platform_info_sdm429w_dvt2.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_wtp_newport.xml \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_tuning_mixer.txt:$(TARGET_COPY_OUT_VENDOR)/etc/audio_tuning_mixer.txt \
 vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_configs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_configs.xml
+
+ifeq ($(TARGET_SUPPORTS_WEARABLES), true)
+   ifeq ($(TARGET_SUPPORTS_A2DP_SLIMBUS_INTERFACE),true)
+      PRODUCT_COPY_FILES += \
+      $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_platform_info_sdm429w_dvt2.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info.xml \
+      $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/mixer_paths_sdm429w_dvt2.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths.xml
+   else
+      PRODUCT_COPY_FILES += \
+      $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_platform_info_sdm429w.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info.xml \
+      $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/mixer_paths_sdm429w.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths.xml
+   endif
+else
+   PRODUCT_COPY_FILES += \
+   $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/mixer_paths.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths.xml \
+   $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_platform_info.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info.xml
+endif
 
 #XML Audio configuration files
 ifeq ($(USE_XML_AUDIO_POLICY_CONF), 1)
@@ -109,12 +151,18 @@ PRODUCT_COPY_FILES += \
     $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/audio_policy_configuration.xml
 endif
 PRODUCT_COPY_FILES += \
-    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration_common.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
     $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/bluetooth_qti_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/a2dp_audio_policy_configuration.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_volumes.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/default_volume_tables.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/r_submix_audio_policy_configuration.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/usb_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/usb_audio_policy_configuration.xml
+endif
+ifeq ($(TARGET_SUPPORTS_WEARABLES), true)
+   PRODUCT_COPY_FILES += \
+   $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration_sdm429w.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
+else
+   PRODUCT_COPY_FILES += \
+   $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration_common.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
 endif
 
 # Reduce client buffer size for fast audio output tracks
@@ -282,7 +330,6 @@ vendor.audio.feature.maxx_audio.enable=false \
 vendor.audio.feature.ras.enable=false \
 vendor.audio.feature.record_play_concurency.enable=false \
 vendor.audio.feature.src_trkn.enable=true \
-vendor.audio.feature.spkr_prot.enable=true \
 vendor.audio.feature.ssrec.enable=true \
 vendor.audio.feature.usb_offload.enable=false \
 vendor.audio.feature.usb_offload_burst_mode.enable=false \
@@ -292,7 +339,13 @@ vendor.audio.feature.vbat.enable=true \
 vendor.audio.feature.wsa.enable=true \
 vendor.audio.feature.audiozoom.enable=false \
 vendor.audio.feature.snd_mon.enable=true
-
+ifeq ($(TARGET_SUPPORTS_WEARABLES),true)
+PRODUCT_PROPERTY_OVERRIDES += \
+vendor.audio.feature.spkr_prot.enable=false
+else
+PRODUCT_PROPERTY_OVERRIDES += \
+vendor.audio.feature.spkr_prot.enable=true
+endif
 # for HIDL related packages
 PRODUCT_PACKAGES += \
     android.hardware.audio@2.0-service \

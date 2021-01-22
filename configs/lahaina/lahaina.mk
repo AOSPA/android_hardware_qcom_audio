@@ -6,16 +6,23 @@ ifeq ($(TARGET_USES_QMAA),true)
 AUDIO_USE_STUB_HAL := true
 endif
 endif
-##mixer xml generation
-#BASE_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/common/base
-#OVERLAY_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/shima_overlay
-#TARGET_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina
-#SCRIPT := vendor/qcom/opensource/audio-hal/primary-hal/configs/common/mixer_xml_utils.py
 
-#$(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/mixer_paths_base.xml --overlay $(OVERLAY_PATH)/mixer_paths_shimaidp_overlay.xml $(OVERLAY_PATH)/mixer_paths_shimaidps_overlay.xml $(OVERLAY_PATH)/mixer_paths_shimaqrd_overlay.xml --out_dir $(TARGET_PATH) --out mixer_paths_shimaidp.xml mixer_paths_shimaidps.xml mixer_paths_shimaqrd.xml )
+#mixer xml generation
+BASE_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/common/base
+OVERLAY_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/shima_overlay
+TARGET_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina
+SCRIPT := vendor/qcom/opensource/audio-hal/primary-hal/configs/common/mixer_xml_utils.py
 
-#$(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/sound_trigger_mixer_paths_base.xml --overlay $(OVERLAY_PATH)/sound_trigger_mixer_paths_shimaidp_overlay.xml $(OVERLAY_PATH)/sound_trigger_mixer_paths_shimaidps_overlay.xml $(OVERLAY_PATH)/sound_trigger_mixer_paths_shimaqrd_overlay.xml --out_dir $(TARGET_PATH) --out sound_trigger_mixer_paths_shimaidp.xml sound_trigger_mixer_paths_shimaidps.xml sound_trigger_mixer_paths_shimaqrd.xml )
-##
+$(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/mixer_paths_base.xml --overlay $(OVERLAY_PATH)/mixer_paths_shimaidp_overlay.xml $(OVERLAY_PATH)/mixer_paths_shimaidps_overlay.xml $(OVERLAY_PATH)/mixer_paths_shimaqrd_overlay.xml --out_dir $(TARGET_PATH) --out mixer_paths_shimaidp.xml mixer_paths_shimaidps.xml mixer_paths_shimaqrd.xml )
+
+$(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/sound_trigger_mixer_paths_base.xml --overlay $(OVERLAY_PATH)/sound_trigger_mixer_paths_shimaidp_overlay.xml $(OVERLAY_PATH)/sound_trigger_mixer_paths_shimaidps_overlay.xml $(OVERLAY_PATH)/sound_trigger_mixer_paths_shimaqrd_overlay.xml --out_dir $(TARGET_PATH) --out sound_trigger_mixer_paths_shimaidp.xml sound_trigger_mixer_paths_shimaidps.xml sound_trigger_mixer_paths_shimaqrd.xml )
+
+OVERLAY_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/yupik_overlay
+
+$(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/mixer_paths_base.xml --overlay $(OVERLAY_PATH)/mixer_paths_yupikidp_overlay.xml $(OVERLAY_PATH)/mixer_paths_yupikqrd_overlay.xml --out_dir $(TARGET_PATH) --out mixer_paths_yupikidp.xml mixer_paths_yupikqrd.xml )
+
+$(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/sound_trigger_mixer_paths_base.xml --overlay $(OVERLAY_PATH)/sound_trigger_mixer_paths_yupikidp_overlay.xml $(OVERLAY_PATH)/sound_trigger_mixer_paths_yupikqrd_overlay.xml --out_dir $(TARGET_PATH) --out sound_trigger_mixer_paths_yupikidp.xml sound_trigger_mixer_paths_yupikqrd.xml )
+#
 ifneq ($(AUDIO_USE_STUB_HAL), true)
 BOARD_USES_ALSA_AUDIO := true
 TARGET_USES_AOSP_FOR_AUDIO := false
@@ -116,6 +123,8 @@ PRODUCT_PACKAGES += ftm_test_config_lahaina-hdk-snd-card
 PRODUCT_PACKAGES += ftm_test_config_lahaina-shimaidp-snd-card
 PRODUCT_PACKAGES += ftm_test_config_lahaina-shimaidps-snd-card
 PRODUCT_PACKAGES += ftm_test_config_lahaina-shimaqrd-snd-card
+PRODUCT_PACKAGES += ftm_test_config_lahaina-yupikidp-snd-card
+PRODUCT_PACKAGES += ftm_test_config_lahaina-yupikqrd-snd-card
 PRODUCT_PACKAGES += audioadsprpcd
 PRODUCT_PACKAGES += vendor.qti.audio-adsprpc-service.rc
 
@@ -137,10 +146,12 @@ PRODUCT_COPY_FILES += \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/sound_trigger_mixer_paths_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_qrd.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/sound_trigger_mixer_paths_cdp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_cdp.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/sound_trigger_mixer_paths_hdk.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_hdk.xml \
+	vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/sound_trigger_mixer_paths_hhg.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_hhg.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_qrd.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_cdp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_cdp.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_hdk.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_hdk.xml \
+	vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_hhg.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_hhg.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_tuning_mixer.txt:$(TARGET_COPY_OUT_VENDOR)/etc/audio_tuning_mixer.txt \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/common/media_codecs_vendor_audio.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_vendor_audio.xml \
     frameworks/native/data/etc/android.hardware.audio.pro.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.pro.xml \
@@ -179,10 +190,12 @@ PRODUCT_COPY_FILES += \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/sound_trigger_mixer_paths_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/sound_trigger_mixer_paths_qrd.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/sound_trigger_mixer_paths_cdp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/sound_trigger_mixer_paths_cdp.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/sound_trigger_mixer_paths_hdk.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/sound_trigger_mixer_paths_hdk.xml\
+	vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/sound_trigger_mixer_paths_hhg.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/sound_trigger_mixer_paths_hhg.xml\
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/mixer_paths.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/mixer_paths_qrd.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_cdp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/mixer_paths_cdp.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_hdk.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/mixer_paths_hdk.xml \
+	vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_hhg.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/mixer_paths_hhg.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_tuning_mixer.txt:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_tuning_mixer.txt \
     frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/default_volume_tables.xml \
     frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/r_submix_audio_policy_configuration.xml \
@@ -225,6 +238,35 @@ PRODUCT_COPY_FILES += \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/common/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_policy_configuration.xml
 
 # Audio configuration xml's common to cedros family
+PRODUCT_COPY_FILES += \
+$(foreach DEVICE_SKU, $(QCV_FAMILY_SKUS), \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)_qssi/audio_policy_configuration.xml)
+
+QCV_FAMILY_SKUS := yupik
+DEVICE_SKU := yupik
+
+PRODUCT_COPY_FILES += \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_io_policy.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_io_policy.conf \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_effects.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_effects.conf \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_effects.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_effects.xml \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/sound_trigger_platform_info.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/sound_trigger_platform_info.xml \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_platform_info_intcodec.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_platform_info_intcodec.xml \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_platform_info_yupikqrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_platform_info_yupikqrd.xml \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/sound_trigger_mixer_paths_yupikidp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/sound_trigger_mixer_paths_yupikidp.xml \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/sound_trigger_mixer_paths_yupikqrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/sound_trigger_mixer_paths_yupikqrd.xml \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_yupikidp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/mixer_paths_yupikidp.xml \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/mixer_paths_yupikqrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/mixer_paths_yupikqrd.xml \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_tuning_mixer.txt:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_tuning_mixer.txt \
+    frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/default_volume_tables.xml \
+    frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/r_submix_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_policy_volumes.xml
+
+
+#Copy generic APM XML file to common folder for runtime copy
+PRODUCT_COPY_FILES += \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/common/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)/audio_policy_configuration.xml
+
+# Audio configuration xml's common to yupik family
 PRODUCT_COPY_FILES += \
 $(foreach DEVICE_SKU, $(QCV_FAMILY_SKUS), \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)_qssi/audio_policy_configuration.xml)

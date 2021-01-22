@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -528,6 +528,9 @@ static void update_hardware_info_kona(
                  sizeof("lito-lagoonqrd-snd-card"))) {
         strlcpy(hw_info->name, "lito", sizeof(hw_info->name));
         hw_info->is_stereo_spkr = false;
+    } else if (!strncmp(snd_card_name, "lito-orchidmtp-snd-card",
+                 sizeof("lito-orchidmtp-snd-card"))) {
+        strlcpy(hw_info->name, "lito", sizeof(hw_info->name));
     } else if (!strncmp(snd_card_name, "bengal-idp-snd-card",
                  sizeof("bengal-idp-snd-card"))) {
         strlcpy(hw_info->name, "bengal", sizeof(hw_info->name));
@@ -609,6 +612,10 @@ static void update_hardware_info_lahaina(
                  sizeof("lahaina-hdk-snd-card"))) {
         strlcpy(hw_info->name, "lahaina", sizeof(hw_info->name));
         hw_info->is_stereo_spkr = false;
+    } else if (!strncmp(snd_card_name, "lahaina-hhg-snd-card",
+                 sizeof("lahaina-hhg-snd-card"))) {
+        strlcpy(hw_info->name, "lahaina", sizeof(hw_info->name));
+        hw_info->is_stereo_spkr = true;
     } else if (!strncmp(snd_card_name, "lahaina-shimaidp-snd-card",
                  sizeof("lahaina-shimaidp-snd-card"))) {
         strlcpy(hw_info->name, "shima", sizeof(hw_info->name));
@@ -618,6 +625,13 @@ static void update_hardware_info_lahaina(
     } else if (!strncmp(snd_card_name, "lahaina-shimaqrd-snd-card",
                  sizeof("lahaina-shimaqrd-snd-card"))) {
         strlcpy(hw_info->name, "shima", sizeof(hw_info->name));
+        hw_info->is_stereo_spkr = false;
+    } else if (!strncmp(snd_card_name, "lahaina-yupikidp-snd-card",
+                 sizeof("lahaina-yupikidp-snd-card"))) {
+        strlcpy(hw_info->name, "yupik", sizeof(hw_info->name));
+    } else if (!strncmp(snd_card_name, "lahaina-yupikqrd-snd-card",
+                 sizeof("lahaina-yupikqrd-snd-card"))) {
+        strlcpy(hw_info->name, "yupik", sizeof(hw_info->name));
         hw_info->is_stereo_spkr = false;
     } else {
         ALOGW("%s: Not a lahaina device", __func__);
@@ -829,6 +843,10 @@ static void update_hardware_info_sdm439(struct hardware_info *hw_info, const cha
         strlcpy(hw_info->name, "msm8952", sizeof(hw_info->name));
     } else if (!strcmp(snd_card_name, "sdm439-snd-card-mtp")) {
         strlcpy(hw_info->name, "msm8952", sizeof(hw_info->name));
+    /* Wearbles LW and LAW uses different sound card name on sdm429w
+       so use strstr instead of strcmp  to make it generic */
+    } else if (strstr(snd_card_name, "sdm429w")) {
+        strlcpy(hw_info->name, "sdm429w", sizeof(hw_info->name));
     } else {
         ALOGW("%s: Not an SDM439 device", __func__);
     }
@@ -951,13 +969,14 @@ void *hw_info_init(const char *snd_card_name)
                || strstr(snd_card_name, "atoll") || strstr(snd_card_name, "bengal")) {
         ALOGV("KONA - variant soundcard");
         update_hardware_info_kona(hw_info, snd_card_name);
-    } else if(strstr(snd_card_name, "lahaina") || strstr(snd_card_name, "shima")) {
+    } else if(strstr(snd_card_name, "lahaina") || strstr(snd_card_name, "shima")
+      || strstr(snd_card_name, "yupik")) {
         ALOGV("LAHAINA - variant soundcard");
         update_hardware_info_lahaina(hw_info, snd_card_name);
     } else if(strstr(snd_card_name, "holi")) {
         ALOGV("HOLI - variant soundcard");
         update_hardware_info_holi(hw_info, snd_card_name);
-    } else if(strstr(snd_card_name, "sdm439")) {
+    } else if(strstr(snd_card_name, "sdm439") || strstr(snd_card_name, "sdm429w")) {
         ALOGV("SDM439 - variant soundcard");
         update_hardware_info_sdm439(hw_info, snd_card_name);
     } else if (strstr(snd_card_name, "msm8937")) {
