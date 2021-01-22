@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2013 The Android Open Source Project
@@ -1808,6 +1808,8 @@ static void update_codec_type_and_interface(struct platform_data * my_data,
                    sizeof("lahaina-cdp-snd-card")) ||
          !strncmp(snd_card_name, "lahaina-hdk-snd-card",
                    sizeof("lahaina-hdk-snd-card")) ||
+         !strncmp(snd_card_name, "lahaina-hhg-snd-card",
+                   sizeof("lahaina-hhg-snd-card")) ||
          !strncmp(snd_card_name, "kona-mtp-snd-card",
                    sizeof("kona-mtp-snd-card")) ||
          !strncmp(snd_card_name, "lahaina-shimaidp-snd-card",
@@ -1870,8 +1872,11 @@ static void update_codec_type_and_interface(struct platform_data * my_data,
                    sizeof("msm8953-sku4-snd-card")) ||
          !strncmp(snd_card_name, "lito-lagoonmtp-snd-card",
                    sizeof("lito-lagoonmtp-snd-card")) ||
+         strstr(snd_card_name, "sdm429w") ||
          !strncmp(snd_card_name, "lito-lagoonqrd-snd-card",
-                   sizeof("lito-lagoonqrd-snd-card"))) {
+                   sizeof("lito-lagoonqrd-snd-card")) ||
+         !strncmp(snd_card_name, "lito-orchidmtp-snd-card",
+                   sizeof("lito-orchidmtp-snd-card"))) {
          ALOGI("%s: snd_card_name: %s",__func__,snd_card_name);
          my_data->is_internal_codec = true;
          my_data->is_slimbus_interface = false;
@@ -3500,7 +3505,7 @@ void *platform_init(struct audio_device *adev)
                sizeof("bengal-scubaqrd-snd-card"))) {
         platform_info_init(get_xml_file_path(PLATFORM_INFO_XML_PATH_SCUBA_QRD),
             my_data, PLATFORM);
-    } else if (my_data->is_internal_codec) {
+    } else if (my_data->is_internal_codec && (strstr(snd_card_name, "sdm429w") == NULL)) {
         platform_info_init(get_xml_file_path(PLATFORM_INFO_XML_PATH_INTCODEC_NAME),
             my_data, PLATFORM);
     } else {
