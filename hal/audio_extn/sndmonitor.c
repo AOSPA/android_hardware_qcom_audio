@@ -604,7 +604,7 @@ void *monitor_thread_loop(void *args __unused)
 // ---- listener static APIs ---- //
 static int hashfn(void *key)
 {
-    return (int)key;
+    return (uint64_t)key;
 }
 
 static bool hasheq(void *key1, void *key2)

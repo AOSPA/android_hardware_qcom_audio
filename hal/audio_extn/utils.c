@@ -3240,7 +3240,7 @@ size_t audio_extn_utils_get_input_buffer_size(uint32_t sample_rate,
 
 int audio_extn_utils_hash_fn(void *key)
 {
-    return (int)key;
+    return (uint64_t)key;
 }
 
 bool audio_extn_utils_hash_eq(void *key1, void *key2)
