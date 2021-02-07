@@ -146,21 +146,20 @@ endif
 
 #XML Audio configuration files
 ifeq ($(USE_XML_AUDIO_POLICY_CONF), 1)
-ifeq ($(AUDIO_FEATURE_ENABLED_SPLIT_A2DP), true)
-ifeq ($(TARGET_SUPPORTS_WEARABLES), true)
-   PRODUCT_COPY_FILES += \
-   $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration_sdm429w.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
-else
-   PRODUCT_COPY_FILES += \
-   $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
-endif
-endif
-ifneq ($(TARGET_USES_AOSP_FOR_AUDIO), true)
+   ifeq ($(TARGET_PRODUCT),sdm429w_law)
+      PRODUCT_COPY_FILES += \
+      $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration_sdm429w_law.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
+   else ifeq ($(TARGET_SUPPORTS_WEARABLES), true)
+      PRODUCT_COPY_FILES += \
+      $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration_sdm429w.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
+   else ifeq ($(TARGET_USES_AOSP_FOR_AUDIO), true)
+      PRODUCT_COPY_FILES += \
+      $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration_common.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
+   else
+      PRODUCT_COPY_FILES += \
+      $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
+   endif
 PRODUCT_COPY_FILES += \
-    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/audio_policy_configuration.xml
-endif
-PRODUCT_COPY_FILES += \
-    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration_common.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
     $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/bluetooth_qti_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/a2dp_audio_policy_configuration.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_volumes.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/default_volume_tables.xml \
@@ -287,9 +286,18 @@ ro.af.client_heap_size_kbyte=7168
 
 PRODUCT_PROPERTY_OVERRIDES += \
 persist.vendor.audio.hw.binder.size_kbyte=1024
+
+ifeq ($(AUDIO_FEATURE_ENABLED_SPLIT_A2DP), true)
+#Enable split a2dp
+PRODUCT_PROPERTY_OVERRIDES += \
+vendor.audio.feature.a2dp_offload.enable=true \
+ro.bluetooth.a2dp_offload.supported=true
+else
 #Disable split a2dp
 PRODUCT_PROPERTY_OVERRIDES += \
-persist.vendor.bt.enable.splita2dp=false
+vendor.audio.feature.a2dp_offload.enable=false \
+ro.bluetooth.a2dp_offload.supported=false
+endif
 
 #enable headset calibration
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -301,7 +309,6 @@ vendor.audio.spkr_prot.tx.sampling_rate=48000
 
 #add dynamic feature flags here
 PRODUCT_PROPERTY_OVERRIDES += \
-vendor.audio.feature.a2dp_offload.enable=false \
 vendor.audio.feature.afe_proxy.enable=true \
 vendor.audio.feature.anc_headset.enable=true \
 vendor.audio.feature.battery_listener.enable=false \
@@ -333,7 +340,6 @@ vendor.audio.feature.maxx_audio.enable=false \
 vendor.audio.feature.ras.enable=false \
 vendor.audio.feature.record_play_concurency.enable=false \
 vendor.audio.feature.src_trkn.enable=true \
-vendor.audio.feature.spkr_prot.enable=true \
 vendor.audio.feature.ssrec.enable=true \
 vendor.audio.feature.usb_offload.enable=false \
 vendor.audio.feature.usb_offload_burst_mode.enable=false \
@@ -343,7 +349,13 @@ vendor.audio.feature.vbat.enable=true \
 vendor.audio.feature.wsa.enable=true \
 vendor.audio.feature.audiozoom.enable=false \
 vendor.audio.feature.snd_mon.enable=true
-
+ifeq ($(TARGET_SUPPORTS_WEARABLES),true)
+PRODUCT_PROPERTY_OVERRIDES += \
+vendor.audio.feature.spkr_prot.enable=false
+else
+PRODUCT_PROPERTY_OVERRIDES += \
+vendor.audio.feature.spkr_prot.enable=true
+endif
 # for HIDL related packages
 PRODUCT_PACKAGES += \
     android.hardware.audio@2.0-service \
