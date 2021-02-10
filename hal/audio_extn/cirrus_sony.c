@@ -610,6 +610,13 @@ static int cirrus_play_silence(int seconds) {
     if (!uc_info_rx) {
         return -ENOMEM;
     }
+
+    while (!adev->primary_output) {
+        ALOGE("Still no primary_output!");
+        // TODO: Perhaps wait on a condvar like spkr_prot?
+        usleep(1000);
+    }
+
     uc_info_rx->id = USECASE_AUDIO_PLAYBACK_DEEP_BUFFER;
     uc_info_rx->type = PCM_PLAYBACK;
     uc_info_rx->in_snd_device = SND_DEVICE_NONE;
