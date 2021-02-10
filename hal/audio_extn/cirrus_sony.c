@@ -114,9 +114,6 @@ int (*miscta_write_unit)(uint32_t id, const void *buf, uint32_t size) = NULL;
 #define TA_CIRRUS_CAL_SPKR_DIAG_Z_LOW_DIFF	4713
 #define TA_CIRRUS_CAL_SPKR_DIAG_F0_STATUS	4714
 
-/* Playback */
-#define CIRRUS_PLAYBACK_MIXER	"PRI_MI2S_RX Audio Mixer MultiMedia1"
-
 /* Mixer controls */
 #define CIRRUS_CTL_FORCE_WAKE		"Hibernate Force Wake"
 
@@ -597,15 +594,13 @@ static int cirrus_play_silence(int seconds) {
     struct pcm_config rx_tmp = { 0 };
 
     uint8_t *silence = NULL;
-    int i, ret, silence_bytes, silence_cnt = 1;
+    int i, ret = 0, silence_bytes, silence_cnt = 1;
     unsigned int buffer_size = 0, frames_bytes = 0;
+    int pcm_dev_rx_id = fp_platform_get_pcm_device_id(USECASE_AUDIO_PLAYBACK_DEEP_BUFFER, PCM_PLAYBACK);
 
+    audio_route_apply_and_update_path(adev->audio_route, "deep-buffer-playback");
 
-    ret = cirrus_set_mixer_value_by_name(CIRRUS_PLAYBACK_MIXER, 1);
-    if (ret)
-        return ret;
-
-    handle.pcm_rx = pcm_open(adev->snd_card, 0,
+    handle.pcm_rx = pcm_open(adev->snd_card, pcm_dev_rx_id,
                              PCM_OUT, &pcm_config_cirrus_rx);
     if (!handle.pcm_rx) {
         ALOGE("%s: Cannot open output PCM", __func__);
@@ -653,9 +648,7 @@ static int cirrus_play_silence(int seconds) {
     free(silence);
 
 exit:
-    ret = cirrus_set_mixer_value_by_name(CIRRUS_PLAYBACK_MIXER, 0);
-    if (ret)
-        return ret;
+    audio_route_reset_and_update_path(adev->audio_route, "deep-buffer-playback");
 
     pcm_close(handle.pcm_rx);
     return ret;
