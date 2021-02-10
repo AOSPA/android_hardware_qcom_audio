@@ -44,6 +44,7 @@ static fp_enable_disable_snd_device_t fp_disable_snd_device;
 static fp_enable_disable_snd_device_t  fp_enable_snd_device;
 static fp_enable_disable_audio_route_t fp_disable_audio_route;
 static fp_enable_disable_audio_route_t fp_enable_audio_route;
+static fp_platform_check_and_set_codec_backend_cfg_t fp_platform_check_and_set_codec_backend_cfg;
 
 enum cirrus_playback_state {
     INIT = 0,
@@ -380,6 +381,7 @@ void spkr_prot_init(void *adev, spkr_prot_init_config_t spkr_prot_init_config_va
     fp_enable_snd_device = spkr_prot_init_config_val.fp_enable_snd_device;
     fp_disable_audio_route = spkr_prot_init_config_val.fp_disable_audio_route;
     fp_enable_audio_route = spkr_prot_init_config_val.fp_enable_audio_route;
+    fp_platform_check_and_set_codec_backend_cfg = spkr_prot_init_config_val.fp_platform_check_and_set_codec_backend_cfg;
 
     pthread_mutex_init(&handle.fb_prot_mutex, NULL);
 
@@ -592,13 +594,41 @@ static int cirrus_play_silence(int seconds) {
     struct audio_device *adev = handle.adev_handle;
     struct mixer_ctl *ctl_config = NULL;
     struct pcm_config rx_tmp = { 0 };
+    struct audio_usecase *uc_info_rx;
 
     uint8_t *silence = NULL;
     int i, ret = 0, silence_bytes, silence_cnt = 1;
     unsigned int buffer_size = 0, frames_bytes = 0;
-    int pcm_dev_rx_id = fp_platform_get_pcm_device_id(USECASE_AUDIO_PLAYBACK_DEEP_BUFFER, PCM_PLAYBACK);
+    int pcm_dev_rx_id;
 
-    audio_route_apply_and_update_path(adev->audio_route, "deep-buffer-playback");
+    if (!list_empty(&adev->usecase_list)) {
+        ALOGD("%s: Usecase present retry speaker protection", __func__);
+        return -EAGAIN;
+    }
+
+    uc_info_rx = (struct audio_usecase *)calloc(1, sizeof(struct audio_usecase));
+    if (!uc_info_rx) {
+        return -ENOMEM;
+    }
+    uc_info_rx->id = USECASE_AUDIO_PLAYBACK_DEEP_BUFFER;
+    uc_info_rx->type = PCM_PLAYBACK;
+    uc_info_rx->in_snd_device = SND_DEVICE_NONE;
+    uc_info_rx->stream.out = adev->primary_output;
+    list_init(&uc_info_rx->device_list);
+    uc_info_rx->out_snd_device = SND_DEVICE_OUT_SPEAKER_PROTECTED;
+    list_add_tail(&adev->usecase_list, &uc_info_rx->list);
+    fp_platform_check_and_set_codec_backend_cfg(adev, uc_info_rx,
+                                             uc_info_rx->out_snd_device);
+    fp_enable_snd_device(adev, uc_info_rx->out_snd_device);
+    fp_enable_audio_route(adev, uc_info_rx);
+
+    pcm_dev_rx_id = fp_platform_get_pcm_device_id(uc_info_rx->id, PCM_PLAYBACK);
+    ALOGV("%s: pcm device id %d", __func__, pcm_dev_rx_id);
+    if (pcm_dev_rx_id < 0) {
+        ALOGE("%s: Invalid pcm device for usecase (%d)",
+              __func__, uc_info_rx->id);
+        goto exit;
+    }
 
     handle.pcm_rx = pcm_open(adev->snd_card, pcm_dev_rx_id,
                              PCM_OUT, &pcm_config_cirrus_rx);
@@ -648,7 +678,10 @@ static int cirrus_play_silence(int seconds) {
     free(silence);
 
 exit:
-    audio_route_reset_and_update_path(adev->audio_route, "deep-buffer-playback");
+    fp_disable_audio_route(adev, uc_info_rx);
+    fp_disable_snd_device(adev, uc_info_rx->out_snd_device);
+    list_remove(&uc_info_rx->list);
+    free(uc_info_rx);
 
     pcm_close(handle.pcm_rx);
     return ret;
