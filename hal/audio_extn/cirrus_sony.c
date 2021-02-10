@@ -44,8 +44,6 @@ static fp_enable_disable_snd_device_t fp_disable_snd_device;
 static fp_enable_disable_snd_device_t  fp_enable_snd_device;
 static fp_enable_disable_audio_route_t fp_disable_audio_route;
 static fp_enable_disable_audio_route_t fp_enable_audio_route;
-static fp_audio_extn_get_snd_card_split_t fp_audio_extn_get_snd_card_split;
-static fp_platform_get_snd_device_t fp_platform_get_vi_feedback_snd_device;
 
 enum cirrus_playback_state {
     INIT = 0,
@@ -385,9 +383,6 @@ void spkr_prot_init(void *adev, spkr_prot_init_config_t spkr_prot_init_config_va
     fp_enable_snd_device = spkr_prot_init_config_val.fp_enable_snd_device;
     fp_disable_audio_route = spkr_prot_init_config_val.fp_disable_audio_route;
     fp_enable_audio_route = spkr_prot_init_config_val.fp_enable_audio_route;
-    fp_audio_extn_get_snd_card_split = spkr_prot_init_config_val.fp_audio_extn_get_snd_card_split;
-    fp_platform_get_vi_feedback_snd_device = spkr_prot_init_config_val.fp_platform_get_vi_feedback_snd_device;
-
 
     pthread_mutex_init(&handle.fb_prot_mutex, NULL);
 
