@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2013 The Android Open Source Project
@@ -2982,6 +2982,30 @@ int select_devices(struct audio_device *adev, audio_usecase_t uc_id)
         }
     }
     enable_audio_route(adev, usecase);
+
+    if (uc_id == USECASE_AUDIO_PLAYBACK_VOIP) {
+        struct stream_in *voip_in = get_voice_communication_input(adev);
+        struct audio_usecase *voip_in_usecase = NULL;
+        voip_in_usecase = get_usecase_from_list(adev, USECASE_AUDIO_RECORD_VOIP);
+        if (voip_in != NULL &&
+            voip_in_usecase != NULL &&
+            !(out_snd_device == AUDIO_DEVICE_OUT_SPEAKER ||
+              out_snd_device == AUDIO_DEVICE_OUT_SPEAKER_SAFE) &&
+            (voip_in_usecase->in_snd_device ==
+            platform_get_input_snd_device(adev->platform, voip_in,
+                    &usecase->stream.out->device_list,usecase->type))) {
+            /*
+             * if VOIP TX is enabled before VOIP RX, needs to re-route the TX path
+             * for enabling echo-reference-voip with correct port
+             */
+            ALOGD("%s: VOIP TX is enabled before VOIP RX,needs to re-route the TX path",__func__);
+            disable_audio_route(adev, voip_in_usecase);
+            disable_snd_device(adev, voip_in_usecase->in_snd_device);
+            enable_snd_device(adev, voip_in_usecase->in_snd_device);
+            enable_audio_route(adev, voip_in_usecase);
+        }
+    }
+
 
     audio_extn_qdsp_set_device(usecase);
 
@@ -8723,7 +8747,30 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
         /* When set to false, HAL should disable EC and NS */
         if (strcmp(value, AUDIO_PARAMETER_VALUE_ON) == 0){
             adev->bt_sco_on = true;
-        } else {
+            /*
+             * When ever BT_SCO=ON arrives, make sure to route
+             * all use cases to SCO device, otherwise due to delay in
+             * BT_SCO=ON and lack of synchronization with create audio patch
+             * request for SCO device, some times use case not routed properly to
+             * SCO device
+             */
+            struct audio_usecase *usecase;
+            struct listnode *node;
+            list_for_each(node, &adev->usecase_list) {
+                usecase = node_to_item(node, struct audio_usecase, list);
+                if (usecase->stream.in && (usecase->type == PCM_CAPTURE) &&
+                    (!is_btsco_device(SND_DEVICE_NONE, usecase->in_snd_device))) {
+                    ALOGD("BT_SCO ON, switch all in use case to it");
+                    select_devices(adev, usecase->id);
+                    }
+                if (usecase->stream.out && (usecase->type == PCM_PLAYBACK) &&
+                    (!is_btsco_device(usecase->out_snd_device, SND_DEVICE_NONE))) {
+                     ALOGD("BT_SCO ON, switch all out use case to it");
+                     select_devices(adev, usecase->id);
+                    }
+            }
+         }
+         else {
             adev->bt_sco_on = false;
             audio_extn_sco_reset_configuration();
         }
@@ -9536,6 +9583,10 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
         in->config.period_count = VOIP_CAPTURE_PERIOD_COUNT;
         in->config.rate = config->sample_rate;
         in->af_period_multiplier = 1;
+    } else if (in->realtime) {
+        in->config = pcm_config_audio_capture_rt;
+        in->config.format = pcm_format_from_audio_format(config->format);
+        in->af_period_multiplier = af_period_multiplier;
     } else {
         int ret_val;
         pthread_mutex_lock(&adev->lock);
@@ -10341,9 +10392,9 @@ static void adev_snd_mon_cb(void *cookie, struct str_parms *parms)
 int check_a2dp_restore_l(struct audio_device *adev, struct stream_out *out, bool restore)
 {
     struct audio_usecase *uc_info;
-    float left_p;
-    float right_p;
+    struct audio_usecase *usecase;
     struct listnode devices;
+    struct listnode *node;
 
     uc_info = get_usecase_from_list(adev, out->usecase);
     if (uc_info == NULL) {
@@ -10379,34 +10430,42 @@ int check_a2dp_restore_l(struct audio_device *adev, struct stream_out *out, bool
         pthread_mutex_lock(&out->latch_lock);
         // mute stream and switch to speaker if suspended
         if (!out->a2dp_muted && !out->standby) {
-            ALOGD("%s: selecting speaker and muting stream", __func__);
             assign_devices(&devices, &out->device_list);
             reassign_device_list(&out->device_list, AUDIO_DEVICE_OUT_SPEAKER, "");
-            left_p = out->volume_l;
-            right_p = out->volume_r;
-            out->a2dp_muted = true;
-            if (is_offload_usecase(out->usecase)) {
-                if (out->offload_state == OFFLOAD_STATE_PLAYING)
-                    compress_pause(out->compr);
-                out_set_compr_volume(&out->stream, (float)0, (float)0);
-            } else if (out->usecase == USECASE_AUDIO_PLAYBACK_VOIP) {
-                out_set_voip_volume(&out->stream, (float)0, (float)0);
-            } else {
-                out_set_pcm_volume(&out->stream, (float)0, (float)0);
-                /* wait for stale pcm drained before switching to speaker */
-                uint32_t latency =
-                    (out->config.period_count * out->config.period_size * 1000) /
-                    (out->config.rate);
-                usleep(latency * 1000);
+            list_for_each(node, &adev->usecase_list) {
+                usecase = node_to_item(node, struct audio_usecase, list);
+                if ((usecase != uc_info) &&
+                        platform_check_backends_match(SND_DEVICE_OUT_SPEAKER,
+                                                      usecase->out_snd_device)) {
+                    assign_devices(&out->device_list, &usecase->stream.out->device_list);
+                    break;
+                }
+            }
+            if (uc_info->out_snd_device == SND_DEVICE_OUT_BT_A2DP) {
+                out->a2dp_muted = true;
+                if (is_offload_usecase(out->usecase)) {
+                    if (out->offload_state == OFFLOAD_STATE_PLAYING)
+                        compress_pause(out->compr);
+                    out_set_compr_volume(&out->stream, (float)0, (float)0);
+                } else if (out->usecase == USECASE_AUDIO_PLAYBACK_VOIP) {
+                    out_set_voip_volume(&out->stream, (float)0, (float)0);
+                } else {
+                    out_set_pcm_volume(&out->stream, (float)0, (float)0);
+                    /* wait for stale pcm drained before switching to speaker */
+                    uint32_t latency =
+                        (out->config.period_count * out->config.period_size * 1000) /
+                        (out->config.rate);
+                    usleep(latency * 1000);
+                }
             }
             select_devices(adev, out->usecase);
+            ALOGD("%s: switched to device:%s and stream muted:%d", __func__,
+                platform_get_snd_device_name(uc_info->out_snd_device), out->a2dp_muted);
             if (is_offload_usecase(out->usecase)) {
                 if (out->offload_state == OFFLOAD_STATE_PLAYING)
                     compress_resume(out->compr);
             }
             assign_devices(&out->device_list, &devices);
-            out->volume_l = left_p;
-            out->volume_r = right_p;
         }
         pthread_mutex_unlock(&out->latch_lock);
     }
