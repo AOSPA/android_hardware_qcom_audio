@@ -824,10 +824,10 @@ retry_fw:
         ret = 0;
     } else {
         /*
-	 * Since we are using a poor hack to load the firmware, we cannot know
+         * Since we are using a poor hack to load the firmware, we cannot know
          * if the firmware was found nor if it finished loading remotely.
-	 * We also don't know how much time does the chip require to actually
-	 * boot it, so we will sleep and retry for X times, until it loads and
+         * We also don't know how much time does the chip require to actually
+         * boot it, so we will sleep and retry for X times, until it loads and
          * boots, or we assume that something went wrong: in that case the
          * only thing left to do is to return an error, hoping that developers
          * will catch it before going crazy...
