@@ -266,7 +266,7 @@ end:
 static int cirrus_save_calibration(struct cirrus_playback_session *hdl) {
     FILE* fp_calparams = NULL;
     struct cirrus_cal_file_t fdata;
-    int ret = -EINVAL;
+    int ret = 0;
 
     fp_calparams = fopen(CIRRUS_AUDIO_CAL_PATH, "wb");
     if (fp_calparams == NULL)
