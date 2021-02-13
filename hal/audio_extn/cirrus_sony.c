@@ -132,7 +132,9 @@ int (*miscta_write_unit)(uint32_t id, const void *buf, uint32_t size) = NULL;
 #define CIRRUS_CTL_PROT_DIAG_Z_LOW_DIFF	"DSP1 Protection cd DIAG_Z_LOW_DIFF"
 #define CIRRUS_CTL_PROT_CAL_R		"DSP1 Protection cd CAL_R"
 #define CIRRUS_CTL_PROT_CAL_STATUS	"DSP1 Protection CAL_STATUS"
+#define CIRRUS_CTL_PROT_CAL_STATUS_CD	"DSP1 Protection cd CAL_STATUS"
 #define CIRRUS_CTL_PROT_CAL_CHECKSUM	"DSP1 Protection CAL_CHECKSUM"
+#define CIRRUS_CTL_PROT_CAL_CHECKSUM_CD	"DSP1 Protection cd CAL_CHECKSUM"
 
 #define CIRRUS_CTL_PROT_CSPL_ERRORNO	"DSP1 Protection cd CSPL_ERRORNO"
 
@@ -445,7 +447,7 @@ static int cirrus_set_mixer_value_by_name(char* ctl_name, int value) {
 
     ctl_config = mixer_get_ctl_by_name(card_mixer, ctl_name);
     if (!ctl_config) {
-        ALOGE("%s: Cannot get mixer control %s", __func__, ctl_name);
+        ALOGD("%s: Cannot get mixer control %s", __func__, ctl_name);
         ret = -1;
         goto exit;
     }
@@ -766,8 +768,7 @@ static int cirrus_exec_fw_download(const char *fw_type, const char *channel,
         ALOGE("%s: Cannot reset %s status", __func__, ctl_name);
         goto exit;
     }
-
-    usleep(5000);
+    usleep(10000);
 
     ret = cirrus_format_mixer_name("DSP1 Preload Switch",
                                    channel, ctl_name, sizeof(ctl_name));
@@ -778,7 +779,7 @@ static int cirrus_exec_fw_download(const char *fw_type, const char *channel,
         ALOGE("%s: Cannot reset %s", __func__, ctl_name);
         goto exit;
     }
-    usleep(5000);
+    usleep(10000);
 
     /* Determine what firmware to load and configure DSP */
     ret = cirrus_format_mixer_name("DSP1 Firmware", channel, ctl_name, sizeof(ctl_name));
@@ -838,6 +839,9 @@ retry_fw:
 
     if ((cspl_ena[0] + cspl_ena[1] + cspl_ena[2]) == 0 && cspl_ena[3] == 1) {
         ALOGI("%s: Cirrus %s Firmware Download SUCCESS.", __func__, fw_type);
+
+        /* Wait for the hardware to stabilize */
+        usleep(100000);
         ret = 0;
     } else {
         /*
@@ -853,6 +857,7 @@ retry_fw:
          */
         if (retry < CIRRUS_FIRMWARE_MAX_RETRY) {
             retry++;
+            ALOGI("%s: Retrying...\n", __func__);
             goto retry_fw;
         }
 
@@ -862,7 +867,6 @@ retry_fw:
     }
 
 exit:
-    usleep(10000);
     return ret;
 }
 
@@ -1112,6 +1116,60 @@ exit:
     return ret;
 }
 
+static int cirrus_write_cal_checksum(struct cirrus_cal_result_t *cal, char *lr)
+{
+    char ctl_name[CIRRUS_CTL_NAME_BUF];
+    int ret;
+
+    ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_CHECKSUM, lr,
+                                   ctl_name, sizeof(ctl_name));
+    if (ret < 0)
+        return ret;
+
+    ret = cirrus_set_mixer_array_by_name(ctl_name,
+                                         cal->checksum, 4);
+    if (ret >= 0)
+        goto exit;
+
+    /*
+     * On some firmwares the creativity level is high and the mixer
+     * names will be different.
+     */
+    ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_CHECKSUM_CD, lr,
+                                   ctl_name, sizeof(ctl_name));
+    if (ret < 0)
+        return ret;
+
+    ret = cirrus_set_mixer_array_by_name(ctl_name, cal->checksum, 4);
+exit:
+    return ret;
+}
+
+static int cirrus_write_cal_status(struct cirrus_cal_result_t *cal, char *lr)
+{
+    char ctl_name[CIRRUS_CTL_NAME_BUF];
+    int ret;
+
+    ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_STATUS, lr,
+                                   ctl_name, sizeof(ctl_name));
+    if (ret < 0)
+        return ret;
+
+    ret = cirrus_set_mixer_array_by_name(ctl_name,
+                                         cal->status, 4);
+    if (ret >= 0)
+        goto exit;
+
+    ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_STATUS_CD, lr,
+                                   ctl_name, sizeof(ctl_name));
+    if (ret < 0)
+        return ret;
+
+    ret = cirrus_set_mixer_array_by_name(ctl_name, cal->status, 4);
+exit:
+    return ret;
+}
+
 static int cirrus_do_fw_mono_download(int do_reset) {
     bool cal_valid = false, status_ok = false, checksum_ok = false;
     int ret = 0;
@@ -1169,16 +1227,16 @@ static int cirrus_do_fw_stereo_download(int do_reset) {
 
     ALOGI("%s: Sending speaker protection stereo firmware", __func__);
 
-    ret = cirrus_exec_fw_download("Protection", "L", do_reset);
+    ret = cirrus_exec_fw_download("Protection", "R", do_reset);
     if (ret != 0) {
-        ALOGE("%s: Cannot send Protection L firmware: bailing out.",
+        ALOGE("%s: Cannot send Protection R firmware: bailing out.",
               __func__);
         return -EINVAL;
     }
 
-    ret = cirrus_exec_fw_download("Protection", "R", do_reset);
+    ret = cirrus_exec_fw_download("Protection", "L", do_reset);
     if (ret != 0) {
-        ALOGE("%s: Cannot send Protection R firmware: bailing out.",
+        ALOGE("%s: Cannot send Protection L firmware: bailing out.",
               __func__);
         return -EINVAL;
     }
@@ -1192,17 +1250,6 @@ static int cirrus_do_fw_stereo_download(int do_reset) {
     if (ret < 0)
         goto exit;
 
-    ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_R, "L",
-                                    ctl_name, sizeof(ctl_name));
-    if (ret < 0)
-        return ret;
-    ret = cirrus_set_mixer_array_by_name(ctl_name,
-                                         &handle.spkl.cal_r, 4);
-    if (ret < 0) {
-        ALOGE("%s: Cannot set Z-L calibration", __func__);
-        goto exit;
-    }
-
     ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_R, "R",
                                     ctl_name, sizeof(ctl_name));
     if (ret < 0)
@@ -1214,47 +1261,38 @@ static int cirrus_do_fw_stereo_download(int do_reset) {
         goto exit;
     }
 
-    ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_STATUS, "L",
-                                    ctl_name, sizeof(ctl_name));
-    if (ret < 0)
-        return ret;
-    ret = cirrus_set_mixer_array_by_name(ctl_name,
-                                         &handle.spkl.status, 4);
-    if (ret < 0) {
-        ALOGE("%s: Cannot set calibration L status", __func__);
-        goto exit;
-    }
-
-    ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_STATUS, "R",
-                                    ctl_name, sizeof(ctl_name));
-    if (ret < 0)
-        return ret;
-    ret = cirrus_set_mixer_array_by_name(ctl_name,
-                                         &handle.spkr.status, 4);
+    ret = cirrus_write_cal_status(&handle.spkr, "R");
     if (ret < 0) {
         ALOGE("%s: Cannot set calibration R status", __func__);
         goto exit;
     }
 
-    ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_CHECKSUM, "L",
-                                    ctl_name, sizeof(ctl_name));
-    if (ret < 0)
-        return ret;
-    ret = cirrus_set_mixer_array_by_name(ctl_name,
-                                         &handle.spkl.checksum, 4);
+    ret = cirrus_write_cal_checksum(&handle.spkr, "R");
     if (ret < 0) {
-        ALOGE("%s: Cannot set checksum L", __func__);
+        ALOGE("%s: Cannot set checksum R", __func__);
         goto exit;
     }
 
-    ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_CHECKSUM, "R",
+    ret = cirrus_format_mixer_name(CIRRUS_CTL_PROT_CAL_R, "L",
                                     ctl_name, sizeof(ctl_name));
     if (ret < 0)
         return ret;
     ret = cirrus_set_mixer_array_by_name(ctl_name,
-                                         &handle.spkr.checksum, 4);
+                                         &handle.spkl.cal_r, 4);
     if (ret < 0) {
-        ALOGE("%s: Cannot set checksum R", __func__);
+        ALOGE("%s: Cannot set Z-L calibration", __func__);
+        goto exit;
+    }
+
+    ret = cirrus_write_cal_status(&handle.spkl, "L");
+    if (ret < 0) {
+        ALOGE("%s: Cannot set calibration L status", __func__);
+        goto exit;
+    }
+
+    ret = cirrus_write_cal_checksum(&handle.spkl, "L");
+    if (ret < 0) {
+        ALOGE("%s: Cannot set checksum L", __func__);
         goto exit;
     }
 
