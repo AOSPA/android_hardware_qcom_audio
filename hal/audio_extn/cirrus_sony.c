@@ -1259,18 +1259,38 @@ exit:
 static int cirrus_do_fw_stereo_download(int do_reset) {
     char ctl_name[CIRRUS_CTL_NAME_BUF];
     bool cal_valid = false, status_ok = false, checksum_ok = false;
-    int ret = 0;
+    int i, max_retries = 24, ret = 0;
 
     ALOGI("%s: Sending speaker protection stereo firmware", __func__);
 
-    ret = cirrus_exec_fw_download("Protection", "R", do_reset);
+    for (i = 0; i < max_retries; i++) {
+        ret = cirrus_exec_fw_download("Protection", "R", do_reset);
+        if (ret == 0)
+            break;
+        usleep(500000);
+    }
     if (ret != 0) {
         ALOGE("%s: Cannot send Protection R firmware: bailing out.",
               __func__);
         return -EINVAL;
     }
 
-    ret = cirrus_exec_fw_download("Protection", "L", do_reset);
+    /*
+     * Guarantee that we retry for at least 3 seconds... but the
+     * other firmware should just load instantly, since we've been
+     * waiting for the DSP at R-SPK loading time.
+     *
+     * This is only to paranoidly account any possible future issue.
+     */
+    if (max_retries < 6)
+        max_retries = 6;
+
+    for (i = 0; i < max_retries; i++) {
+        ret = cirrus_exec_fw_download("Protection", "L", do_reset);
+        if (ret == 0)
+            break;
+        usleep(500000);
+    }
     if (ret != 0) {
         ALOGE("%s: Cannot send Protection L firmware: bailing out.",
               __func__);
