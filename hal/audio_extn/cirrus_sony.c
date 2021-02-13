@@ -49,8 +49,9 @@ static fp_platform_check_and_set_codec_backend_cfg_t fp_platform_check_and_set_c
 enum cirrus_playback_state {
     INIT = 0,
     CALIBRATING = 1,
-    IDLE = 2,
-    PLAYBACK = 3
+    CALIBRATION_ERROR = 2,
+    IDLE = 3,
+    PLAYBACK = 4
 };
 
 /* Payload struct for getting calibration result from DSP module */
@@ -82,7 +83,6 @@ struct cirrus_playback_session {
     pthread_t calibration_thread;
     pthread_t failure_detect_thread;
     struct pcm *pcm_rx;
-    struct pcm *pcm_tx;
     struct cirrus_cal_result_t spkl;
     struct cirrus_cal_result_t spkr;
     bool cirrus_drv_enabled;
@@ -603,7 +603,7 @@ static int cirrus_play_silence(int seconds) {
     uint8_t *silence = NULL;
     int i, ret = 0, silence_bytes, silence_cnt = 1;
     unsigned int buffer_size = 0, frames_bytes = 0;
-    int pcm_dev_rx_id;
+    int pcm_dev_rx_id, adev_retry = 5;
 
     if (!list_empty(&adev->usecase_list)) {
         ALOGD("%s: Usecase present retry speaker protection", __func__);
@@ -615,10 +615,10 @@ static int cirrus_play_silence(int seconds) {
         return -ENOMEM;
     }
 
-    while (!adev->primary_output) {
-        ALOGE("Still no primary_output!");
-        // TODO: Perhaps wait on a condvar like spkr_prot?
-        usleep(1000);
+    while ((!adev->primary_output || !adev->platform) && adev_retry) {
+        ALOGI("%s: Waiting for audio device...", __func__);
+        sleep(1);
+        adev_retry--;
     }
 
     uc_info_rx->id = USECASE_AUDIO_PLAYBACK_DEEP_BUFFER;
@@ -628,8 +628,10 @@ static int cirrus_play_silence(int seconds) {
     list_init(&uc_info_rx->device_list);
     uc_info_rx->out_snd_device = SND_DEVICE_OUT_SPEAKER_PROTECTED;
     list_add_tail(&adev->usecase_list, &uc_info_rx->list);
+
     fp_platform_check_and_set_codec_backend_cfg(adev, uc_info_rx,
                                              uc_info_rx->out_snd_device);
+
     fp_enable_snd_device(adev, uc_info_rx->out_snd_device);
     fp_enable_audio_route(adev, uc_info_rx);
 
@@ -642,24 +644,18 @@ static int cirrus_play_silence(int seconds) {
     }
 
     handle.pcm_rx = pcm_open(adev->snd_card, pcm_dev_rx_id,
-                             PCM_OUT, &pcm_config_cirrus_rx);
+                             (PCM_OUT | PCM_MONOTONIC),
+                             &pcm_config_cirrus_rx);
     if (!handle.pcm_rx) {
         ALOGE("%s: Cannot open output PCM", __func__);
-        ret = -EINVAL;
+        ret = -EIO;
         goto exit;
     }
 
     if (!pcm_is_ready(handle.pcm_rx)) {
         ALOGE("%s: The PCM device is not ready: %s", __func__,
               pcm_get_error(handle.pcm_rx));
-        ret = -EINVAL;
-        goto exit;
-    }
-
-    if (pcm_start(handle.pcm_rx) < 0) {
-        ALOGE("%s: Cannot start PCM_RX: %s", __func__,
-              pcm_get_error(handle.pcm_rx));
-        ret = -EINVAL;
+        ret = -EIO;
         goto exit;
     }
 
@@ -683,18 +679,23 @@ static int cirrus_play_silence(int seconds) {
         if (ret) {
             ALOGE("%s: Cannot write PCM data: %d", __func__, ret);
             break;
-        }
+        } else
+            ALOGV("%s: Wrote PCM data", __func__);
     }
     ALOGD("%s: Stop playing silence audio", __func__);
     free(silence);
 
 exit:
+    if (handle.pcm_rx != NULL) {
+        pcm_close(handle.pcm_rx);
+        handle.pcm_rx = NULL;
+    }
+
     fp_disable_audio_route(adev, uc_info_rx);
     fp_disable_snd_device(adev, uc_info_rx->out_snd_device);
     list_remove(&uc_info_rx->list);
     free(uc_info_rx);
 
-    pcm_close(handle.pcm_rx);
     return ret;
 }
 
@@ -1268,10 +1269,13 @@ exit:
 }
 
 static void *cirrus_do_calibration() {
+    struct audio_device *adev = handle.adev_handle;
     int ret = 0, dev_file = -1;
     int prev_state = handle.state;
 
+    pthread_mutex_lock(&adev->lock);
     handle.state = CALIBRATING;
+    pthread_mutex_unlock(&adev->lock);
 
     if (prev_state == INIT)
         prev_state = IDLE;
@@ -1290,7 +1294,7 @@ static void *cirrus_do_calibration() {
         if (ret != 0) {
             ALOGE("%s: Cannot send Calibration firmware: bailing out.",
                   __func__);
-            handle.state = prev_state;
+            ret = -EINVAL;
             goto end;
         }
         /* Dual amp case */
@@ -1301,6 +1305,7 @@ static void *cirrus_do_calibration() {
         ret = cirrus_stereo_calibration();
     else
         ret = cirrus_mono_calibration();
+
     if (ret < 0) {
         ALOGE("%s: CRITICAL: Calibration failure", __func__);
         goto end;
@@ -1323,6 +1328,13 @@ skip_calibration:
         ALOGE("%s: Cannot send speaker protection FW", __func__);
 
 end:
+    pthread_mutex_lock(&adev->lock);
+    if (ret < 0)
+        handle.state = CALIBRATION_ERROR;
+    else
+        handle.state = IDLE;
+    pthread_mutex_unlock(&adev->lock);
+
     pthread_exit(0);
     return NULL;
 }
@@ -1466,6 +1478,24 @@ int spkr_prot_start_processing(__unused snd_device_t snd_device) {
 
     pthread_mutex_lock(&handle.fb_prot_mutex);
 
+    ALOGV("%s: current state %d", __func__, handle.state);
+
+    /*
+     * If we are still in calibration phase, we cannot play audio...
+     * and it's the same if we got an error during the process.
+     *
+     * Reason is that if we try playing audio during calibration, then
+     * the result will be bad and we will end up with a poorly calibrated
+     * speaker. Also, the DSP may get left in a bad state and not accept
+     * the protection firmware when we're ready for it.
+     */
+    if (handle.state == CALIBRATING || handle.state == CALIBRATION_ERROR) {
+        ALOGI("%s: Forbidden. Calibration %s", __func__,
+              handle.state == CALIBRATING ? "is in progress..." : "failed.");
+        ret = -1;
+        goto end;
+    }
+
     ret = cirrus_set_force_wake(true);
 
     audio_route_apply_and_update_path(adev->audio_route,
@@ -1478,6 +1508,7 @@ int spkr_prot_start_processing(__unused snd_device_t snd_device) {
                     &handle);
 
     handle.state = PLAYBACK;
+end:
     pthread_mutex_unlock(&handle.fb_prot_mutex);
 
     ALOGV("%s: Exit", __func__);
