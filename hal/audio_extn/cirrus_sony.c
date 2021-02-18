@@ -454,7 +454,7 @@ static int cirrus_set_mixer_value_by_name(char* ctl_name, int value) {
 
     ret = mixer_ctl_set_value(ctl_config, 0, value);
     if (ret < 0)
-        ALOGE("%s: Cannot set mixer %s value %d",
+        ALOGE("%s: Cannot set mixer '%s' to '%d'",
               __func__, ctl_name, value);
 exit:
     mixer_close(card_mixer);
@@ -470,7 +470,7 @@ static int cirrus_set_mixer_value_by_name_lr(char* ctl_base_name, int value) {
         return ret;
     ret = cirrus_set_mixer_value_by_name(ctl_name, value);
     if (ret < 0) {
-        ALOGE("%s: Cannot set mixer %s to %d", __func__, ctl_name, value);
+        ALOGE("%s: Cannot set mixer '%s' to '%d'", __func__, ctl_name, value);
         goto end;
     }
 
@@ -479,7 +479,7 @@ static int cirrus_set_mixer_value_by_name_lr(char* ctl_base_name, int value) {
         return ret;
     ret = cirrus_set_mixer_value_by_name(ctl_name, value);
     if (ret < 0)
-        ALOGE("%s: Cannot set mixer %s to %d", __func__, ctl_name, value);
+        ALOGE("%s: Cannot set mixer '%s' to '%d'", __func__, ctl_name, value);
 end:
     return ret;
 }
@@ -582,14 +582,14 @@ static int cirrus_set_mixer_enum_by_name(char* ctl_name, const char* value) {
 
     ctl_config = mixer_get_ctl_by_name(card_mixer, ctl_name);
     if (!ctl_config) {
-        ALOGE("%s: Cannot get mixer control %s", __func__, ctl_name);
+        ALOGE("%s: Cannot get mixer control '%s'", __func__, ctl_name);
         ret = -1;
         goto exit;
     }
 
     ret = mixer_ctl_set_enum_by_string(ctl_config, value);
     if (ret < 0)
-        ALOGE("%s: Cannot set mixer %s value %s",
+        ALOGE("%s: Cannot set mixer '%s' to '%s'",
               __func__, ctl_name, value);
 exit:
     mixer_close(card_mixer);
@@ -1593,6 +1593,14 @@ int spkr_prot_start_processing(__unused snd_device_t snd_device) {
         return -EINVAL;
     }
 
+    if (pthread_self() == handle.calibration_thread) {
+        // Succeed without doing anything; the calibration already
+        // selects the right paths, and we do not want the failure
+        // detect thread to run just yet.
+        ALOGV("%s: We are the calibration thread", __func__);
+        goto end;
+    }
+
     pthread_mutex_lock(&handle.fb_prot_mutex);
 
     ALOGV("%s: current state %d", __func__, handle.state);
@@ -1638,13 +1646,28 @@ void spkr_prot_stop_processing(__unused snd_device_t snd_device) {
 
     ALOGV("%s: Entry", __func__);
 
-    audio_route_reset_and_update_path(adev->audio_route,
-                                      fp_platform_get_snd_device_name(snd_device));
-
     pthread_mutex_lock(&handle.fb_prot_mutex);
+
+    if (pthread_self() == handle.calibration_thread) {
+        // This happens when stopping the device from calibration. We bailed
+        // and never set PLAYBACK, so we should also never update the audio
+        // route nor unconditionally set the state back to IDLE
+        ALOGV("%s: We are the calibration thread", __func__);
+        goto end;
+    }
+
+    if (handle.state != PLAYBACK) {
+        ALOGE("%s: Cannot stop processing, state is not PLAYBACK (but %d)",
+              __func__, handle.state);
+        goto end;
+    }
 
     handle.state = IDLE;
 
+    audio_route_reset_and_update_path(adev->audio_route,
+                                      fp_platform_get_snd_device_name(snd_device));
+
+end:
     pthread_mutex_unlock(&handle.fb_prot_mutex);
 
     (void)cirrus_set_force_wake(false);
