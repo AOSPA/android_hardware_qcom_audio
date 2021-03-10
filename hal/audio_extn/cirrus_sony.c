@@ -1210,7 +1210,7 @@ exit:
 
 static int cirrus_do_fw_mono_download(int do_reset) {
     bool cal_valid = false, status_ok = false, checksum_ok = false;
-    int i, max_retries = 24, ret = 0;
+    int i, max_retries = 32, ret = 0;
 
     for (i = 0; i < max_retries; i++) {
         ret = cirrus_exec_fw_download("Protection", 0, do_reset);
@@ -1264,7 +1264,7 @@ exit:
 static int cirrus_do_fw_stereo_download(int do_reset) {
     char ctl_name[CIRRUS_CTL_NAME_BUF];
     bool cal_valid = false, status_ok = false, checksum_ok = false;
-    int i, max_retries = 24, ret = 0;
+    int i, max_retries = 32, ret = 0;
 
     ALOGI("%s: Sending speaker protection stereo firmware", __func__);
 
@@ -1426,15 +1426,6 @@ static void *cirrus_do_calibration() {
         ALOGW("%s: Cannot save calibration to file (%d)!!!", __func__, ret);
         ret = 0;
     }
-
-    /*
-     * There is no way to know when the DSP will be really ready. Usually,
-     * it takes around 4 seconds, but let's wait a bit more... In any case
-     * the calibration process happens only *once* in an entire userdata
-     * life, which means that only the first boot ever will be slow, in
-     * favor of a good speaker calibration.
-     */
-    sleep(6);
 
 skip_calibration:
     if (handle.is_stereo)
