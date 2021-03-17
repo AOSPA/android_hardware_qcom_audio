@@ -1196,15 +1196,13 @@ static int cirrus_do_fw_mono_download(int do_reset) {
         goto exit;
     }
 
-    ret = cirrus_set_mixer_array_by_name(CIRRUS_CTL_CALI_CAL_STATUS,
-                                         &handle.spkr.status, 4);
+    ret = cirrus_write_cal_status(&handle.spkr, 0);
     if (ret < 0) {
         ALOGE("%s: Cannot set calibration status", __func__);
         goto exit;
     }
 
-    ret = cirrus_set_mixer_array_by_name(CIRRUS_CTL_CALI_CAL_CHECKSUM,
-                                         &handle.spkr.checksum, 4);
+    ret = cirrus_write_cal_checksum(&handle.spkr, 0);
     if (ret < 0) {
         ALOGE("%s: Cannot set calibration checksum", __func__);
         goto exit;
