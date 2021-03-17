@@ -1210,9 +1210,14 @@ exit:
 
 static int cirrus_do_fw_mono_download(int do_reset) {
     bool cal_valid = false, status_ok = false, checksum_ok = false;
-    int ret = 0;
+    int i, max_retries = 24, ret = 0;
 
-    ret = cirrus_exec_fw_download("Protection", 0, do_reset);
+    for (i = 0; i < max_retries; i++) {
+        ret = cirrus_exec_fw_download("Protection", 0, do_reset);
+        if (ret == 0)
+            break;
+        usleep(500000);
+    }
     if (ret != 0) {
         ALOGE("%s: Cannot send Protection firmware: bailing out.",
               __func__);
