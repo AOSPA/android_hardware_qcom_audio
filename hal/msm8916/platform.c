@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2013 The Android Open Source Project
@@ -3780,6 +3780,12 @@ int platform_send_audio_calibration(void *platform, struct audio_usecase *usecas
     return 0;
 }
 
+int platform_send_audio_calibration_hfp(void *platform __unused,
+                                        snd_device_t snd_device __unused)
+{
+    return 0;
+}
+
 int platform_switch_voice_call_device_pre(void *platform)
 {
     struct platform_data *my_data = (struct platform_data *)platform;
@@ -7263,14 +7269,14 @@ end:
 }
 
 int platform_set_stream_channel_map(void *platform, audio_channel_mask_t channel_mask,
-                                               int snd_id, uint8_t *input_channel_map)
+                                    int snd_id, int be_idx, uint8_t *input_channel_map)
 {
     int ret = 0, i = 0;
     int channels = audio_channel_count_from_out_mask(channel_mask);
 
     char channel_map[AUDIO_CHANNEL_COUNT_MAX];
     memset(channel_map, 0, sizeof(channel_map));
-    if (*input_channel_map) {
+    if ((input_channel_map != NULL) && *input_channel_map) {
         for (i = 0; i < channels; i++) {
              ALOGV("%s:: Channel Map channel_map[%d] - %d", __func__, i, *input_channel_map);
              channel_map[i] = *input_channel_map;
@@ -7357,7 +7363,7 @@ int platform_set_stream_channel_map(void *platform, audio_channel_mask_t channel
                 return -1;
         }
     }
-    ret = platform_set_channel_map(platform, channels, channel_map, snd_id, -1);
+    ret = platform_set_channel_map(platform, channels, channel_map, snd_id, be_idx);
     return ret;
 }
 
@@ -7659,6 +7665,11 @@ bool platform_is_edid_supported_sample_rate(void *platform, int sample_rate)
     return false;
 }
 
+int platform_get_is_afe_loopback_enabled(void *platform __unused)
+{
+   return 0;
+}
+
 int platform_set_edid_channels_configuration(void *platform, int channels, int backend_idx __unused, snd_device_t snd_device __unused) {
 
     struct platform_data *my_data = (struct platform_data *)platform;
@@ -7704,7 +7715,9 @@ int platform_set_edid_channels_configuration(void *platform, int channels, int b
                 platform_set_channel_map(platform, adev_device_cfg_ptr->dev_cfg_params.channels,
                                    (char *)adev_device_cfg_ptr->dev_cfg_params.channel_map, -1, -1);
             } else {
-                platform_set_channel_map(platform, channels, info->channel_map, -1, -1);
+                platform_set_stream_channel_map(platform,
+                        audio_channel_out_mask_from_count(channels),
+                        -1, -1, NULL);
             }
 
             if (adev_device_cfg_ptr->use_client_dev_cfg) {
@@ -8817,3 +8830,8 @@ int platform_get_display_port_ctl_index(int controller __unused,
 bool platform_is_call_proxy_snd_device(snd_device_t snd_device __unused) {
     return false;
 }
+
+const char *platform_get_mixer_FM_RX_control(struct audio_device *adev) {
+    return FM_RX_VOLUME;
+}
+

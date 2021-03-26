@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2013 The Android Open Source Project
@@ -1373,6 +1373,7 @@ int audio_extn_auto_hal_release_audio_patch(struct audio_hw_device *dev,
 int audio_extn_auto_hal_get_car_audio_stream_from_address(const char *address);
 int audio_extn_auto_hal_open_output_stream(struct stream_out *out);
 int audio_extn_auto_hal_open_input_stream(struct stream_in *in);
+int audio_extn_auto_hal_open_echo_reference_stream(struct stream_in *in);
 bool audio_extn_auto_hal_is_bus_device_usecase(audio_usecase_t uc_id);
 int audio_extn_auto_hal_get_audio_port(struct audio_hw_device *dev,
                                 struct audio_port *config);
@@ -1390,16 +1391,12 @@ snd_device_t audio_extn_auto_hal_get_output_snd_device(struct audio_device *adev
                                 audio_usecase_t uc_id);
 snd_device_t audio_extn_auto_hal_get_snd_device_for_car_audio_stream(int car_audio_stream);
 
-typedef streams_input_ctxt_t* (*fp_in_get_stream_t)(struct audio_device*, audio_io_handle_t);
-typedef streams_output_ctxt_t* (*fp_out_get_stream_t)(struct audio_device*, audio_io_handle_t);
 typedef size_t (*fp_get_output_period_size_t)(uint32_t, audio_format_t, int, int);
 typedef int (*fp_audio_extn_ext_hw_plugin_set_audio_gain_t)(void*, struct audio_usecase*, uint32_t);
 typedef struct stream_in* (*fp_adev_get_active_input_t)(const struct audio_device*);
 typedef audio_patch_handle_t (*fp_generate_patch_handle_t)(void);
 
 typedef struct auto_hal_init_config {
-    fp_in_get_stream_t                           fp_in_get_stream;
-    fp_out_get_stream_t                          fp_out_get_stream;
     fp_audio_extn_ext_hw_plugin_usecase_start_t  fp_audio_extn_ext_hw_plugin_usecase_start;
     fp_audio_extn_ext_hw_plugin_usecase_stop_t   fp_audio_extn_ext_hw_plugin_usecase_stop;
     fp_get_usecase_from_list_t                   fp_get_usecase_from_list;
