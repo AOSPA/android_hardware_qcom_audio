@@ -1454,6 +1454,7 @@ int enable_snd_device(struct audio_device *adev,
         audio_extn_dev_arbi_acquire(snd_device);
         audio_route_apply_and_update_path(adev->audio_route, device_name);
         amplifier_set_feedback(adev, snd_device, true);
+        audio_extn_tfa98xx_start_feedback(adev, snd_device);
 
         if (SND_DEVICE_OUT_HEADPHONES == snd_device &&
             !adev->native_playback_enabled &&
@@ -1526,6 +1527,7 @@ int disable_snd_device(struct audio_device *adev,
         } else {
             audio_route_reset_and_update_path(adev->audio_route, device_name);
             amplifier_enable_devices(snd_device, false);
+            audio_extn_tfa98xx_stop_feedback(adev, snd_device);
         }
 
         if (snd_device == SND_DEVICE_OUT_BT_A2DP) {
