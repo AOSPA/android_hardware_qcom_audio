@@ -3780,6 +3780,12 @@ int platform_send_audio_calibration(void *platform, struct audio_usecase *usecas
     return 0;
 }
 
+int platform_send_audio_calibration_hfp(void *platform __unused,
+                                        snd_device_t snd_device __unused)
+{
+    return 0;
+}
+
 int platform_switch_voice_call_device_pre(void *platform)
 {
     struct platform_data *my_data = (struct platform_data *)platform;
@@ -7659,6 +7665,11 @@ bool platform_is_edid_supported_sample_rate(void *platform, int sample_rate)
     return false;
 }
 
+int platform_get_is_afe_loopback_enabled(void *platform __unused)
+{
+   return 0;
+}
+
 int platform_set_edid_channels_configuration(void *platform, int channels, int backend_idx __unused, snd_device_t snd_device __unused) {
 
     struct platform_data *my_data = (struct platform_data *)platform;
@@ -8819,3 +8830,8 @@ int platform_get_display_port_ctl_index(int controller __unused,
 bool platform_is_call_proxy_snd_device(snd_device_t snd_device __unused) {
     return false;
 }
+
+const char *platform_get_mixer_FM_RX_control(struct audio_device *adev) {
+    return FM_RX_VOLUME;
+}
+

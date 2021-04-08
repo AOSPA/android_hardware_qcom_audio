@@ -66,6 +66,9 @@ ifeq ($(TARGET_KERNEL_VERSION), 3.18)
 else
     AUDIO_FEATURE_ENABLED_DLKM := true
 endif
+ifeq ($(TARGET_SUPPORTS_WEARABLES),true)
+AUDIO_FEATURE_ENABLED_SPLIT_A2DP := true
+endif
 ##AUDIO_FEATURE_FLAGS
 
 #Audio Specific device overlays
@@ -154,10 +157,10 @@ ifeq ($(USE_XML_AUDIO_POLICY_CONF), 1)
       $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration_sdm429w.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
    else ifeq ($(TARGET_USES_AOSP_FOR_AUDIO), true)
       PRODUCT_COPY_FILES += \
-      $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration_common.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
+      $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration_common.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
    else
       PRODUCT_COPY_FILES += \
-      $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
+      $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8937/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/audio_policy_configuration.xml
    endif
 PRODUCT_COPY_FILES += \
     $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/bluetooth_qti_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/a2dp_audio_policy_configuration.xml \
@@ -201,10 +204,6 @@ audio.offload.video=true
 #Enable audio track offload by default
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.offload.track.enable=true
-
-#Enable music through deep buffer
-PRODUCT_PROPERTY_OVERRIDES += \
-audio.deep_buffer.media=true
 
 #enable voice path for PCM VoIP by default
 PRODUCT_PROPERTY_OVERRIDES += \

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2019-2021, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -47,8 +47,6 @@
 #endif
 
 //external feature dependency
-static fp_in_get_stream_t                           fp_in_get_stream;
-static fp_out_get_stream_t                          fp_out_get_stream;
 static fp_audio_extn_ext_hw_plugin_usecase_start_t  fp_audio_extn_ext_hw_plugin_usecase_start;
 static fp_audio_extn_ext_hw_plugin_usecase_stop_t   fp_audio_extn_ext_hw_plugin_usecase_stop;
 static fp_get_usecase_from_list_t                   fp_get_usecase_from_list;
@@ -336,6 +334,25 @@ int auto_hal_open_input_stream(struct stream_in *in)
     }
 
     return ret;
+}
+
+/*
+ * Function: auto_hal_open_echo_reference_stream
+ * ---------------------------------------------
+ * opens an input stream to capture an echo reference
+ * and sets for external echo reference
+ *
+ * param *in: stream to be used for echo reference
+ *
+ * returns: 0
+ */
+int auto_hal_open_echo_reference_stream(struct stream_in *in)
+{
+    /* note: this function may be expanded in the future
+    to accommodate other echo reference sources
+    such as an internal AFE loopback. */
+    in->usecase = USECASE_AUDIO_RECORD_ECHO_REF_EXT;
+    return 0;
 }
 
 int auto_hal_open_output_stream(struct stream_out *out)
@@ -937,8 +954,6 @@ int auto_hal_init(struct audio_device *adev, auto_hal_init_config_t init_config)
 
     auto_hal->adev = adev;
 
-    fp_in_get_stream = init_config.fp_in_get_stream;
-    fp_out_get_stream = init_config.fp_out_get_stream;
     fp_audio_extn_ext_hw_plugin_usecase_start = init_config.fp_audio_extn_ext_hw_plugin_usecase_start;
     fp_audio_extn_ext_hw_plugin_usecase_stop = init_config.fp_audio_extn_ext_hw_plugin_usecase_stop;
     fp_get_usecase_from_list = init_config.fp_get_usecase_from_list;

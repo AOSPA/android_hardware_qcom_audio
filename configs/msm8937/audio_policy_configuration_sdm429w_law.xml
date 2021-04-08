@@ -49,7 +49,6 @@
         <!-- Primary Audio HAL -->
         <module name="primary" halVersion="2.0">
             <attachedDevices>
-                <item>Earpiece</item>
                 <item>Speaker</item>
                 <item>Telephony Tx</item>
                 <item>Built-In Mic</item>
@@ -161,10 +160,6 @@
 
             <devicePorts>
                 <!-- Output devices declaration, i.e. Sink DEVICE PORT -->
-                <devicePort tagName="Earpiece" type="AUDIO_DEVICE_OUT_EARPIECE" role="sink">
-                   <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
-                            samplingRates="48000" channelMasks="AUDIO_CHANNEL_IN_MONO"/>
-                </devicePort>
                 <devicePort tagName="Speaker" role="sink" type="AUDIO_DEVICE_OUT_SPEAKER" address="">
                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
                              samplingRates="48000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
@@ -199,11 +194,11 @@
                 </devicePort>
                 <devicePort tagName="HDMI" type="AUDIO_DEVICE_OUT_AUX_DIGITAL" role="sink">
                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
-                             samplingRates="8000,11025,16000,22050,32000,44100,48000,64000,88200,96000,128000,176400,192000" channelMasks="dynamic"/>
+                             samplingRates="8000,11025,16000,22050,32000,44100,48000,64000,88200,96000,128000,176400,192000"/>
                 </devicePort>
                 <devicePort tagName="Proxy" type="AUDIO_DEVICE_OUT_PROXY" role="sink">
                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
-                             samplingRates="8000,11025,16000,22050,32000,44100,48000,64000,88200,96000,128000,176400,192000" channelMasks="dynamic"/>
+                             samplingRates="8000,11025,16000,22050,32000,44100,48000,64000,88200,96000,128000,176400,192000"/>
                 </devicePort>
                 <devicePort tagName="FM" type="AUDIO_DEVICE_OUT_FM" role="sink">
                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
@@ -256,8 +251,6 @@
             </devicePorts>
             <!-- route declaration, i.e. list all available sources for a given sink -->
             <routes>
-                <route type="mix" sink="Earpiece"
-                       sources="primary output,raw,deep_buffer,direct_pcm,compressed_offload,voip_rx"/>
                 <route type="mix" sink="Speaker"
                        sources="primary output,raw,deep_buffer,direct_pcm,compressed_offload,voip_rx"/>
                 <route type="mix" sink="Wired Headset"
@@ -280,8 +273,6 @@
                        sources="primary output,raw,deep_buffer,direct_pcm,compressed_offload,voip_rx"/>
                 <route type="mix" sink="BT SCO Car Kit"
                        sources="primary output,raw,deep_buffer,direct_pcm,compressed_offload,voip_rx"/>
-                <route type="mix" sink="Telephony Tx"
-                       sources="voice_tx"/>
                 <route type="mix" sink="primary input"
                        sources="Built-In Mic,Built-In Back Mic,Wired Headset Mic,BT SCO Headset Mic,FM Tuner"/>
                 <route type="mix" sink="surround_sound"

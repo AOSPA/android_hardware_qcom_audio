@@ -536,6 +536,12 @@ int platform_get_default_app_type(void *platform __unused)
     return -ENOSYS;
 }
 
+int platform_send_audio_calibration_hfp(void *platform __unused,
+                                        snd_device_t snd_device __unused)
+{
+    return 0;
+}
+
 int platform_send_audio_calibration(void *platform, struct audio_usecase *usecase,
                                     int app_type __unused)
 {
@@ -1215,6 +1221,11 @@ int platform_set_stream_channel_map(void *platform __unused,
                                     uint8_t *input_channel_map __unused)
 {
     return -ENOSYS;
+}
+
+int platform_get_is_afe_loopback_enabled(void *platform __unused)
+{
+   return 0;
 }
 
 int platform_set_edid_channels_configuration(void *platform __unused,

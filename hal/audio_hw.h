@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
  * Not a contribution.
  *
  * Copyright (C) 2013 The Android Open Source Project
@@ -251,6 +251,9 @@ enum {
 
     USECASE_AUDIO_PLAYBACK_SYNTHESIZER,
 
+    /* Echo reference capture usecases */
+    USECASE_AUDIO_RECORD_ECHO_REF_EXT,
+
     /*Audio FM Tuner usecase*/
     USECASE_AUDIO_FM_TUNER_EXT,
     /*voip usecase with low latency path*/
@@ -362,6 +365,16 @@ struct stream_config {
     unsigned int bit_width;
 };
 
+typedef struct streams_input_ctxt {
+    struct listnode list;
+    struct stream_in *input;
+} streams_input_ctxt_t;
+
+typedef struct streams_output_ctxt {
+    struct listnode list;
+    struct stream_out *output;
+} streams_output_ctxt_t;
+
 struct stream_inout {
     pthread_mutex_t lock; /* see note below on mutex acquisition order */
     pthread_mutex_t pre_lock; /* acquire before lock to avoid DOS by playback thread */
@@ -410,6 +423,7 @@ struct stream_out {
     int64_t mmap_time_offset_nanos; /* fudge factor to correct inaccuracies in DSP */
     int     mmap_shared_memory_fd; /* file descriptor associated with MMAP NOIRQ shared memory */
     audio_io_handle_t handle;
+    streams_output_ctxt_t out_ctxt;
     struct stream_app_type_cfg app_type_cfg;
 
     int non_blocking;
@@ -516,6 +530,7 @@ struct stream_in {
     int64_t mmap_time_offset_nanos; /* fudge factor to correct inaccuracies in DSP */
     int     mmap_shared_memory_fd; /* file descriptor associated with MMAP NOIRQ shared memory */
     audio_io_handle_t capture_handle;
+    streams_input_ctxt_t in_ctxt;
     audio_input_flags_t flags;
     char profile[MAX_STREAM_PROFILE_STR_LEN];
     bool is_st_session;
@@ -623,16 +638,6 @@ struct streams_io_cfg {
     struct listnode sample_rate_list;
     struct stream_app_type_cfg app_type_cfg;
 };
-
-typedef struct streams_input_ctxt {
-    struct listnode list;
-    struct stream_in *input;
-} streams_input_ctxt_t;
-
-typedef struct streams_output_ctxt {
-    struct listnode list;
-    struct stream_out *output;
-} streams_output_ctxt_t;
 
 typedef void* (*adm_init_t)();
 typedef void (*adm_deinit_t)(void *);
@@ -816,11 +821,6 @@ void adev_close_output_stream(struct audio_hw_device *dev __unused,
                               struct audio_stream_out *stream);
 
 bool is_interactive_usecase(audio_usecase_t uc_id);
-
-streams_input_ctxt_t *in_get_stream(struct audio_device *dev,
-                                  audio_io_handle_t input);
-streams_output_ctxt_t *out_get_stream(struct audio_device *dev,
-                                  audio_io_handle_t output);
 
 size_t get_output_period_size(uint32_t sample_rate,
                             audio_format_t format,
