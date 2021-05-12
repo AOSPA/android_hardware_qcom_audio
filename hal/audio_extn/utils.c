@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2021, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2014 The Android Open Source Project
@@ -1159,9 +1159,6 @@ int audio_extn_utils_get_app_sample_rate_for_device(
 
         if (usecase->id == USECASE_AUDIO_PLAYBACK_VOIP) {
             usecase->stream.out->app_type_cfg.sample_rate = usecase->stream.out->sample_rate;
-        } else if (compare_device_type(&usecase->stream.out->device_list,
-                                       AUDIO_DEVICE_OUT_SPEAKER)) {
-            usecase->stream.out->app_type_cfg.sample_rate = DEFAULT_OUTPUT_SAMPLING_RATE;
         } else if ((snd_device == SND_DEVICE_OUT_HDMI ||
                     snd_device == SND_DEVICE_OUT_USB_HEADSET ||
                     snd_device == SND_DEVICE_OUT_DISPLAY_PORT) &&
@@ -1180,9 +1177,7 @@ int audio_extn_utils_get_app_sample_rate_for_device(
             (usecase->stream.out->sample_rate < OUTPUT_SAMPLING_RATE_44100)) {
             /* Reset to default if no native stream is active*/
             usecase->stream.out->app_type_cfg.sample_rate = DEFAULT_OUTPUT_SAMPLING_RATE;
-        } else if (usecase->out_snd_device == SND_DEVICE_OUT_BT_A2DP ||
-                   usecase->out_snd_device == SND_DEVICE_OUT_SPEAKER_AND_BT_A2DP ||
-                   usecase->out_snd_device == SND_DEVICE_OUT_SPEAKER_SAFE_AND_BT_A2DP) {
+        } else if (snd_device == SND_DEVICE_OUT_BT_A2DP) {
                  /*
                   * For a2dp playback get encoder sampling rate and set copp sampling rate,
                   * for bit width use the stream param only.
@@ -1190,6 +1185,9 @@ int audio_extn_utils_get_app_sample_rate_for_device(
                    audio_extn_a2dp_get_enc_sample_rate(&usecase->stream.out->app_type_cfg.sample_rate);
                    ALOGI("%s using %d sample rate rate for A2DP CoPP",
                         __func__, usecase->stream.out->app_type_cfg.sample_rate);
+        } else if (compare_device_type(&usecase->stream.out->device_list,
+                                       AUDIO_DEVICE_OUT_SPEAKER)) {
+            usecase->stream.out->app_type_cfg.sample_rate = DEFAULT_OUTPUT_SAMPLING_RATE;
         }
         audio_extn_btsco_get_sample_rate(snd_device, &usecase->stream.out->app_type_cfg.sample_rate);
         sample_rate = usecase->stream.out->app_type_cfg.sample_rate;
@@ -3029,7 +3027,11 @@ int audio_extn_utils_get_bit_width_from_string(const char *id_string)
 int audio_extn_utils_get_sample_rate_from_string(const char *id_string)
 {
     int i;
-    const mixer_config_lookup mixer_samplerate_config[] = {{"KHZ_32", 32000},
+    const mixer_config_lookup mixer_samplerate_config[] = {{"KHZ_8", 8000},
+                                                           {"KHZ_11P025", 11025},
+                                                           {"KHZ_16", 16000},
+                                                           {"KHZ_22P05", 22050},
+                                                           {"KHZ_32", 32000},
                                                            {"KHZ_48", 48000},
                                                            {"KHZ_96", 96000},
                                                            {"KHZ_144", 144000},
