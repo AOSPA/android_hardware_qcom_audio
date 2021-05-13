@@ -38,7 +38,7 @@ DOLBY_ENABLE := false
 endif
 
 USE_XML_AUDIO_POLICY_CONF := 1
-AUDIO_FEATURE_ENABLED_DLKM := true
+AUDIO_FEATURE_ENABLED_DLKM := false
 BOARD_SUPPORTS_SOUND_TRIGGER := true
 AUDIO_FEATURE_ENABLED_INSTANCE_ID := true
 AUDIO_USE_DEEP_AS_PRIMARY_OUTPUT := false
@@ -120,7 +120,6 @@ BOARD_VENDOR_KERNEL_MODULES := \
     $(KERNEL_MODULES_OUT)/audio_wcd_spi.ko \
     $(KERNEL_MODULES_OUT)/audio_native.ko \
     $(KERNEL_MODULES_OUT)/audio_machine_talos.ko
-endif
 
 BOARD_VENDOR_KERNEL_MODULES += $(shell ls $(KERNEL_MODULES_OUT)/*.ko)
 
@@ -157,6 +156,8 @@ AUDIO_DLKM += audio_rx_macro.ko
 AUDIO_DLKM += audio_tx_macro.ko
 
 PRODUCT_PACKAGES += $(AUDIO_DLKM)
+
+endif # AUDIO_FEATURE_ENABLED_DLKM
 
 #Audio Specific device overlays
 DEVICE_PACKAGE_OVERLAYS += vendor/qcom/opensource/audio-hal/primary-hal/configs/common/overlay
