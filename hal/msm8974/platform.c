@@ -359,6 +359,8 @@ struct platform_data {
     acdb_set_codec_data_t      acdb_set_codec_data;
     acdb_reload_t              acdb_reload;
     acdb_reload_v2_t           acdb_reload_v2;
+    acdb_get_fluence_nn_state_t  acdb_get_fluence_nn_state;
+    acdb_set_fluence_nn_state_t  acdb_set_fluence_nn_state;
     void *hw_info;
     acdb_send_gain_dep_cal_t   acdb_send_gain_dep_cal;
     struct csd_data *csd;
@@ -3729,6 +3731,18 @@ void *platform_init(struct audio_device *adev)
         if (my_data->acdb_reload_v2 == NULL) {
             ALOGE("%s: dlsym error %s for acdb_loader_reload_acdb_files_v2", __func__, dlerror());
         }
+
+        my_data->acdb_set_fluence_nn_state = (acdb_set_fluence_nn_state_t)dlsym(
+                                                                   my_data->acdb_handle,
+                                                                   "acdb_set_fluence_nn_state");
+        if (!my_data->acdb_set_fluence_nn_state)
+            ALOGE("%s: dlsym error %s for acdb_set_fluence_nn_state", __func__, dlerror());
+
+        my_data->acdb_get_fluence_nn_state = (acdb_get_fluence_nn_state_t)dlsym(
+                                                                   my_data->acdb_handle,
+                                                                   "acdb_get_fluence_nn_state");
+        if (!my_data->acdb_get_fluence_nn_state)
+            ALOGE("%s: dlsym error %s for acdb_get_fluence_nn_state", __func__, dlerror());
 
         my_data->acdb_reload = (acdb_reload_t)dlsym(my_data->acdb_handle,
                                                     "acdb_loader_reload_acdb_files");
@@ -9541,7 +9555,9 @@ static int platform_set_codec_backend_cfg(struct audio_device* adev,
             ALOGD("%s:becf: afe: %s mixer set to %d bit for %x format", __func__,
                   my_data->current_backend_cfg[backend_idx].bitwidth_mixer_ctl, bit_width, format);
             for (int idx = 0; idx < MAX_CODEC_BACKENDS; idx++) {
-                if (my_data->current_backend_cfg[idx].bitwidth_mixer_ctl) {
+                if (my_data->current_backend_cfg[idx].bitwidth_mixer_ctl
+                        && strcmp(my_data->current_backend_cfg[idx].bitwidth_mixer_ctl,
+                        my_data->current_backend_cfg[backend_idx].bitwidth_mixer_ctl) == 0) {
                     ctl = mixer_get_ctl_by_name(adev->mixer,
                                  my_data->current_backend_cfg[idx].bitwidth_mixer_ctl);
                     id_string = platform_get_mixer_control(ctl);
@@ -9646,7 +9662,9 @@ static int platform_set_codec_backend_cfg(struct audio_device* adev,
             ALOGD("%s:becf: afe: %s set to %s", __func__,
                   my_data->current_backend_cfg[backend_idx].samplerate_mixer_ctl, rate_str);
             for (int idx = 0; idx < MAX_CODEC_BACKENDS; idx++) {
-                if (my_data->current_backend_cfg[idx].samplerate_mixer_ctl) {
+                if (my_data->current_backend_cfg[idx].samplerate_mixer_ctl
+                        && strcmp(my_data->current_backend_cfg[idx].samplerate_mixer_ctl,
+                        my_data->current_backend_cfg[backend_idx].samplerate_mixer_ctl) == 0) {
                     ctl = mixer_get_ctl_by_name(adev->mixer,
                                  my_data->current_backend_cfg[idx].samplerate_mixer_ctl);
                     id_string = platform_get_mixer_control(ctl);
@@ -9701,7 +9719,9 @@ static int platform_set_codec_backend_cfg(struct audio_device* adev,
             ALOGD("%s:becf: afe: %s set to %s", __func__,
                   my_data->current_backend_cfg[backend_idx].channels_mixer_ctl, channel_cnt_str);
             for (int idx = 0; idx < MAX_CODEC_BACKENDS; idx++) {
-                if (my_data->current_backend_cfg[idx].channels_mixer_ctl) {
+                if (my_data->current_backend_cfg[idx].channels_mixer_ctl &&
+                        strcmp(my_data->current_backend_cfg[idx].channels_mixer_ctl,
+                        my_data->current_backend_cfg[backend_idx].channels_mixer_ctl) == 0) {
                     ctl = mixer_get_ctl_by_name(adev->mixer,
                                  my_data->current_backend_cfg[idx].channels_mixer_ctl);
                     id_string = platform_get_mixer_control(ctl);
@@ -12590,4 +12610,38 @@ bool platform_is_call_proxy_snd_device(snd_device_t snd_device) {
     if (snd_device == SND_DEVICE_IN_CALL_PROXY || snd_device == SND_DEVICE_OUT_CALL_PROXY)
         return true;
     return false;
+}
+
+bool platform_set_fluence_nn_state(void *platform, bool state) {
+     struct platform_data *my_data = (struct platform_data *)platform;
+
+     if (my_data->acdb_set_fluence_nn_state == NULL) {
+         ALOGE("%s: dlsym error for acdb_set_fluence_nn_state", __func__);
+         return false;
+     }
+
+     if (my_data->fluence_nn_enabled) {
+         my_data->acdb_set_fluence_nn_state(state);
+         ALOGD("%s: set fluence nn state %d", __func__, state);
+         return true;
+     }
+
+     return false;
+}
+
+int platform_get_fluence_nn_state(void *platform) {
+    struct platform_data *my_data = (struct platform_data *)platform;
+    int ret = -1;
+
+    if (my_data->acdb_get_fluence_nn_state == NULL) {
+        ALOGE("%s: dlsym error for acdb_get_fluence_nn_state", __func__);
+        return ret;
+    }
+
+    if (my_data->fluence_nn_enabled)
+        ret = my_data->acdb_get_fluence_nn_state();
+    else
+        ALOGD("fluence nn disabled");
+
+    return ret;
 }
