@@ -8,7 +8,7 @@ AUDIO_FEATURE_QSSI_COMPLIANCE := true
 #AUDIO_FEATURE_ENABLED_VOICE_CONCURRENCY := true
 AUDIO_FEATURE_ENABLED_AAC_ADTS_OFFLOAD := true
 AUDIO_FEATURE_ENABLED_COMPRESS_CAPTURE := false
-AUDIO_FEATURE_ENABLED_COMPRESS_VOIP := true
+AUDIO_FEATURE_ENABLED_COMPRESS_VOIP := false
 AUDIO_FEATURE_ENABLED_EXTN_FORMATS := true
 AUDIO_FEATURE_ENABLED_EXTN_FLAC_DECODER := true
 AUDIO_FEATURE_ENABLED_EXTN_RESAMPLER := true
@@ -108,7 +108,7 @@ PRODUCT_COPY_FILES += \
     $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8953/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/audio_policy_configuration.xml
 endif
 PRODUCT_COPY_FILES += \
-    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
+    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/msm8953/audio_policy_configuration_common.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
     $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/bluetooth_qti_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/a2dp_audio_policy_configuration.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_volumes.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/default_volume_tables.xml \
@@ -257,7 +257,7 @@ vendor.audio.feature.hdmi_edid.enable=true  \
 endor.audio.feature.spkr_prot.enable=true  \
 vendor.audio.feature.dsm_feedback.enable=false \
 vendor.audio.feature.ssrec.enable=true  \
-vendor.audio.feature.compr_voip.enable=true \
+vendor.audio.feature.compr_voip.enable=false \
 vendor.audio.feature.kpi_optimize.enable=true \
 vendor.audio.feature.usb_offload.enable=false  \
 vendor.audio.feature.usb_offload_burst_mode.enable=false \
@@ -266,7 +266,7 @@ vendor.audio.feature.src_trkn.enable=true \
 vendor.audio.feature.ras.enable=false \
 vendor.audio.feature.a2dp_offload.enable=false \
 vendor.audio.feature.wsa.enable=true \
-vendor.audio.feature.compress_meta_data.enablef=false \
+vendor.audio.feature.compress_meta_data.enable=true \
 vendor.audio.feature.vbat.enable=true \
 vendor.audio.feature.display_port.enable=false \
 vendor.audio.feature.fluence.enable=true \
