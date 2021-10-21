@@ -3932,6 +3932,10 @@ ssize_t StreamInPrimary::read(const void *buffer, size_t bytes) {
                 AHAL_ERR("Pal Stream volume Error (%x)", ret);
             }
         }
+        /*apply cached mic mute*/
+        if (adevice->mute_) {
+            pal_stream_set_mute(pal_stream_handle_, adevice->mute_);
+        }
     }
 
     if (!effects_applied_) {
