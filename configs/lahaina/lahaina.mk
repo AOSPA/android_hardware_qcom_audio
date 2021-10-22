@@ -287,22 +287,13 @@ persist.vendor.audio.apptype.multirec.enabled=false
 
 ##fluencetype can be "fluence" or "fluencepro" or "none"
 PRODUCT_PROPERTY_OVERRIDES += \
-ro.vendor.audio.sdk.fluencetype=none\
 persist.vendor.audio.fluence.voicecall=true\
-persist.vendor.audio.fluence.voicerec=false\
 persist.vendor.audio.fluence.speaker=true\
 persist.vendor.audio.fluence.tmic.enabled=false
 
 ##speaker protection v4 switch and ADSP AFE API version
 PRODUCT_PROPERTY_OVERRIDES += \
-persist.vendor.audio.speaker.prot.enable=true\
-persist.vendor.audio.spv4.enable=true\
 persist.vendor.audio.avs.afe_api_version=9
-
-##bcl aka vbat monitor feature enable by default
-PRODUCT_PROPERTY_OVERRIDES += \
-persist.vendor.audio.vbat.enabled=true\
-persist.vendor.audio.bcl.enabled=true\
 
 #disable tunnel encoding
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -425,10 +416,6 @@ endif
 
 USE_XML_AUDIO_POLICY_CONF := 1
 
-#enable keytone FR
-PRODUCT_PROPERTY_OVERRIDES += \
-vendor.audio.hal.output.suspend.supported=true
-
 #Enable AAudio MMAP/NOIRQ data path
 #2 is AAUDIO_POLICY_AUTO so it will try MMAP then fallback to Legacy path
 PRODUCT_PROPERTY_OVERRIDES += aaudio.mmap_policy=2
@@ -495,7 +482,6 @@ vendor.audio.feature.maxx_audio.enable=false \
 vendor.audio.feature.ras.enable=true \
 vendor.audio.feature.record_play_concurency.enable=false \
 vendor.audio.feature.src_trkn.enable=true \
-vendor.audio.feature.spkr_prot.enable=true \
 vendor.audio.feature.ssrec.enable=true \
 vendor.audio.feature.usb_offload.enable=true \
 vendor.audio.feature.usb_offload_burst_mode.enable=true \
