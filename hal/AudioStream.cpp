@@ -2515,7 +2515,7 @@ int StreamOutPrimary::Open() {
                 AUDIO_DEVICE_OUT_USB_DEVICE);
             if (it != mAndroidOutDevices.end())
                 mAndroidOutDevices.erase(it);
-            mPalOutDevice->id == PAL_DEVICE_OUT_SPEAKER;
+            mPalOutDevice->id = PAL_DEVICE_OUT_SPEAKER;
             mAndroidOutDevices.insert(AUDIO_DEVICE_OUT_SPEAKER);
             mPalOutDevice->address.card_id = 0;
             mPalOutDevice->address.device_num = 0;
@@ -3905,7 +3905,7 @@ int StreamInPrimary::Open() {
                  AUDIO_DEVICE_IN_USB_DEVICE);
              if (it != mAndroidInDevices.end())
                  mAndroidInDevices.erase(it);
-             mPalInDevice->id == PAL_DEVICE_IN_SPEAKER_MIC;
+             mPalInDevice->id = PAL_DEVICE_IN_SPEAKER_MIC;
              mAndroidInDevices.insert(AUDIO_DEVICE_IN_BUILTIN_MIC);
              mPalInDevice->address.card_id = 0;
              mPalInDevice->address.device_num = 0;
