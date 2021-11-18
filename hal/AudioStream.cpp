@@ -1966,7 +1966,8 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
         AHAL_DBG("noPalDevices: %d , new_devices: %zu",
                 noPalDevices, new_devices.size());
 
-        if (noPalDevices != new_devices.size()) {
+        if (noPalDevices != new_devices.size() ||
+            noPalDevices >= PAL_DEVICE_IN_MAX) {
             AHAL_ERR("Device count mismatch! Expected: %zu Got: %d",
                     new_devices.size(), noPalDevices);
             ret = -EINVAL;
@@ -3644,7 +3645,8 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
         noPalDevices = getPalDeviceIds(new_devices, mPalInDeviceIds);
         AHAL_DBG("noPalDevices: %d , new_devices: %zu",
                 noPalDevices, new_devices.size());
-        if (noPalDevices != new_devices.size()) {
+        if (noPalDevices != new_devices.size() ||
+            noPalDevices >= PAL_DEVICE_IN_MAX) {
             AHAL_ERR("Device count mismatch! Expected: %d Got: %zu", noPalDevices, new_devices.size());
             ret = -EINVAL;
             goto done;
