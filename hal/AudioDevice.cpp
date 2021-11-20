@@ -1017,6 +1017,13 @@ static int adev_dump(const audio_hw_device_t *device, int fd)
     int major =  (device->common.version >> 8) & 0xff;
     int minor =   device->common.version & 0xff;
     dprintf(fd, "Device API Version: %d.%d \n", major, minor);
+
+#ifdef PAL_HIDL_ENABLED
+    dprintf(fd, "PAL HIDL enabled");
+#else
+    dprintf(fd, "PAL HIDL disabled");
+#endif
+
     return 0;
 }
 
@@ -1044,7 +1051,6 @@ int AudioDevice::Init(hw_device_t **device, const hw_module_t *module) {
      *Once PAL init is sucessfull, register the PAL service
      *from HAL process context
      */
-    AHAL_DBG("Register Pal service");
     AudioExtn::audio_extn_hidl_init();
 
     adev_->device_.get()->common.tag = HARDWARE_DEVICE_TAG;
@@ -1352,6 +1358,22 @@ int AudioDevice::SetParameters(const char *kvpairs) {
             AHAL_DBG(" - screen = off");
             param_screen_st.screen_state = false;
             ret = pal_set_param( PAL_PARAM_ID_SCREEN_STATE, (void*)&param_screen_st, sizeof(pal_param_screen_state_t));
+        }
+    }
+
+    ret = str_parms_get_str(parms, "UHQA", value, sizeof(value));
+    if (ret >= 0) {
+        pal_param_uhqa_t param_uhqa_flag;
+        if (strcmp(value, AUDIO_PARAMETER_VALUE_ON) == 0) {
+            param_uhqa_flag.uhqa_state = true;
+            AHAL_DBG(" - UHQA = on");
+            ret = pal_set_param(PAL_PARAM_ID_UHQA_FLAG, (void*)&param_uhqa_flag,
+                          sizeof(pal_param_uhqa_t));
+        } else {
+            param_uhqa_flag.uhqa_state = false;
+            AHAL_DBG(" - UHQA = false");
+            ret = pal_set_param(PAL_PARAM_ID_UHQA_FLAG, (void*)&param_uhqa_flag,
+                          sizeof(pal_param_uhqa_t));
         }
     }
 
