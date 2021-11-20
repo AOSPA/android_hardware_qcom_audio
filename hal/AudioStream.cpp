@@ -1105,7 +1105,6 @@ int64_t StreamInPrimary::GetSourceLatency(audio_input_flags_t halStreamFlags)
 uint64_t StreamInPrimary::GetFramesRead(int64_t* time)
 {
     uint64_t signed_frames = 0;
-    uint64_t read_frames = 0;
     uint64_t kernel_frames = 0;
     size_t kernel_buffer_size = 0;
     int64_t dsp_latency = 0;
@@ -1120,22 +1119,9 @@ uint64_t StreamInPrimary::GetFramesRead(int64_t* time)
      */
     dsp_latency = StreamInPrimary::GetSourceLatency(flags_);
 
-    read_frames = mBytesRead / audio_bytes_per_frame(
+    signed_frames = mBytesRead / audio_bytes_per_frame(
         audio_channel_count_from_in_mask(config_.channel_mask),
         config_.format);
-
-    /* not querying actual state of buffering in kernel as it would involve an ioctl call
-     * which then needs protection, this causes delay in TS query for pcm_offload usecase
-     * hence only estimate.
-     */
-    kernel_buffer_size = fragment_size_ * fragments_;
-    kernel_frames = kernel_buffer_size /
-        audio_bytes_per_frame(
-            audio_channel_count_from_in_mask(config_.channel_mask),
-            config_.format);
-
-
-    signed_frames = read_frames + kernel_frames;
 
     *time = (readAt.tv_sec * 1000000000LL) + readAt.tv_nsec - (dsp_latency * 1000LL);
 
@@ -1153,8 +1139,7 @@ uint64_t StreamInPrimary::GetFramesRead(int64_t* time)
         }
     }
 
-    AHAL_VERBOSE("signed frames %lld read frames %lld kernel frames %lld",
-        (long long)signed_frames, (long long)read_frames, (long long)kernel_frames);
+    AHAL_VERBOSE("signed frames %lld", (long long)signed_frames);
 
     return signed_frames;
 }
@@ -2420,44 +2405,54 @@ int StreamOutPrimary::Open() {
     streamAttributes_.out_media_config.aud_fmt_id = PAL_AUDIO_FMT_PCM_S16_LE;
     streamAttributes_.out_media_config.ch_info = ch_info;
 
-    if (streamAttributes_.type == PAL_STREAM_COMPRESSED) {
-        streamAttributes_.flags = (pal_stream_flags_t)(PAL_STREAM_FLAG_NON_BLOCKING);
-        if (config_.offload_info.format == 0)
-            config_.offload_info.format = config_.format;
-        if (config_.offload_info.sample_rate == 0)
-            config_.offload_info.sample_rate = config_.sample_rate;
-        streamAttributes_.out_media_config.sample_rate = config_.offload_info.sample_rate;
-        if (msample_rate)
-            streamAttributes_.out_media_config.sample_rate = msample_rate;
-        if (mchannels)
-            streamAttributes_.out_media_config.ch_info.channels = mchannels;
-        if (getAlsaSupportedFmt.find(config_.format) != getAlsaSupportedFmt.end()) {
+    switch(streamAttributes_.type) {
+        case PAL_STREAM_COMPRESSED:
+            streamAttributes_.flags = (pal_stream_flags_t)(PAL_STREAM_FLAG_NON_BLOCKING);
+            if (config_.offload_info.format == 0)
+                config_.offload_info.format = config_.format;
+            if (config_.offload_info.sample_rate == 0)
+                config_.offload_info.sample_rate = config_.sample_rate;
+                streamAttributes_.out_media_config.sample_rate = config_.offload_info.sample_rate;
+            if (msample_rate)
+                streamAttributes_.out_media_config.sample_rate = msample_rate;
+            if (mchannels)
+                streamAttributes_.out_media_config.ch_info.channels = mchannels;
+            if (getAlsaSupportedFmt.find(config_.format) != getAlsaSupportedFmt.end()) {
+                halInputFormat = config_.format;
+                halOutputFormat = (audio_format_t)(getAlsaSupportedFmt.at(config_.format));
+                streamAttributes_.out_media_config.aud_fmt_id = getFormatId.at(halOutputFormat);
+                streamAttributes_.out_media_config.bit_width = format_to_bitwidth_table[halOutputFormat];
+                if (streamAttributes_.out_media_config.bit_width == 0)
+                    streamAttributes_.out_media_config.bit_width = 16;
+                streamAttributes_.type = PAL_STREAM_PCM_OFFLOAD;
+            } else {
+                streamAttributes_.out_media_config.aud_fmt_id = getFormatId.at(config_.format & AUDIO_FORMAT_MAIN_MASK);
+            }
+            break;
+        case PAL_STREAM_LOW_LATENCY:
+        case PAL_STREAM_ULTRA_LOW_LATENCY:
+        case PAL_STREAM_DEEP_BUFFER:
+        case PAL_STREAM_GENERIC:
+        case PAL_STREAM_PCM_OFFLOAD:
             halInputFormat = config_.format;
-            halOutputFormat = (audio_format_t)(getAlsaSupportedFmt.at(config_.format));
+            halOutputFormat = (audio_format_t)(getAlsaSupportedFmt.at(halInputFormat));
             streamAttributes_.out_media_config.aud_fmt_id = getFormatId.at(halOutputFormat);
             streamAttributes_.out_media_config.bit_width = format_to_bitwidth_table[halOutputFormat];
+            AHAL_DBG("halInputFormat %d halOutputFormat %d palformat %d", halInputFormat,
+                     halOutputFormat, streamAttributes_.out_media_config.aud_fmt_id);
             if (streamAttributes_.out_media_config.bit_width == 0)
                 streamAttributes_.out_media_config.bit_width = 16;
-            streamAttributes_.type = PAL_STREAM_PCM_OFFLOAD;
-        }
-        else
-          streamAttributes_.out_media_config.aud_fmt_id = getFormatId.at(config_.format & AUDIO_FORMAT_MAIN_MASK);
-    } else if (streamAttributes_.type == PAL_STREAM_PCM_OFFLOAD ||
-               streamAttributes_.type == PAL_STREAM_DEEP_BUFFER) {
-        halInputFormat = config_.format;
-        halOutputFormat = (audio_format_t)(getAlsaSupportedFmt.at(halInputFormat));
-        streamAttributes_.out_media_config.aud_fmt_id = getFormatId.at(halOutputFormat);
-        streamAttributes_.out_media_config.bit_width = format_to_bitwidth_table[halOutputFormat];
-        AHAL_DBG("halInputFormat %d halOutputFormat %d palformat %d", halInputFormat,
-                 halOutputFormat, streamAttributes_.out_media_config.aud_fmt_id);
-        if (streamAttributes_.out_media_config.bit_width == 0)
-            streamAttributes_.out_media_config.bit_width = 16;
-    } else if ((streamAttributes_.type == PAL_STREAM_ULTRA_LOW_LATENCY) &&
-            (usecase_ == USECASE_AUDIO_PLAYBACK_MMAP)) {
-        streamAttributes_.flags = (pal_stream_flags_t)(PAL_STREAM_FLAG_MMAP_NO_IRQ);
-    } else if ((streamAttributes_.type == PAL_STREAM_ULTRA_LOW_LATENCY) &&
-            (usecase_ == USECASE_AUDIO_PLAYBACK_ULL)) {
-        streamAttributes_.flags = (pal_stream_flags_t)(PAL_STREAM_FLAG_MMAP);
+
+            if (streamAttributes_.type == PAL_STREAM_ULTRA_LOW_LATENCY) {
+                if (usecase_ == USECASE_AUDIO_PLAYBACK_MMAP) {
+                    streamAttributes_.flags = (pal_stream_flags_t)(PAL_STREAM_FLAG_MMAP_NO_IRQ);
+                } else if (usecase_ == USECASE_AUDIO_PLAYBACK_ULL) {
+                    streamAttributes_.flags = (pal_stream_flags_t)(PAL_STREAM_FLAG_MMAP);
+                }
+            }
+            break;
+        default:
+            break;
     }
 
     ret = pal_get_param(PAL_PARAM_ID_HIFI_PCM_FILTER,
@@ -2868,7 +2863,13 @@ ssize_t StreamOutPrimary::configurePalOutputStream() {
                 pal_haptics_stream_handle = NULL;
             }
             return -EINVAL;
+        } else {
+            AHAL_INFO("notify GEF client of device config");
+            for(auto dev : mAndroidOutDevices)
+                audio_extn_gef_notify_device_config(dev, config_.channel_mask,
+                    config_.sample_rate, flags_);
         }
+
         if (usecase_ == USECASE_AUDIO_PLAYBACK_WITH_HAPTICS) {
             ret = pal_stream_start(pal_haptics_stream_handle);
             if (ret) {
@@ -4165,6 +4166,8 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
     int ret = 0;
     readAt.tv_sec = 0;
     readAt.tv_nsec = 0;
+    void *st_handle = nullptr;
+    pal_param_payload *payload = nullptr;
 
     AHAL_DBG("enter: handle (%x) format(%#x) sample_rate(%d) channel_mask(%#x) devices(%zu) flags(%#x)"\
           , handle, config->format, config->sample_rate, config->channel_mask,
@@ -4199,13 +4202,53 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
         }
     }
 
-            /* this is required for USB otherwise adev_open_input_stream is failed */
+    /* this is required for USB otherwise adev_open_input_stream is failed */
     if (!config_.sample_rate)
         config_.sample_rate = DEFAULT_OUTPUT_SAMPLING_RATE;
     if (!config_.channel_mask)
         config_.channel_mask = AUDIO_CHANNEL_IN_MONO;
     if (!config_.format)
         config_.format = AUDIO_FORMAT_PCM_16_BIT;
+
+    /*
+     * Audio config set from client may not be same as config used in pal,
+     * update audio config here so that AudioFlinger can acquire correct
+     * config used in pal/hal and configure record buffer converter properly.
+     */
+    st_handle = audio_extn_sound_trigger_check_and_get_session(this);
+    if (st_handle) {
+        AHAL_VERBOSE("Found existing pal stream handle associated with capture handle");
+        pal_stream_handle_ = (pal_stream_handle_t *)st_handle;
+        payload = (pal_param_payload *)calloc(1,
+            sizeof(pal_param_payload) + sizeof(struct pal_stream_attributes));
+        if (!payload) {
+            AHAL_ERR("Failed to allocate memory for stream attributes");
+            goto error;
+        }
+        payload->payload_size = sizeof(struct pal_stream_attributes);
+        ret = pal_stream_get_param(pal_stream_handle_, PAL_PARAM_ID_STREAM_ATTRIBUTES, &payload);
+        if (ret) {
+            AHAL_ERR("Failed to get pal stream attributes, ret = %d", ret);
+            if (payload)
+                free(payload);
+            goto error;
+        }
+        memcpy(&streamAttributes_, payload->payload, payload->payload_size);
+
+        if (streamAttributes_.in_media_config.ch_info.channels == 1)
+            config_.channel_mask = AUDIO_CHANNEL_IN_MONO;
+        else if (streamAttributes_.in_media_config.ch_info.channels == 2)
+            config_.channel_mask = AUDIO_CHANNEL_IN_STEREO;
+        config_.format = AUDIO_FORMAT_PCM_16_BIT;
+
+        /*
+         * reset pal_stream_handle in case standby come before
+         * read as anyway it will be updated in StreamInPrimary::Open
+         */
+        if (payload)
+            free(payload);
+        pal_stream_handle_ = nullptr;
+    }
 
     AHAL_DBG("local : handle (%x) format(%#x) sample_rate(%d) channel_mask(%#x) devices(%#x) flags(%#x)"\
           , handle, config_.format, config_.sample_rate, config_.channel_mask,
