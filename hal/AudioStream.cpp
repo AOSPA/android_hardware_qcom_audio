@@ -1979,7 +1979,7 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
             goto done;
         }
 
-        pal_param_device_capability_t *device_cap_query = (pal_param_device_capability_t *)
+        device_cap_query = (pal_param_device_capability_t *)
                 malloc(sizeof(pal_param_device_capability_t));
         if (!device_cap_query) {
                 AHAL_ERR("Failed to allocate device_cap_query!");
@@ -3693,7 +3693,7 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
             goto done;
         }
 
-        pal_param_device_capability_t *device_cap_query = (pal_param_device_capability_t *)
+        device_cap_query = (pal_param_device_capability_t *)
                 malloc(sizeof(pal_param_device_capability_t));
         if (!device_cap_query) {
                 AHAL_ERR("Failed to allocate device_cap_query!");
