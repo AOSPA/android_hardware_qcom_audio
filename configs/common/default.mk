@@ -1,11 +1,7 @@
 # for HIDL related packages
-ifeq ($(TARGET_ARCH),arm64)
-PRODUCT_PACKAGES += \
-    android.hardware.audio@2.0-service_64
-else
 PRODUCT_PACKAGES += \
     android.hardware.audio@2.0-service
-endif
+
 # enable audio hidl hal 5.0
 PRODUCT_PACKAGES += \
     android.hardware.audio@5.0 \
