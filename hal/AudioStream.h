@@ -240,6 +240,12 @@ enum {
     CAMERA_DEFAULT = CAMERA_BACK_LANDSCAPE,
 };
 
+enum {
+    AUDIO_RECORD_DEFAULT = 0,
+    AUDIO_RECORD_ARM_HDR = 1,
+    AUDIO_RECORD_SPF_HDR = 2,
+};
+
 struct string_to_enum {
     const char *name;
     uint32_t value;

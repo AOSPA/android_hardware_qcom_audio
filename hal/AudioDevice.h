@@ -54,6 +54,7 @@
 #define AUDIO_PARAMETER_KEY_WNR "wnr_on"
 #define AUDIO_PARAMETER_KEY_ANS "ans_on"
 #define AUDIO_PARAMETER_KEY_ORIENTATION "orientation"
+#define AUDIO_PARAMETER_KEY_ROTATION "rotation"
 #define AUDIO_PARAMETER_KEY_INVERTED "inverted"
 #define AUDIO_PARAMETER_KEY_FACING "facing"
 #define AUDIO_PARAMETER_KEY_HDR_CHANNELS "hdr_audio_channel_count"
@@ -73,6 +74,13 @@ typedef enum {
     TAG_SND_DEV,
     TAG_MIC_INFO
 } mic_xml_tags_t;
+
+typedef enum {
+    ROTATION_0 = 0,
+    ROTATION_90 = 90,
+    ROTATION_180 = 180,
+    ROTATION_270 = 270,
+} rotation_t;
 
 typedef struct xml_userdata_t {
     char data_buf[XML_READ_BUFFER_SIZE];

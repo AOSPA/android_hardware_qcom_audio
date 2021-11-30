@@ -183,6 +183,16 @@ static bool hdr_set_parameters(std::shared_ptr<AudioDevice> adev,
         AHAL_INFO("ANS Enabled: %d", adev->ans_enabled);
     }
 
+    /* Checking for Device rotation */
+    ret = str_parms_get_int(parms, AUDIO_PARAMETER_KEY_ROTATION, &val);
+    if (ret >= 0) {
+        adev->inverted = (val == ROTATION_270 || val == ROTATION_180)? true : false;
+        adev->orientation_landscape = (val == ROTATION_90 || val == ROTATION_270)? true : false;
+        changes = true;
+        AHAL_INFO("orientation_landscape is %d and inverted is %d", adev->orientation_landscape,
+            adev->inverted);
+    }
+
     ret = str_parms_get_str(parms, AUDIO_PARAMETER_KEY_ORIENTATION, value,
               sizeof(value));
     if (ret >= 0) {
@@ -1324,7 +1334,8 @@ int AudioDevice::SetParameters(const char *kvpairs) {
     }
     AudioExtn::audio_extn_set_parameters(adev_, parms);
 
-    if (property_get_bool("vendor.audio.hdr.record.enable", false)) {
+    if ( (property_get_bool("vendor.audio.hdr.record.enable", false)) ||
+         (property_get_bool("vendor.audio.hdr.spf.record.enable", false))) {
         changes_done = hdr_set_parameters(adev_, parms);
         if (changes_done) {
             for (int i = 0; i < stream_in_list_.size(); i++) {
@@ -1359,6 +1370,9 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                     new_devices = astream_out->mAndroidOutDevices;
                     astream_out->RouteStream(new_devices, true);
                     break;
+                } else if (property_get_bool("vendor.audio.hdr.spf.record.enable", false)) {
+                    new_devices = astream_in->mAndroidInDevices;
+                    astream_in->RouteStream(new_devices, true);
                 }
             }
         }
@@ -1491,6 +1505,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
     if (ret >= 0) {
         int isRotationReq = 0;
         pal_param_device_rotation_t param_device_rotation;
+
         switch (val) {
         case 270:
         {

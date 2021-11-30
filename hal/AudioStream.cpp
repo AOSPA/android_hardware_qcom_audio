@@ -70,14 +70,16 @@ static bool is_pcm_format(audio_format_t format)
     return false;
 }
 
-static bool is_hdr_mode_enabled() {
-    if (!property_get_bool("vendor.audio.hdr.record.enable", false)) {
-        AHAL_INFO("HDR feature is disabled");
-        return false;
+static int get_hdr_mode() {
+    if (property_get_bool("vendor.audio.hdr.spf.record.enable", false)) {
+        AHAL_INFO("HDR SPF feature is enabled");
+        return AUDIO_RECORD_SPF_HDR;
+    } else if (property_get_bool("vendor.audio.hdr.record.enable", false)) {
+        AHAL_INFO("HDR ARM feature is enabled");
+        return AUDIO_RECORD_ARM_HDR;
+    } else {
+        return AUDIO_RECORD_DEFAULT;
     }
-
-    std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
-    return adevice->hdr_record_enabled;
 }
 
 static void setup_hdr_usecase(struct pal_device* palInDevice) {
@@ -3834,7 +3836,7 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
                     sizeof(mPalInDevice[i].custom_config.custom_key));
 
             /* HDR use case check */
-            if (is_hdr_mode_enabled())
+            if (get_hdr_mode() == AUDIO_RECORD_ARM_HDR || get_hdr_mode() == AUDIO_RECORD_SPF_HDR)
                 setup_hdr_usecase(&mPalInDevice[i]);
 
             if (source_ == AUDIO_SOURCE_CAMCORDER && adevice->cameraOrientation == CAMERA_DEFAULT) {
@@ -4486,11 +4488,15 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
             uint8_t channels =
                 audio_channel_count_from_in_mask(config_.channel_mask);
             if (channels == 4) {
-                if (is_hdr_mode_enabled()) {
+                if (get_hdr_mode() == AUDIO_RECORD_ARM_HDR) {
                     flags = flags_ = AUDIO_INPUT_FLAG_RAW;
                     setup_hdr_usecase(&mPalInDevice[i]);
                 }
             }
+        }
+
+        if (get_hdr_mode() == AUDIO_RECORD_SPF_HDR) {
+            setup_hdr_usecase(&mPalInDevice[i]);
         }
 
         if (source_ == AUDIO_SOURCE_CAMCORDER && adevice->cameraOrientation == CAMERA_DEFAULT) {
