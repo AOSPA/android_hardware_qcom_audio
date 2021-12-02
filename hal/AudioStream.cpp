@@ -56,6 +56,7 @@
 #define AFE_PROXY_RECORD_PERIOD_SIZE  768
 
 static bool karaoke = false;
+static bool hac_voip = false;
 
 static bool is_pcm_format(audio_format_t format)
 {
@@ -714,18 +715,27 @@ static int out_get_render_position(const struct audio_stream_out *stream,
     if (astream_out) {
         switch (astream_out->GetPalStreamType(astream_out->flags_)) {
         case PAL_STREAM_COMPRESSED:
-           ret = astream_out->GetFrames(&frames);
-           if (ret != 0) {
-              AHAL_ERR("Get DSP Frames failed %d", ret);
-              return ret;
-           }
-           *dsp_frames = (uint32_t) frames;
-           break;
+            ret = astream_out->GetFrames(&frames);
+            if (ret != 0) {
+                AHAL_ERR("Get DSP Frames failed %d", ret);
+                return ret;
+            }
+            *dsp_frames = (uint32_t) frames;
+            break;
+        case PAL_STREAM_PCM_OFFLOAD:
+        case PAL_STREAM_LOW_LATENCY:
+        case PAL_STREAM_DEEP_BUFFER:
+            ret =  astream_out->GetFramesWritten(NULL);
+            if (ret < 0) {
+                AHAL_ERR("Get DSP Frames failed %d", ret);
+                return ret;
+            }
+            *dsp_frames = ret;
+            break;
         default:
-           break;
+            break;
         }
     }
-
     return 0;
 }
 
@@ -1712,6 +1722,8 @@ int StreamOutPrimary::Stop() {
     int ret = -ENOSYS;
 
     AHAL_DBG("Enter");
+    if (usecase_ == USECASE_AUDIO_PLAYBACK_VOIP)
+        hac_voip = false;
     if (usecase_ == USECASE_AUDIO_PLAYBACK_MMAP &&
             pal_stream_handle_ && stream_started_) {
 
@@ -1851,7 +1863,6 @@ int StreamOutPrimary::Standby() {
         if (ret) {
             AHAL_ERR("failed to stop stream.");
             ret = -EINVAL;
-            goto exit;
         }
         if (usecase_ == USECASE_AUDIO_PLAYBACK_WITH_HAPTICS && pal_haptics_stream_handle) {
             ret = pal_stream_stop(pal_haptics_stream_handle);
@@ -1859,6 +1870,8 @@ int StreamOutPrimary::Standby() {
                 AHAL_ERR("failed to stop haptics stream.");
             }
         }
+        if (usecase_ == USECASE_AUDIO_PLAYBACK_VOIP)
+            hac_voip = false;
      }
 
     stream_started_ = false;
@@ -1953,7 +1966,8 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
         AHAL_DBG("noPalDevices: %d , new_devices: %zu",
                 noPalDevices, new_devices.size());
 
-        if (noPalDevices != new_devices.size()) {
+        if (noPalDevices != new_devices.size() ||
+            noPalDevices >= PAL_DEVICE_IN_MAX) {
             AHAL_ERR("Device count mismatch! Expected: %zu Got: %d",
                     new_devices.size(), noPalDevices);
             ret = -EINVAL;
@@ -2033,6 +2047,11 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
                     sizeof(mPalOutDevice->custom_config.custom_key));
         }
 
+        if (hac_voip && (mPalOutDevice->id == PAL_DEVICE_OUT_HANDSET)) {
+             strlcpy(mPalOutDevice->custom_config.custom_key, "HAC",
+                    sizeof(mPalOutDevice->custom_config.custom_key));
+        }
+
         if (pal_stream_handle_) {
             ret = pal_stream_set_device(pal_stream_handle_, noPalDevices, mPalOutDevice);
             if (!ret) {
@@ -2092,6 +2111,13 @@ int StreamOutPrimary::SetParameters(struct str_parms *parms) {
             AHAL_DBG("padding %u", gaplessMeta.encoderPadding);
         }
         sendGaplessMetadata = true;
+    }
+
+    ret1 = str_parms_get_str(parms, AUDIO_PARAMETER_KEY_HAC, value, sizeof(value));
+    if (ret1 >= 0) {
+        hac_voip = false;
+        if (strcmp(value, AUDIO_PARAMETER_VALUE_HAC_ON) == 0)
+            hac_voip = true;
     }
 error:
     AHAL_DBG("exit %d", ret);
@@ -2187,10 +2213,6 @@ uint64_t StreamOutPrimary::GetFramesWritten(struct timespec *timestamp)
     dsp_frames = StreamOutPrimary::GetRenderLatency(flags_) *
         (streamAttributes_.out_media_config.sample_rate) / 1000000LL;
 
-    if (!timestamp) {
-       AHAL_ERR("timestamp NULL");
-       return 0;
-    }
     written_frames = mBytesWritten / audio_bytes_per_frame(
         audio_channel_count_from_out_mask(config_.channel_mask),
         config_.format);
@@ -2225,9 +2247,10 @@ uint64_t StreamOutPrimary::GetFramesWritten(struct timespec *timestamp)
     }
 
     if (signed_frames <= 0) {
-       clock_gettime(CLOCK_MONOTONIC, timestamp);
        signed_frames = 0;
-    } else {
+       if (timestamp != NULL)
+           clock_gettime(CLOCK_MONOTONIC, timestamp);
+    } else if (timestamp != NULL) {
        *timestamp = writeAt;
     }
 
@@ -2508,6 +2531,11 @@ int StreamOutPrimary::Open() {
     if (device_cap_query) {
         free(device_cap_query);
         device_cap_query = NULL;
+    }
+
+    if (hac_voip && (mPalOutDevice->id == PAL_DEVICE_OUT_HANDSET)) {
+         strlcpy(mPalOutDevice->custom_config.custom_key, "HAC",
+                sizeof(mPalOutDevice->custom_config.custom_key));
     }
 
     AHAL_DBG("channels %d samplerate %d format id %d, stream type %d  stream bitwidth %d",
@@ -3324,6 +3352,8 @@ int StreamInPrimary::GetPalDeviceIds(pal_device_id_t *palDevIds, int *numPalDevs
 int StreamInPrimary::Stop() {
     int ret = -ENOSYS;
 
+    if (usecase_ == USECASE_AUDIO_PLAYBACK_VOIP)
+        hac_voip = false;
     if (usecase_ == USECASE_AUDIO_RECORD_MMAP &&
             pal_stream_handle_ && stream_started_) {
 
@@ -3615,7 +3645,8 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
         noPalDevices = getPalDeviceIds(new_devices, mPalInDeviceIds);
         AHAL_DBG("noPalDevices: %d , new_devices: %zu",
                 noPalDevices, new_devices.size());
-        if (noPalDevices != new_devices.size()) {
+        if (noPalDevices != new_devices.size() ||
+            noPalDevices >= PAL_DEVICE_IN_MAX) {
             AHAL_ERR("Device count mismatch! Expected: %d Got: %zu", noPalDevices, new_devices.size());
             ret = -EINVAL;
             goto done;
