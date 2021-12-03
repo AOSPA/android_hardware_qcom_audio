@@ -676,8 +676,8 @@ static uint32_t astream_get_latency(const struct audio_stream_out *stream) {
     pal_param_bta2dp_t *param_bt_a2dp = NULL;
     size_t size = 0;
     int32_t ret;
-
-    if (astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP)) {
+    //TODO : check on PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY for BLE
+    if ((astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP)) || (astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE))) {
         ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY,
                             (void **)&param_bt_a2dp, &size, nullptr);
         if (!ret && param_bt_a2dp)
@@ -897,6 +897,62 @@ static int astream_out_set_volume(struct audio_stream_out *stream,
     } else {
         AHAL_ERR("unable to get audio stream");
         return -EINVAL;
+    }
+}
+static void out_update_source_metadata_v7(
+                                struct audio_stream_out *stream,
+                                const struct source_metadata_v7 *source_metadata) {
+
+    int32_t ret = 0;
+    if (stream == NULL
+            || (source_metadata == NULL)
+            || (source_metadata->track_count == 0)
+            || (source_metadata->tracks == NULL)) {
+        AHAL_ERR("%s: stream or source_metadata is NULL", __func__);
+        return;
+    }
+
+    std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
+    std::shared_ptr<StreamOutPrimary> astream_out;
+
+    if (adevice) {
+        astream_out = adevice->OutGetStream((audio_stream_t*)stream);
+    }
+    if (astream_out) {
+
+        //this stream is not on BLE device, so ignore the metadata
+        if(!astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) {
+            return;
+        }
+
+       ssize_t track_count = source_metadata->track_count;
+       struct playback_track_metadata_v7* track = source_metadata->tracks;
+       std::vector<playback_track_metadata_t> tracks;
+       tracks.resize(track_count);
+
+       AHAL_ERR("track count is %d",track_count);
+
+       source_metadata_t btSourceMetadata;
+       btSourceMetadata.track_count = track_count;
+       btSourceMetadata.tracks = tracks.data();
+
+       // copy all tracks info from source_metadata_v7 to source_metadata
+       while (track_count && track) {
+           btSourceMetadata.tracks->usage = track->base.usage;
+           btSourceMetadata.tracks->content_type = track->base.content_type;
+           --track_count;
+           ++track;
+           ++btSourceMetadata.tracks;
+       }
+
+       //move pointer to base address and do setparam
+       btSourceMetadata.tracks = tracks.data();
+
+       //pass the metadata to PAL
+       ret = pal_set_param(PAL_PARAM_ID_SET_SOURCE_METADATA,(void*)&btSourceMetadata,0);
+       if (ret != 0) {
+           AHAL_ERR("Set PAL_PARAM_ID_SET_SOURCE_METADATA for %d failed", ret);
+       }
     }
 }
 
@@ -1174,7 +1230,8 @@ uint64_t StreamInPrimary::GetFramesRead(int64_t* time)
     size_t size = 0;
     int32_t ret;
 
-    if (isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_A2DP)) {
+    if (isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_A2DP) ||
+        isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_BLE)) {
         ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_DECODER_LATENCY,
             (void**)&param_bt_a2dp, &size, nullptr);
         if (!ret && param_bt_a2dp) {
@@ -1228,6 +1285,7 @@ static void in_update_sink_metadata_v7(
     }
     audio_devices_t device = sink_metadata->tracks->base.dest_device;
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
+    std::shared_ptr<StreamInPrimary> astream_in;
     int ret = 0;
 
 
@@ -1244,6 +1302,41 @@ static void in_update_sink_metadata_v7(
             AHAL_ERR("%s: voice handle does not exist", __func__);
         }
     }
+
+    if (adevice) {
+        astream_in = adevice->InGetStream((audio_stream_t*)stream);
+
+    //If its BLE, send update sink metadata
+    if ((device == AUDIO_DEVICE_OUT_BLE_HEADSET) || (astream_in && astream_in->isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_BLE))) {
+       ssize_t track_count = sink_metadata->track_count;
+       struct record_track_metadata_v7* track = sink_metadata->tracks;
+       AHAL_ERR("track count is %d",track_count);
+
+       if (!track_count) return;
+
+       std::vector<record_track_metadata_t> tracks;
+       tracks.resize(track_count);
+
+       sink_metadata_t btSinkMetadata;
+       btSinkMetadata.track_count = track_count;
+       btSinkMetadata.tracks = tracks.data();
+
+       // copy all tracks info from sink_metadata_v7 to sink_metadata
+       while (track_count && track) {
+           btSinkMetadata.tracks->source = track->base.source;
+           --track_count;
+           ++track;
+           ++btSinkMetadata.tracks;
+       }
+
+       btSinkMetadata.tracks = tracks.data();
+       //pass the metadata to PAL
+       ret = pal_set_param(PAL_PARAM_ID_SET_SINK_METADATA,(void*)&btSinkMetadata,0);
+       if (ret != 0) {
+           AHAL_ERR("Set PAL_PARAM_ID_SET_SINK_METADATA for %d failed", ret);
+       }
+    }
+  }
 }
 
 static int astream_in_get_active_microphones(
@@ -1688,6 +1781,7 @@ int StreamOutPrimary::FillHalFnPtrs() {
     stream_.get()->drain = astream_drain;
     stream_.get()->flush = astream_flush;
     stream_.get()->set_callback = astream_set_callback;
+    stream_.get()->update_source_metadata_v7 = out_update_source_metadata_v7;
     return ret;
 }
 
@@ -2331,7 +2425,7 @@ uint64_t StreamOutPrimary::GetFramesWritten(struct timespec *timestamp)
 
     // Adjustment accounts for A2dp encoder latency with non offload usecases
     // Note: Encoder latency is returned in ms, while platform_render_latency in us.
-    if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP)) {
+    if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP) || isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) {
         ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY,
                             (void **)&param_bt_a2dp, &size, nullptr);
         if (!ret && param_bt_a2dp) {
@@ -2845,7 +2939,7 @@ int StreamOutPrimary::GetFrames(uint64_t *frames)
 
     // Adjustment accounts for A2dp encoder latency with offload usecases
     // Note: Encoder latency is returned in ms.
-    if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP)) {
+    if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP) || isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) {
         ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY,
                             (void **)&param_bt_a2dp, &size, nullptr);
         if (!ret && param_bt_a2dp) {
