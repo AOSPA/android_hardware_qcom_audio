@@ -59,3 +59,19 @@ endif
 # Pro Audio feature
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.audio.pro.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.pro.xml
+
+SOONG_CONFIG_qtiaudio_var00 := false
+SOONG_CONFIG_qtiaudio_var11 := false
+SOONG_CONFIG_qtiaudio_var22 := false
+
+ifneq ($(BUILD_AUDIO_TECHPACK_SOURCE), true)
+    SOONG_CONFIG_qtiaudio_var00 := true
+    SOONG_CONFIG_qtiaudio_var11 := true
+    SOONG_CONFIG_qtiaudio_var22 := true
+endif
+ifeq (,$(wildcard $(QCPATH)/mm-audio-noship))
+    SOONG_CONFIG_qtiaudio_var11 := true
+endif
+ifeq (,$(wildcard $(QCPATH)/mm-audio))
+    SOONG_CONFIG_qtiaudio_var22 := true
+endif
