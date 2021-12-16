@@ -269,7 +269,6 @@ int AudioVoice::VoiceSetParameters(const char *kvpairs) {
                      sizeof(pal_param_payload) + sizeof(pal_device_mute_t));
         } else {
             params->payload_size = sizeof(pal_device_mute_t);
-;
 
             for ( i = 0; i < max_voice_sessions_; i++) {
                 voice_.session[i].device_mute.mute = mute;
@@ -424,12 +423,8 @@ int AudioVoice::RouteStream(const std::set<audio_devices_t>& rx_devices) {
      */
     if (tx_devices.find(AUDIO_DEVICE_NONE) != tx_devices.end() ||
         rx_devices.find(AUDIO_DEVICE_NONE) != rx_devices.end()) {
-        if (tx_devices.find(AUDIO_DEVICE_NONE) != tx_devices.end()) {
-            AHAL_ERR("Invalid Tx device");
-        } else {
-            AHAL_ERR("Invalid Rx device");
-        }
-        ret = -EINVAL;
+        AHAL_ERR("Invalid Tx/Rx device");
+        ret = 0;
         goto exit;
     }
 
@@ -601,6 +596,11 @@ int AudioVoice::VoiceStart(voice_session_t *session) {
     struct pal_device palDevices[2];
     struct pal_channel_info out_ch_info = {0, {0}}, in_ch_info = {0, {0}};
     pal_param_payload *param_payload = nullptr;
+
+    if (!session) {
+        AHAL_ERR("Invalid session");
+        return -EINVAL;
+    }
 
     AHAL_DBG("Enter");
 
@@ -781,24 +781,12 @@ int AudioVoice::VoiceStart(voice_session_t *session) {
    } else {
       AHAL_DBG("Pal Stream Start Success");
    }
-   /*apply device mute if needed */
+
+   /*Apply device mute if needed*/
    if (session->device_mute.mute) {
-        param_payload = (pal_param_payload *)calloc(1, sizeof(pal_param_payload) +
-                                               sizeof(session->device_mute));
-       if (!param_payload) {
-           AHAL_ERR("calloc failed for size %zu",
-                    sizeof(pal_param_payload) + sizeof(session->device_mute));
-       } else {
-           param_payload->payload_size = sizeof(session->device_mute);
-           memcpy(param_payload->payload, &(session->device_mute), param_payload->payload_size);
-           ret = pal_stream_set_param(session->pal_voice_handle, PAL_PARAM_ID_DEVICE_MUTE,
-                                      param_payload);
-           if (ret)
-               AHAL_ERR("Voice Device mute failed %x", ret);
-           free(param_payload);
-           param_payload = nullptr;
-       }
+        ret = SetDeviceMute(session);
    }
+
    /*apply cached mic mute*/
    if (adevice->mute_) {
        pal_stream_set_mute(session->pal_voice_handle, adevice->mute_);
@@ -808,6 +796,36 @@ int AudioVoice::VoiceStart(voice_session_t *session) {
 error_open:
     AHAL_DBG("Exit ret: %d", ret);
     return ret;
+}
+
+int AudioVoice::SetDeviceMute(voice_session_t *session) {
+    int ret = 0;
+    pal_param_payload *param_payload = nullptr;
+
+    if (!session) {
+        AHAL_ERR("Invalid Session");
+        return -EINVAL;
+    }
+
+    param_payload = (pal_param_payload *)calloc(1, sizeof(pal_param_payload) +
+                        sizeof(session->device_mute));
+    if (!param_payload) {
+        AHAL_ERR("calloc failed for size %zu",
+                sizeof(pal_param_payload) + sizeof(session->device_mute));
+        ret = -EINVAL;
+    } else {
+        param_payload->payload_size = sizeof(session->device_mute);
+        memcpy(param_payload->payload, &(session->device_mute), param_payload->payload_size);
+        ret = pal_stream_set_param(session->pal_voice_handle, PAL_PARAM_ID_DEVICE_MUTE,
+                                param_payload);
+        if (ret)
+            AHAL_ERR("Voice Device mute failed %x", ret);
+        free(param_payload);
+        param_payload = nullptr;
+    }
+
+   AHAL_DBG("Exit ret: %d", ret);
+   return ret;
 }
 
 int AudioVoice::VoiceStop(voice_session_t *session) {
@@ -836,6 +854,11 @@ int AudioVoice::VoiceSetDevice(voice_session_t *session) {
     struct pal_channel_info out_ch_info = {0, {0}}, in_ch_info = {0, {0}};
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
     pal_param_payload *param_payload = nullptr;
+
+    if (!session) {
+        AHAL_ERR("Invalid session");
+        return -EINVAL;
+    }
 
     AHAL_DBG("Enter");
     in_ch_info.channels = 1;
@@ -932,15 +955,21 @@ int AudioVoice::VoiceSetDevice(voice_session_t *session) {
 
     if (session && session->pal_voice_handle) {
         ret = pal_stream_set_device(session->pal_voice_handle, 2, palDevices);
-        if (ret)
+        if (ret) {
             AHAL_ERR("Pal Stream Set Device failed %x", ret);
+            ret = -EINVAL;
+            goto exit;
+        }
     } else {
         AHAL_ERR("Voice handle not found");
     }
 
-    if (ret)
-        ret = -EINVAL;
+    /* apply device mute if needed*/
+    if (session->device_mute.mute) {
+        ret = SetDeviceMute(session);
+   }
 
+exit:
     AHAL_DBG("Exit ret: %d", ret);
     return ret;
 }
