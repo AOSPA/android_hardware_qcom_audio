@@ -38,3 +38,5 @@ PRODUCT_PACKAGES += \
     IDP_workspaceFileXml.qwsp \
     QRD_acdb_cal.acdb \
     QRD_workspaceFileXml.qwsp \
+
+BUILD_AUDIO_TECHPACK_SOURCE := true
