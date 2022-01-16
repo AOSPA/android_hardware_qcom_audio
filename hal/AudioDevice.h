@@ -187,6 +187,7 @@ public:
     int  hdr_channel_count = 0;
     int  hdr_sample_rate = 0;
     int cameraOrientation = CAMERA_DEFAULT;
+    bool hac_voip = false;
     bool usb_input_dev_enabled = false;
     static bool mic_characteristics_available;
     static microphone_characteristics_t microphones;
