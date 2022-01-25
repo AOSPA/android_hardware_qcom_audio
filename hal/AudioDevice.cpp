@@ -1079,6 +1079,13 @@ int AudioDevice::Init(hw_device_t **device, const hw_module_t *module) {
     int ret = 0;
     bool is_charging = false;
 
+    /*
+     * register HIDL services for PAL & AGM
+     * pal_init() depends on AGM, so need to initialize
+     * hidl interface before calling to pal_init()
+     */
+    AudioExtn::audio_extn_hidl_init();
+
     ret = pal_init();
     if (ret) {
         AHAL_ERR("pal_init failed ret=(%d)", ret);
@@ -1089,11 +1096,6 @@ int AudioDevice::Init(hw_device_t **device, const hw_module_t *module) {
     if (ret) {
         AHAL_ERR("pal register callback failed ret=(%d)", ret);
     }
-    /*
-     *Once PAL init is sucessfull, register the PAL service
-     *from HAL process context
-     */
-    AudioExtn::audio_extn_hidl_init();
 
     adev_->device_.get()->common.tag = HARDWARE_DEVICE_TAG;
     adev_->device_.get()->common.version = AUDIO_DEVICE_API_VERSION_3_2;

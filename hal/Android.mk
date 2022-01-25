@@ -51,7 +51,8 @@ LOCAL_C_INCLUDES += \
     vendor/qcom/opensource/core-utils/fwk-detect \
     vendor/qcom/opensource/pal \
     $(call include-path-for, audio-effects) \
-    $(LOCAL_PATH)/audio_extn
+    $(LOCAL_PATH)/audio_extn \
+    $(TOP)/vendor/qcom/opensource/agm/ipc/HwBinders/agm_ipc_client/
 
 LOCAL_SRC_FILES := \
     AudioStream.cpp \
@@ -61,7 +62,7 @@ LOCAL_SRC_FILES := \
     audio_extn/Gain.cpp \
     audio_extn/AudioExtn.cpp
 
-LOCAL_HEADER_LIBRARIES := libhardware_headers qti_audio_kernel_uapi
+LOCAL_HEADER_LIBRARIES := libhardware_headers qti_audio_kernel_uapi libagm_headers
 
 LOCAL_SHARED_LIBRARIES := \
     libbase \
@@ -82,6 +83,16 @@ ifeq ($(strip $(AUDIO_FEATURE_ENABLED_PAL_HIDL)),true)
 
   LOCAL_CFLAGS += -DPAL_HIDL_ENABLED
 endif
+
+ifeq ($(strip $(AUDIO_FEATURE_ENABLED_AGM_HIDL)),true)
+  LOCAL_SHARED_LIBRARIES += \
+    vendor.qti.hardware.AGMIPC@1.0-impl \
+    vendor.qti.hardware.AGMIPC@1.0 \
+    libagm
+
+  LOCAL_CFLAGS += -DAGM_HIDL_ENABLED
+endif
+
 ifeq ($(strip $(AUDIO_FEATURE_ENABLED_GEF_SUPPORT)),true)
     LOCAL_CFLAGS += -DAUDIO_GENERIC_EFFECT_FRAMEWORK_ENABLED
 ifeq ($(strip $(AUDIO_FEATURE_ENABLED_INSTANCE_ID)), true)
