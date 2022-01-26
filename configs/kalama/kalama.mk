@@ -1,3 +1,7 @@
+# Audio product definitions
+include vendor/qcom/opensource/audio-hal/primary-hal/configs/kalama/audio-modules.mk
+PRODUCT_PACKAGES += $(AUDIO_MODULES)
+
 #BOARD_USES_GENERIC_AUDIO := true
 #
 #AUDIO_FEATURE_FLAGS
@@ -87,95 +91,7 @@ AUDIO_FEATURE_ENABLED_BATTERY_LISTENER := true
 BUILD_AUDIO_TECHPACK_SOURCE := true
 AUDIO_FEATURE_ENABLED_MCS := true
 ##AUDIO_FEATURE_FLAGS
-#AGM
-AUDIO_AGM := libagmclient
-AUDIO_AGM += libagmservice
-AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-impl
-AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-service
-AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-service.rc
-AUDIO_AGM += libagm
-AUDIO_AGM += agmplay
-AUDIO_AGM += agmcap
-AUDIO_AGM += libagmmixer
-AUDIO_AGM += agmcompressplay
-AUDIO_AGM += libagm_mixer_plugin
-AUDIO_AGM += libagm_pcm_plugin
-AUDIO_AGM += libagm_compress_plugin
-
-#PAL Service
-AUDIO_PAL += libpalclient
-AUDIO_PAL += vendor.qti.hardware.pal@1.0-impl
-
-#PAL Module
-AUDIO_PAL := libar-pal
-AUDIO_PAL += lib_bt_bundle
-AUDIO_PAL += lib_bt_aptx
-AUDIO_PAL += lib_bt_ble
-AUDIO_PAL += catf
-AUDIO_PAL += PalTest
-
 BOARD_SUPPORTS_OPENSOURCE_STHAL := true
-
-AUDIO_HARDWARE := audio.a2dp.default
-AUDIO_HARDWARE += audio.usb.default
-AUDIO_HARDWARE += audio.r_submix.default
-AUDIO_HARDWARE += audio.primary.kalama
-
-#HAL Wrapper
-AUDIO_WRAPPER := libqahw
-AUDIO_WRAPPER += libqahwwrapper
-
-# C2 Audio
-AUDIO_C2 := libqc2audio_base
-AUDIO_C2 += libqc2audio_utils
-AUDIO_C2 += libqc2audio_platform
-AUDIO_C2 += libqc2audio_core
-AUDIO_C2 += libqc2audio_basecodec
-AUDIO_C2 += libqc2audio_hooks
-AUDIO_C2 += libqc2audio_swaudiocodec
-AUDIO_C2 += libqc2audio_swaudiocodec_data_common
-AUDIO_C2 += libqc2audio_hwaudiocodec
-AUDIO_C2 += libqc2audio_hwaudiocodec_data_common
-AUDIO_C2 += vendor.qti.media.c2audio@1.0-service
-AUDIO_C2 += qc2audio_test
-AUDIO_C2 += libEvrcSwCodec
-AUDIO_C2 += libQcelp13SwCodec
-
-#HAL Test app
-AUDIO_HAL_TEST_APPS := hal_play_test
-AUDIO_HAL_TEST_APPS += hal_rec_test
-
-PRODUCT_PACKAGES += $(AUDIO_HARDWARE)
-PRODUCT_PACKAGES += $(AUDIO_WRAPPER)
-PRODUCT_PACKAGES += $(AUDIO_HAL_TEST_APPS)
-PRODUCT_PACKAGES += ftm_test_config
-PRODUCT_PACKAGES += ftm_test_config_kalama-qrd-snd-card
-PRODUCT_PACKAGES += audioadsprpcd
-PRODUCT_PACKAGES += vendor.qti.audio-adsprpc-service.rc
-PRODUCT_PACKAGES += android.hardware.audio.service_64
-PRODUCT_PACKAGES += android.hardware.audio.service_64.rc
-PRODUCT_PACKAGES += MTP_acdb_cal.acdb
-PRODUCT_PACKAGES += MTP_workspaceFileXml.qwsp
-PRODUCT_PACKAGES += CDP_acdb_cal.acdb
-PRODUCT_PACKAGES += CDP_workspaceFileXml.qwsp
-PRODUCT_PACKAGES += QRD_acdb_cal.acdb
-PRODUCT_PACKAGES += QRD_workspaceFileXml.qwsp
-PRODUCT_PACKAGES += IDP_UPD_acdb_cal.acdb
-PRODUCT_PACKAGES += IDP_UPD_workspaceFileXml.qwsp
-PRODUCT_PACKAGES += fai__2.3.0_0.1__3.0.0_0.0__eai_1.10.pmd
-PRODUCT_PACKAGES += fai__2.3.0_0.1__3.0.0_0.0__eai_1.36_enpu2_comp.pmd
-PRODUCT_PACKAGES += fai__2.0.0_0.1__3.0.0_0.0__eai_1.36_enpu2.pmd
-PRODUCT_PACKAGES += fai__2.7.2_0.0__3.0.0_0.0__eai_1.36_enpu2.pmd
-PRODUCT_PACKAGES += fai__2.7.20_0.0__3.0.0_0.0__eai_1.36_enpu2.pmd
-PRODUCT_PACKAGES += fai__3.0.0_0.0__eai_1.36_enpu2.pmd
-PRODUCT_PACKAGES += libfmpal
-PRODUCT_PACKAGES += event.eai
-PRODUCT_PACKAGES += music.eai
-PRODUCT_PACKAGES += speech.eai
-PRODUCT_PACKAGES += libqtigefar
-ifeq ($(strip $(AUDIO_FEATURE_ENABLED_MCS)), true)
-PRODUCT_PACKAGES += libmcs
-endif
 
 ifneq ($(strip $(TARGET_USES_RRO)), true)
 #Audio Specific device overlays
@@ -524,59 +440,6 @@ vendor.audio.feature.snd_mon.enable=true \
 vendor.audio.feature.dmabuf.cma.memory.enable=false \
 vendor.audio.hdr.record.enable=false
 
-
-# for HIDL related packages
-PRODUCT_PACKAGES += \
-    android.hardware.audio@2.0-service_64 \
-    android.hardware.audio@2.0-impl \
-    android.hardware.audio.effect@2.0-impl \
-    android.hardware.soundtrigger@2.1-impl \
-    android.hardware.audio@4.0 \
-    android.hardware.audio.common@4.0 \
-    android.hardware.audio.common@4.0-util \
-    android.hardware.audio@4.0-impl \
-    android.hardware.audio.effect@4.0 \
-    android.hardware.audio.effect@4.0-impl
-
-# enable audio hidl hal 5.0
-PRODUCT_PACKAGES += \
-    android.hardware.audio@5.0 \
-    android.hardware.audio.common@5.0 \
-    android.hardware.audio.common@5.0-util \
-    android.hardware.audio@5.0-impl \
-    android.hardware.audio.effect@5.0 \
-    android.hardware.audio.effect@5.0-impl
-
-# enable audio hidl hal 6.0
-PRODUCT_PACKAGES += \
-    android.hardware.audio@6.0 \
-    android.hardware.audio.common@6.0 \
-    android.hardware.audio.common@6.0-util \
-    android.hardware.audio@6.0-impl \
-    android.hardware.audio.effect@6.0 \
-    android.hardware.audio.effect@6.0-impl
-
-# enable audio hidl hal 7.0
-PRODUCT_PACKAGES += \
-    android.hardware.audio@7.0 \
-    android.hardware.audio.common@7.0 \
-    android.hardware.audio.common@7.0-util \
-    android.hardware.audio@7.0-impl \
-    android.hardware.audio.effect@7.0 \
-    android.hardware.audio.effect@7.0-impl
-
-# enable sound trigger hidl hal 2.2
-PRODUCT_PACKAGES += \
-    android.hardware.soundtrigger@2.2-impl \
-
-# enable sound trigger hidl hal 2.3
-PRODUCT_PACKAGES += \
-    android.hardware.soundtrigger@2.3-impl \
-
-# enable Listen Sound Model hidl 1.0
-PRODUCT_PACKAGES += \
-    vendor.qti.hardware.ListenSoundModel@1.0 \
-    vendor.qti.hardware.ListenSoundModel@1.0-impl
 
 PRODUCT_PACKAGES_ENG += \
     VoicePrintTest \
