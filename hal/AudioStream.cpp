@@ -2017,10 +2017,6 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
                     new_devices.size() * sizeof(struct pal_device));
             if (!deviceId || !deviceIdConfigs) {
                 AHAL_ERR("Failed to allocate PalOutDeviceIds or deviceIdConfigs!");
-                if (deviceId)
-                    mPalOutDeviceIds = deviceId;
-                if (deviceIdConfigs)
-                    mPalOutDevice = deviceIdConfigs;
                 ret = -ENOMEM;
                 goto done;
             }
@@ -2146,6 +2142,10 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
     }
 
 done:
+    if (deviceId)
+        free(deviceId);
+    if (deviceIdConfigs)
+        free(deviceIdConfigs);
     stream_mutex_.unlock();
     AHAL_DBG("exit %d", ret);
     return ret;
@@ -2653,7 +2653,7 @@ int StreamOutPrimary::Open() {
         hapticsStreamAttributes.out_media_config.ch_info = ch_info;
 
         if (!hapticsDevice) {
-            hapticsDevice = (struct pal_device*) calloc(1, sizeof(struct pal_device));
+            hapticsDevice = new pal_device;
             hapticsDevice->id = PAL_DEVICE_OUT_HAPTICS_DEVICE;
             hapticsDevice->config.sample_rate = DEFAULT_OUTPUT_SAMPLING_RATE;
             hapticsDevice->config.bit_width = CODEC_BACKEND_DEFAULT_BIT_WIDTH;
@@ -3316,7 +3316,7 @@ StreamOutPrimary::StreamOutPrimary(
         mAndroidOutDevices.insert(AUDIO_DEVICE_OUT_DEFAULT);
     AHAL_DBG("No of Android devices %zu", mAndroidOutDevices.size());
 
-    mPalOutDeviceIds = (pal_device_id_t*) calloc(mAndroidOutDevices.size(), sizeof(pal_device_id_t));
+    mPalOutDeviceIds = new pal_device_id_t[mAndroidOutDevices.size()];
     if (!mPalOutDeviceIds) {
            goto error;
     }
@@ -3327,7 +3327,7 @@ StreamOutPrimary::StreamOutPrimary(
         goto error;
     }
 
-    mPalOutDevice = (struct pal_device*) calloc(mAndroidOutDevices.size(), sizeof(struct pal_device));
+    mPalOutDevice = new pal_device[mAndroidOutDevices.size()];
     if (!mPalOutDevice) {
         goto error;
     }
@@ -3417,15 +3417,15 @@ StreamOutPrimary::~StreamOutPrimary() {
     if (convertBuffer)
         free(convertBuffer);
     if (mPalOutDeviceIds) {
-        free(mPalOutDeviceIds);
+        delete[] mPalOutDeviceIds;
         mPalOutDeviceIds = NULL;
     }
     if (mPalOutDevice) {
-        free(mPalOutDevice);
+        delete[] mPalOutDevice;
         mPalOutDevice = NULL;
     }
     if (hapticsDevice) {
-        free(hapticsDevice);
+        delete hapticsDevice;
         hapticsDevice = NULL;
     }
     stream_mutex_.unlock();
@@ -3771,10 +3771,6 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
                     new_devices.size() * sizeof(struct pal_device));
             if (!deviceId || !deviceIdConfigs) {
                 AHAL_ERR("Failed to allocate PalOutDeviceIds or deviceIdConfigs!");
-                if (deviceId)
-                    mPalInDeviceIds = deviceId;
-                if (deviceIdConfigs)
-                    mPalInDevice = deviceIdConfigs;
                 ret = -ENOMEM;
                 goto done;
             }
@@ -3868,6 +3864,10 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
     }
 
 done:
+    if (deviceId)
+        free(deviceId);
+    if (deviceIdConfigs)
+        free(deviceIdConfigs);
     stream_mutex_.unlock();
     AHAL_DBG("exit %d", ret);
     return ret;
@@ -4464,7 +4464,7 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
         mAndroidInDevices.insert(AUDIO_DEVICE_IN_DEFAULT);
 
     AHAL_DBG("No of devices %zu", mAndroidInDevices.size());
-    mPalInDeviceIds = (pal_device_id_t*) calloc(mAndroidInDevices.size(), sizeof(pal_device_id_t));
+    mPalInDeviceIds = new pal_device_id_t[mAndroidInDevices.size()];
     if (!mPalInDeviceIds) {
         goto error;
     }
@@ -4474,7 +4474,7 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
         AHAL_ERR("mismatched pal %d and hal devices %zu", noPalDevices, mAndroidInDevices.size());
         goto error;
     }
-    mPalInDevice = (struct pal_device*) calloc(mAndroidInDevices.size(), sizeof(struct pal_device));
+    mPalInDevice = new pal_device[mAndroidInDevices.size()];
     if (!mPalInDevice) {
         goto error;
     }
@@ -4537,11 +4537,11 @@ StreamInPrimary::~StreamInPrimary() {
         pal_stream_handle_ = NULL;
     }
     if (mPalInDeviceIds) {
-        free(mPalInDeviceIds);
+        delete[] mPalInDeviceIds;
         mPalInDeviceIds = NULL;
     }
     if (mPalInDevice) {
-        free(mPalInDevice);
+        delete[] mPalInDevice;
         mPalInDevice = NULL;
     }
     stream_mutex_.unlock();
