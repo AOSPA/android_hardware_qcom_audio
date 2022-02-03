@@ -724,6 +724,10 @@ static uint32_t astream_get_latency(const struct audio_stream_out *stream) {
         latency = LOW_LATENCY_OUTPUT_PERIOD_DURATION * LOW_LATENCY_PLAYBACK_PERIOD_COUNT;
         latency += StreamOutPrimary::GetRenderLatency(astream_out->flags_) / 1000;
         break;
+    case USECASE_AUDIO_PLAYBACK_SPATIAL:
+        latency = SPATIAL_AUDIO_OUTPUT_PERIOD_DURATION * SPATIAL_PLAYBACK_PERIOD_COUNT;
+        latency += StreamOutPrimary::GetRenderLatency(astream_out->flags_) / 1000;
+        break;
     case USECASE_AUDIO_PLAYBACK_VOIP:
         latency += VOIP_PERIOD_COUNT_DEFAULT * DEFAULT_VOIP_BUF_DURATION_MS;
         break;
@@ -1801,6 +1805,9 @@ pal_stream_type_t StreamOutPrimary::GetPalStreamType(
     }
     if ((halStreamFlags & AUDIO_OUTPUT_FLAG_RAW) != 0) {
         palStreamType = PAL_STREAM_ULTRA_LOW_LATENCY;
+    } else if (halStreamFlags ==
+                    (AUDIO_OUTPUT_FLAG_FAST | AUDIO_OUTPUT_FLAG_DEEP_BUFFER)) {
+        palStreamType = PAL_STREAM_SPATIAL_AUDIO;
     } else if ((halStreamFlags & AUDIO_OUTPUT_FLAG_FAST) != 0) {
         palStreamType = PAL_STREAM_LOW_LATENCY;
     } else if (halStreamFlags ==
@@ -2478,6 +2485,8 @@ int64_t StreamOutPrimary::GetRenderLatency(audio_output_flags_t halStreamFlags)
               return PCM_OFFLOAD_PLATFORM_DELAY;
          case PAL_STREAM_ULTRA_LOW_LATENCY:
               return ULL_PLATFORM_DELAY;
+         case PAL_STREAM_SPATIAL_AUDIO:
+              return SPATIAL_AUDIO_PLATFORM_DELAY;
          //TODO: Add more usecases/type as in current hal, once they are available in pal
          default:
              return 0;
@@ -2692,8 +2701,13 @@ uint32_t StreamOutPrimary::GetBufferSize() {
             audio_bytes_per_frame(
                     audio_channel_count_from_out_mask(config_.channel_mask),
                     config_.format);
-    } else if (streamAttributes_.type == PAL_STREAM_DEEP_BUFFER){
+    } else if (streamAttributes_.type == PAL_STREAM_DEEP_BUFFER) {
         return DEEP_BUFFER_PLAYBACK_PERIOD_SIZE *
+            audio_bytes_per_frame(
+                    audio_channel_count_from_out_mask(config_.channel_mask),
+                    config_.format);
+    } else if (streamAttributes_.type == PAL_STREAM_SPATIAL_AUDIO) {
+        return SPATIAL_PLAYBACK_PERIOD_SIZE *
             audio_bytes_per_frame(
                     audio_channel_count_from_out_mask(config_.channel_mask),
                     config_.format);
@@ -2773,6 +2787,7 @@ int StreamOutPrimary::Open() {
         case PAL_STREAM_LOW_LATENCY:
         case PAL_STREAM_ULTRA_LOW_LATENCY:
         case PAL_STREAM_DEEP_BUFFER:
+        case PAL_STREAM_SPATIAL_AUDIO:
         case PAL_STREAM_GENERIC:
         case PAL_STREAM_PCM_OFFLOAD:
             halInputFormat = config_.format;
@@ -2954,6 +2969,8 @@ int StreamOutPrimary::Open() {
         outBufCount = DEEP_BUFFER_PLAYBACK_PERIOD_COUNT;
     else if (usecase_ == USECASE_AUDIO_PLAYBACK_VOIP)
         outBufCount = VOIP_PERIOD_COUNT_DEFAULT;
+    else if (usecase_ == USECASE_AUDIO_PLAYBACK_SPATIAL)
+        outBufCount = SPATIAL_PLAYBACK_PERIOD_COUNT;
 
     if (halInputFormat != halOutputFormat) {
         convertBuffer = realloc(convertBuffer, outBufSize);
@@ -3068,7 +3085,10 @@ int StreamOutPrimary::GetOutputUseCase(audio_output_flags_t halStreamFlags)
             usecase = USECASE_AUDIO_PLAYBACK_OFFLOAD;
         else
             usecase = USECASE_AUDIO_PLAYBACK_OFFLOAD2;
-    } else if (halStreamFlags & AUDIO_OUTPUT_FLAG_RAW)
+    } else if (halStreamFlags ==
+               (AUDIO_OUTPUT_FLAG_FAST | AUDIO_OUTPUT_FLAG_DEEP_BUFFER))
+            usecase = USECASE_AUDIO_PLAYBACK_SPATIAL;
+    else if (halStreamFlags & AUDIO_OUTPUT_FLAG_RAW)
         usecase = USECASE_AUDIO_PLAYBACK_ULL;
     else if (halStreamFlags & AUDIO_OUTPUT_FLAG_FAST)
         usecase = USECASE_AUDIO_PLAYBACK_LOW_LATENCY;
