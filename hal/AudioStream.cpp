@@ -2344,7 +2344,10 @@ uint64_t StreamOutPrimary::GetFramesWritten(struct timespec *timestamp)
 
 int StreamOutPrimary::get_compressed_buffer_size()
 {
+    char value[PROPERTY_VALUE_MAX] = {0};
     int fragment_size = COMPRESS_OFFLOAD_FRAGMENT_SIZE;
+    int fsize = 0;
+
     AHAL_DBG("config_ %x", config_.format);
     if(config_.format ==  AUDIO_FORMAT_FLAC ) {
         fragment_size = FLAC_COMPRESS_OFFLOAD_FRAGMENT_SIZE;
@@ -2354,6 +2357,14 @@ int StreamOutPrimary::get_compressed_buffer_size()
     } else {
         fragment_size =  COMPRESS_OFFLOAD_FRAGMENT_SIZE;
     }
+
+    if((property_get("vendor.audio.offload.buffer.size.kb", value, "")) &&
+            atoi(value)) {
+        fsize = atoi(value) * 1024;
+    }
+    if (fsize > fragment_size)
+        fragment_size = fsize;
+
     return fragment_size;
 }
 
