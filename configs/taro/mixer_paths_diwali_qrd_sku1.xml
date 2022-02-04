@@ -148,7 +148,7 @@
     <ctl name="ADC4 ChMap" value="ZERO" />
 
     <!-- Volume controls -->
-    <ctl name="WSA_RX0 Digital Volume" value="78" />
+    <ctl name="WSA_RX0 Digital Volume" value="84" />
     <ctl name="WSA_RX1 Digital Volume" value="84" />
     <ctl name="RX_RX0 Digital Volume" value="84" />
     <ctl name="RX_RX1 Digital Volume" value="84" />
@@ -268,6 +268,16 @@
         <ctl name="HDR34 MUX" value="NO_HDR34" />
         <ctl name="ADC3_MIXER Switch" value="1" />
         <ctl name="AMIC4_MIXER Switch" value="1" />
+    </path>
+
+    <path name="amic6">
+        <ctl name="TX DEC4 MUX" value="SWR_MIC" />
+        <ctl name="TX SMIC MUX4" value="SWR_MIC4" />
+        <ctl name="TX_AIF2_CAP Mixer DEC4" value="1" />
+        <ctl name="ADC1 ChMap" value="SWRM_TX2_CH1" />
+        <ctl name="TX0 MODE" value="ADC_LP" />
+        <ctl name="ADC1_MIXER Switch" value="1" />
+        <ctl name="AMIC1_MIXER Switch" value="1" />
     </path>
 
     <path name="dmic1">
