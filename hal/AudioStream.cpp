@@ -1771,7 +1771,7 @@ int StreamOutPrimary::CreateMmapBuffer(int32_t min_size_frames,
 int StreamOutPrimary::Stop() {
     int ret = -ENOSYS;
 
-    AHAL_DBG("Enter");
+    AHAL_INFO("Enter: OutPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
     stream_mutex_.lock();
     if (usecase_ == USECASE_AUDIO_PLAYBACK_MMAP &&
             pal_stream_handle_ && stream_started_) {
@@ -1789,7 +1789,8 @@ int StreamOutPrimary::Stop() {
 
 int StreamOutPrimary::Start() {
     int ret = -ENOSYS;
-    AHAL_DBG("Enter");
+
+    AHAL_INFO("Enter: OutPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
     stream_mutex_.lock();
     if (usecase_ == USECASE_AUDIO_PLAYBACK_MMAP &&
             pal_stream_handle_ && !stream_started_) {
@@ -2487,7 +2488,7 @@ int StreamOutPrimary::Open() {
     bool *payload_hifiFilter = &isHifiFilterEnabled;
     size_t param_size = 0;
 
-    AHAL_DBG("Enter OutPrimary ");
+    AHAL_INFO("Enter: OutPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
 
     if (!mInitialized) {
         AHAL_ERR("Not initialized, returning error");
@@ -2609,8 +2610,7 @@ int StreamOutPrimary::Open() {
            streamAttributes_.out_media_config.ch_info.channels, streamAttributes_.out_media_config.sample_rate,
            streamAttributes_.out_media_config.aud_fmt_id, streamAttributes_.type,
            streamAttributes_.out_media_config.bit_width);
-    AHAL_DBG("msample_rate %d mchannels %d", msample_rate, mchannels);
-    AHAL_DBG("mNoOfOutDevices %zu", mAndroidOutDevices.size());
+    AHAL_DBG("msample_rate %d mchannels %d mNoOfOutDevices %zu", msample_rate, mchannels, mAndroidOutDevices.size());
     ret = pal_stream_open(&streamAttributes_,
                           mAndroidOutDevices.size(),
                           mPalOutDevice,
@@ -2620,7 +2620,6 @@ int StreamOutPrimary::Open() {
                           (uint64_t)this,
                           &pal_stream_handle_);
 
-    AHAL_DBG("(%x:ret)",ret);
     if (ret) {
         AHAL_ERR("Pal Stream Open Error (%x)", ret);
         ret = -EINVAL;
@@ -3460,6 +3459,7 @@ int StreamInPrimary::GetPalDeviceIds(pal_device_id_t *palDevIds, int *numPalDevs
 int StreamInPrimary::Stop() {
     int ret = -ENOSYS;
 
+    AHAL_INFO("Enter: InPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
     stream_mutex_.lock();
     if (usecase_ == USECASE_AUDIO_RECORD_MMAP &&
             pal_stream_handle_ && stream_started_) {
@@ -3475,7 +3475,7 @@ int StreamInPrimary::Stop() {
 int StreamInPrimary::Start() {
     int ret = -ENOSYS;
 
-    AHAL_DBG("Enter");
+    AHAL_INFO("Enter: InPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
     stream_mutex_.lock();
     if (usecase_ == USECASE_AUDIO_RECORD_MMAP &&
             pal_stream_handle_ && !stream_started_) {
@@ -3732,7 +3732,7 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
     struct pal_channel_info ch_info = {0, {0}};
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
 
-    AHAL_DBG("enter ");
+    AHAL_INFO("Enter: InPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
 
     stream_mutex_.lock();
     if (!mInitialized){
@@ -3891,7 +3891,7 @@ int StreamInPrimary::Open() {
     dynamic_media_config_t dynamic_media_config;
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
 
-    AHAL_DBG("Enter InPrimary");
+    AHAL_INFO("Enter: InPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
     if (!mInitialized) {
         AHAL_ERR("Not initialized, returning error");
         ret = -EINVAL;
@@ -4037,8 +4037,6 @@ int StreamInPrimary::Open() {
                          &pal_callback,
                          (uint64_t)this,
                          &pal_stream_handle_);
-
-    AHAL_DBG("(%x:ret)", ret);
 
     if (ret) {
         AHAL_ERR("Pal Stream Open Error (%x)", ret);
