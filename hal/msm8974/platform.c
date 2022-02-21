@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2022, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
  * Copyright (C) 2013 The Android Open Source Project
@@ -78,6 +78,7 @@
 #define PLATFORM_INFO_XML_PATH_YUPIK_IDP "audio_platform_info_yupikidp.xml"
 #define PLATFORM_INFO_XML_PATH_SCUBA_IDP "audio_platform_info_scubaidp.xml"
 #define PLATFORM_INFO_XML_PATH_SCUBA_QRD "audio_platform_info_scubaqrd.xml"
+#define PLATFORM_INFO_XML_PATH_SA8295_ADP "audio_platform_info_sa8295.xml"
 
 #include <linux/msm_audio.h>
 #if defined (PLATFORM_MSM8998) || (PLATFORM_SDM845) || (PLATFORM_SDM710) || \
@@ -440,7 +441,7 @@ static int pcm_device_table[AUDIO_USECASE_MAX][2] = {
 
     [USECASE_AUDIO_RECORD] = {AUDIO_RECORD_PCM_DEVICE, AUDIO_RECORD_PCM_DEVICE},
     [USECASE_AUDIO_RECORD_COMPRESS] = {COMPRESS_CAPTURE_DEVICE, COMPRESS_CAPTURE_DEVICE},
-    [USECASE_AUDIO_RECORD_COMPRESS2] = {-1, -1},
+    [USECASE_AUDIO_RECORD_COMPRESS2] = {COMPRESS_CAPTURE_DEVICE,COMPRESS_CAPTURE_DEVICE},
     [USECASE_AUDIO_RECORD_COMPRESS3] = {-1, -1},
     [USECASE_AUDIO_RECORD_COMPRESS4] = {-1, -1},
     [USECASE_AUDIO_RECORD_COMPRESS5] = {-1, -1},
@@ -845,6 +846,9 @@ static struct audio_effect_config effect_config_table[GET_IN_DEVICE_INDEX(SND_DE
     [GET_IN_DEVICE_INDEX(SND_DEVICE_IN_SPEAKER_MIC_NN)][EFFECT_NS] = {TX_VOICE_FLUENCE_SM_NN, 0x8000, 0x10EAF, 0x02},
     [GET_IN_DEVICE_INDEX(SND_DEVICE_IN_HANDSET_MIC_NN)][EFFECT_AEC] = {TX_VOICE_FLUENCE_SM_NN, 0x8000, 0x10EAF, 0x01},
     [GET_IN_DEVICE_INDEX(SND_DEVICE_IN_HANDSET_MIC_NN)][EFFECT_NS] = {TX_VOICE_FLUENCE_SM_NN, 0x8000, 0x10EAF, 0x02},
+
+    [GET_IN_DEVICE_INDEX(SND_DEVICE_IN_VOICE_REC_MIC)][EFFECT_AEC] = {TX_VOICE_FLUENCEV5_SM, 0x0, 0x10EAF, 0x01},
+    [GET_IN_DEVICE_INDEX(SND_DEVICE_IN_VOICE_REC_MIC)][EFFECT_NS] = {TX_VOICE_FLUENCEV5_SM, 0x0, 0x10EAF, 0x02},
 };
 
 static struct audio_fluence_mmsecns_config fluence_mmsecns_table = {TOPOLOGY_ID_MM_HFP_ECNS, MODULE_ID_MM_HFP_ECNS,
@@ -3534,6 +3538,10 @@ void *platform_init(struct audio_device *adev)
                sizeof("bengal-scubaqrd-snd-card"))) {
         platform_info_init(get_xml_file_path(PLATFORM_INFO_XML_PATH_SCUBA_QRD),
             my_data, PLATFORM);
+    } else if (!strncmp(snd_card_name, "sa8295-adp-star-snd-card",
+               sizeof("sa8295-adp-star-snd-card"))) {
+        platform_info_init(get_xml_file_path(PLATFORM_INFO_XML_PATH_SA8295_ADP),
+            my_data, PLATFORM);
     } else if (my_data->is_internal_codec && (strstr(snd_card_name, "sdm429w") == NULL)) {
         platform_info_init(get_xml_file_path(PLATFORM_INFO_XML_PATH_INTCODEC_NAME),
             my_data, PLATFORM);
@@ -3570,18 +3578,25 @@ void *platform_init(struct audio_device *adev)
                          snd_split_handle->form_factor);
         if (!audio_extn_utils_resolve_config_file(mixer_xml_file)) {
             memset(mixer_xml_file, 0, sizeof(mixer_xml_file));
-            snprintf(mixer_xml_file, sizeof(mixer_xml_file), "%s_%s.xml",
-                         MIXER_XML_BASE_STRING, snd_split_handle->variant);
+            snprintf(mixer_xml_file, sizeof(mixer_xml_file), "%s_%s_%s.xml",
+                         MIXER_XML_BASE_STRING, snd_split_handle->device,
+                         snd_split_handle->snd_card);
 
             if (!audio_extn_utils_resolve_config_file(mixer_xml_file)) {
                 memset(mixer_xml_file, 0, sizeof(mixer_xml_file));
                 snprintf(mixer_xml_file, sizeof(mixer_xml_file), "%s_%s.xml",
-                             MIXER_XML_BASE_STRING, snd_split_handle->snd_card);
+                             MIXER_XML_BASE_STRING, snd_split_handle->variant);
 
                 if (!audio_extn_utils_resolve_config_file(mixer_xml_file)) {
                     memset(mixer_xml_file, 0, sizeof(mixer_xml_file));
-                    strlcpy(mixer_xml_file, MIXER_XML_DEFAULT_PATH, MIXER_PATH_MAX_LENGTH);
-                    audio_extn_utils_resolve_config_file(mixer_xml_file);
+                    snprintf(mixer_xml_file, sizeof(mixer_xml_file), "%s_%s.xml",
+                                 MIXER_XML_BASE_STRING, snd_split_handle->snd_card);
+
+                    if (!audio_extn_utils_resolve_config_file(mixer_xml_file)) {
+                        memset(mixer_xml_file, 0, sizeof(mixer_xml_file));
+                        strlcpy(mixer_xml_file, MIXER_XML_DEFAULT_PATH, MIXER_PATH_MAX_LENGTH);
+                        audio_extn_utils_resolve_config_file(mixer_xml_file);
+                    }
                 }
             }
         }
@@ -7542,10 +7557,11 @@ snd_device_t platform_get_input_snd_device(void *platform,
         else if (compare_device_type(out_devices, AUDIO_DEVICE_OUT_USB_DEVICE))
             reassign_device_list(&in_devices, AUDIO_DEVICE_IN_USB_DEVICE, address);
 
-        if (list_empty(out_devices))
+        if (adev->bt_sco_on == true)
+            reassign_device_list(&in_devices, AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET, address);
+        else if (list_empty(out_devices))
             reassign_device_list(&in_devices, AUDIO_DEVICE_IN_BUILTIN_MIC,
                                  address);
-
         if (in)
             snd_device = get_snd_device_for_voice_comm(my_data, in, out_devices, &in_devices);
     } else if (source == AUDIO_SOURCE_MIC) {

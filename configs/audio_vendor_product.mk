@@ -17,6 +17,13 @@ MM_AUDIO += liblsmclient
 MM_AUDIO += libcapiv2svacnn
 MM_AUDIO += libcapiv2vop
 MM_AUDIO += libcapiv2svarnn
+MM_AUDIO += liblistensoundmodel2vendor
+MM_AUDIO += libsvacnnvendor
+MM_AUDIO += libsvarnncnnvendor
+MM_AUDIO += libcapiv2svacnnvendor
+MM_AUDIO += libcapiv2vopvendor
+MM_AUDIO += libcapiv2svarnnvendor
+MM_AUDIO += libpdksvavendor
 MM_AUDIO += liblisten
 MM_AUDIO += liblistenhardware
 MM_AUDIO += STApp
@@ -33,6 +40,18 @@ MM_AUDIO += libApeSwDec
 MM_AUDIO += libMpeghSwEnc
 MM_AUDIO += libdsd2pcm
 MM_AUDIO += audioflacapp
+ifeq ($(TARGET_BOARD_PLATFORM),sdm845)
+MM_AUDIO += libOmxQcelp13Dec
+MM_AUDIO += libOmxEvrcDec
+MM_AUDIO += libOmxWmaDec
+MM_AUDIO += libOmxAlacDec
+MM_AUDIO += libOmxApeDec
+MM_AUDIO += libOmxDsdDec
+MM_AUDIO += libOmxAmrwbplusDec
+MM_AUDIO += libOmxAmrDec
+MM_AUDIO += libOmxAlacDecSw
+MM_AUDIO += libOmxApeDecSw
+endif
 MM_AUDIO += libqct_resampler
 MM_AUDIO += libaudiodevarb
 MM_AUDIO += audiod
@@ -82,6 +101,24 @@ MM_AUDIO += libmediaplayerservice
 MM_AUDIO += libaudiohal_deathhandler
 MM_AUDIO += libstagefright_httplive
 MM_AUDIO += libautohal
+MM_AUDIO += MTP_Bluetooth_cal.acdb
+MM_AUDIO += MTP_Codec_cal.acdb
+MM_AUDIO += MTP_General_cal.acdb
+MM_AUDIO += MTP_Global_cal.acdb
+MM_AUDIO += MTP_Handset_cal.acdb
+MM_AUDIO += MTP_Hdmi_cal.acdb
+MM_AUDIO += MTP_Headset_cal.acdb
+MM_AUDIO += MTP_Speaker_cal.acdb
+MM_AUDIO += MTP_workspaceFile.qwsp
+MM_AUDIO += QRD_Bluetooth_cal.acdb
+MM_AUDIO += QRD_Codec_cal.acdb
+MM_AUDIO += QRD_General_cal.acdb
+MM_AUDIO += QRD_Global_cal.acdb
+MM_AUDIO += QRD_Handset_cal.acdb
+MM_AUDIO += QRD_Hdmi_cal.acdb
+MM_AUDIO += QRD_Headset_cal.acdb
+MM_AUDIO += QRD_Speaker_cal.acdb
+MM_AUDIO += QRD_workspaceFile.qwsp
 ifeq ($(TARGET_BOARD_AUTO),true)
 MM_AUDIO += adsp_avs_config.acdb
 MM_AUDIO += Bluetooth_cal.acdb
@@ -126,6 +163,7 @@ MM_AUDIO += autoeffects
 MM_AUDIO += autoeffects.xml
 MM_AUDIO += audcalparam_commands.cfg
 MM_AUDIO += libsynth
+MM_AUDIO += libicc
 
 MM_AUDIO += android.hardware.automotive.audiocontrol-service.example
 MM_AUDIO += libaudiopowerpolicy
@@ -164,6 +202,12 @@ PRODUCT_PACKAGES_DEBUG += $(MM_AUDIO_DBG)
 # ------
 TARGET_USES_AOSP := true
 TARGET_USES_AOSP_FOR_AUDIO := true
+
+# sdm845 specific rules
+ifeq ($(TARGET_BOARD_PLATFORM),sdm845)
+TARGET_USES_AOSP := false
+TARGET_USES_AOSP_FOR_AUDIO := false
+endif
 
 # Audio configuration file
 ifeq ($(TARGET_BOARD_PLATFORM)$(TARGET_BOARD_SUFFIX),msmnile_au)
