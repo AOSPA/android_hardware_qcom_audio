@@ -57,7 +57,6 @@
 #define AFE_PROXY_RECORD_PERIOD_SIZE  768
 
 static bool karaoke = false;
-static bool hac_voip = false;
 
 static bool is_pcm_format(audio_format_t format)
 {
@@ -1763,8 +1762,6 @@ int StreamOutPrimary::Stop() {
 
     AHAL_DBG("Enter");
     stream_mutex_.lock();
-    if (usecase_ == USECASE_AUDIO_PLAYBACK_VOIP)
-        hac_voip = false;
     if (usecase_ == USECASE_AUDIO_PLAYBACK_MMAP &&
             pal_stream_handle_ && stream_started_) {
 
@@ -1933,8 +1930,6 @@ int StreamOutPrimary::Standby() {
                 AHAL_ERR("failed to stop haptics stream.");
             }
         }
-        if (usecase_ == USECASE_AUDIO_PLAYBACK_VOIP)
-            hac_voip = false;
      }
 
     stream_started_ = false;
@@ -2112,7 +2107,8 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
 
         mAndroidOutDevices = new_devices;
 
-        if (hac_voip && (mPalOutDevice->id == PAL_DEVICE_OUT_HANDSET)) {
+        std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
+        if (adevice->hac_voip && (mPalOutDevice->id == PAL_DEVICE_OUT_HANDSET)) {
              strlcpy(mPalOutDevice->custom_config.custom_key, "HAC",
                     sizeof(mPalOutDevice->custom_config.custom_key));
         }
@@ -2187,12 +2183,6 @@ int StreamOutPrimary::SetParameters(struct str_parms *parms) {
         }
     }
 
-    ret1 = str_parms_get_str(parms, AUDIO_PARAMETER_KEY_HAC, value, sizeof(value));
-    if (ret1 >= 0) {
-        hac_voip = false;
-        if (strcmp(value, AUDIO_PARAMETER_VALUE_HAC_ON) == 0)
-            hac_voip = true;
-    }
 error:
     AHAL_DBG("exit %d", ret);
     return ret;
@@ -2616,8 +2606,8 @@ int StreamOutPrimary::Open() {
         device_cap_query = NULL;
     }
 
-    if (hac_voip && (mPalOutDevice->id == PAL_DEVICE_OUT_HANDSET)) {
-         strlcpy(mPalOutDevice->custom_config.custom_key, "HAC",
+    if (adevice->hac_voip && (mPalOutDevice->id == PAL_DEVICE_OUT_HANDSET)) {
+        strlcpy(mPalOutDevice->custom_config.custom_key, "HAC",
                 sizeof(mPalOutDevice->custom_config.custom_key));
     }
 
@@ -2658,23 +2648,25 @@ int StreamOutPrimary::Open() {
 
         if (!hapticsDevice) {
             hapticsDevice = (struct pal_device*) calloc(1, sizeof(struct pal_device));
-            hapticsDevice->id = PAL_DEVICE_OUT_HAPTICS_DEVICE;
-            hapticsDevice->config.sample_rate = DEFAULT_OUTPUT_SAMPLING_RATE;
-            hapticsDevice->config.bit_width = CODEC_BACKEND_DEFAULT_BIT_WIDTH;
-            hapticsDevice->config.ch_info = ch_info;
-            hapticsDevice->config.aud_fmt_id = PAL_AUDIO_FMT_PCM_S16_LE;
-        }
+            if (hapticsDevice) {
+                hapticsDevice->id = PAL_DEVICE_OUT_HAPTICS_DEVICE;
+                hapticsDevice->config.sample_rate = DEFAULT_OUTPUT_SAMPLING_RATE;
+                hapticsDevice->config.bit_width = CODEC_BACKEND_DEFAULT_BIT_WIDTH;
+                hapticsDevice->config.ch_info = ch_info;
+                hapticsDevice->config.aud_fmt_id = PAL_AUDIO_FMT_PCM_S16_LE;
 
-        ret = pal_stream_open (&hapticsStreamAttributes,
-                          1,
-                          hapticsDevice,
-                          0,
-                          NULL,
-                          &pal_callback,
-                          (uint64_t)this,
-                          &pal_haptics_stream_handle);
-        if (ret) {
-            AHAL_ERR("Pal Haptics Stream Open Error (%x)", ret);
+                ret = pal_stream_open (&hapticsStreamAttributes,
+                                        1,
+                                        hapticsDevice,
+                                        0,
+                                        NULL,
+                                        &pal_callback,
+                                        (uint64_t)this,
+                                        &pal_haptics_stream_handle);
+                if (ret)
+                    AHAL_ERR("Pal Haptics Stream Open Error (%x)", ret);
+            } else
+                AHAL_ERR("Failed to allocate memory for hapticsDevice");
         }
     }
     if (karaoke) {
@@ -3469,8 +3461,6 @@ int StreamInPrimary::Stop() {
     int ret = -ENOSYS;
 
     stream_mutex_.lock();
-    if (usecase_ == USECASE_AUDIO_PLAYBACK_VOIP)
-        hac_voip = false;
     if (usecase_ == USECASE_AUDIO_RECORD_MMAP &&
             pal_stream_handle_ && stream_started_) {
 
