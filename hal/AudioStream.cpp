@@ -2110,6 +2110,14 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
                 AHAL_INFO("Setting custom key as %s", mPalOutDevice[i].custom_config.custom_key);
             }
 
+            if (((AudioExtn::audio_devices_cmp(mAndroidOutDevices, AUDIO_DEVICE_OUT_SPEAKER)) &&
+                                   (mPalOutDeviceIds[i] == PAL_DEVICE_OUT_SPEAKER)) &&
+                                    property_get_bool("vendor.audio.mspp.enable", false)) {
+                strlcpy(mPalOutDevice[i].custom_config.custom_key, "mspp",
+                        sizeof(mPalOutDevice[i].custom_config.custom_key));
+                AHAL_INFO("Setting custom key as %s", mPalOutDevice[i].custom_config.custom_key);
+            }
+
             if (!ret && isHifiFilterEnabled &&
                 (mPalOutDevice[i].id == PAL_DEVICE_OUT_WIRED_HEADSET ||
                  mPalOutDevice[i].id == PAL_DEVICE_OUT_WIRED_HEADPHONE) &&
@@ -3360,6 +3368,13 @@ StreamOutPrimary::StreamOutPrimary(
             AHAL_INFO("Setting custom key as %s", mPalOutDevice[i].custom_config.custom_key);
         }
 
+        if (((AudioExtn::audio_devices_cmp(mAndroidOutDevices, AUDIO_DEVICE_OUT_SPEAKER)) &&
+                               (mPalOutDeviceIds[i] == PAL_DEVICE_OUT_SPEAKER)) &&
+                                property_get_bool("vendor.audio.mspp.enable", false)) {
+            strlcpy(mPalOutDevice[i].custom_config.custom_key, "mspp",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+            AHAL_INFO("Setting custom key as %s", mPalOutDevice[i].custom_config.custom_key);
+        }
     }
 
     if (flags & AUDIO_OUTPUT_FLAG_MMAP_NOIRQ) {
