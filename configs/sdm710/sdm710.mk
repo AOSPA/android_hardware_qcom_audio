@@ -80,7 +80,6 @@ BOARD_SUPPORTS_SOUND_TRIGGER_CPU_AFFINITY_SET := false
 BOARD_SUPPORTS_FFV_EC_THREAD_RT_PRIORITY := false
 ##AUDIO_FEATURE_FLAGS
 
-AUDIO_HARDWARE := audio.a2dp.default
 AUDIO_HARDWARE += audio.usb.default
 AUDIO_HARDWARE += audio.r_submix.default
 AUDIO_HARDWARE += audio.primary.sdm710
