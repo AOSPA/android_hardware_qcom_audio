@@ -360,6 +360,8 @@ const char * const use_case_table[AUDIO_USECASE_MAX] = {
     [USECASE_AUDIO_PLAYBACK_TTS] = "audio-tts-playback",
 
     [USECASE_AUDIO_RECORD] = "audio-record",
+    [USECASE_AUDIO_RECORD2] = "audio-record2",
+    [USECASE_AUDIO_RECORD3] = "audio-record3",
     [USECASE_AUDIO_RECORD_COMPRESS] = "audio-record-compress",
     [USECASE_AUDIO_RECORD_COMPRESS2] = "audio-record-compress2",
     [USECASE_AUDIO_RECORD_COMPRESS3] = "audio-record-compress3",
@@ -525,6 +527,12 @@ struct in_effect_list {
     effect_handle_t handle;
 };
 
+static const audio_usecase_t record_usecases[] = {
+    USECASE_AUDIO_RECORD,
+    USECASE_AUDIO_RECORD2,
+    USECASE_AUDIO_RECORD3,
+};
+
 static struct audio_device *adev = NULL;
 static pthread_mutex_t adev_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static unsigned int audio_device_ref_count;
@@ -557,6 +565,52 @@ static void enable_gcov()
 static int in_set_microphone_direction(const struct audio_stream_in *stream,
                                            audio_microphone_direction_t dir);
 static int in_set_microphone_field_dimension(const struct audio_stream_in *stream, float zoom);
+
+static bool is_pcm_record_usecase(audio_usecase_t uc_id)
+{
+    unsigned int record_uc_index;
+    unsigned int num_usecase = sizeof(record_usecases)/sizeof(record_usecases[0]);
+
+    for (record_uc_index = 0; record_uc_index < num_usecase; record_uc_index++) {
+        if (uc_id == record_usecases[record_uc_index])
+            return true;
+    }
+    return false;
+}
+
+static audio_usecase_t get_record_usecase(struct audio_device *adev)
+{
+    audio_usecase_t ret_uc = USECASE_INVALID;
+    unsigned int record_uc_index;
+    unsigned int num_usecase = sizeof(record_usecases)/sizeof(record_usecases[0]);
+
+    ALOGV("%s: num_usecase: %d", __func__, num_usecase);
+    for (record_uc_index = 0; record_uc_index < num_usecase; record_uc_index++) {
+        if (!(adev->pcm_record_uc_state & (0x1 << record_uc_index))) {
+            adev->pcm_record_uc_state |= 0x1 << record_uc_index;
+            ret_uc = record_usecases[record_uc_index];
+            break;
+        }
+    }
+
+    ALOGV("%s: pcm record usecase is %d", __func__, ret_uc);
+    return ret_uc;
+}
+
+static void free_record_usecase(struct audio_device *adev,
+                                audio_usecase_t uc_id)
+{
+    unsigned int record_uc_index;
+    unsigned int num_usecase = sizeof(record_usecases)/sizeof(record_usecases[0]);
+
+    for (record_uc_index = 0; record_uc_index < num_usecase; record_uc_index++) {
+        if (record_usecases[record_uc_index] == uc_id) {
+            adev->pcm_record_uc_state &= ~(0x1 << record_uc_index);
+            break;
+        }
+    }
+    ALOGV("%s: free pcm record usecase %d", __func__, uc_id);
+}
 
 static bool may_use_noirq_mode(struct audio_device *adev, audio_usecase_t uc_id,
                                int flags __unused)
@@ -2066,7 +2120,7 @@ static void check_usecases_capture_codec_backend(struct audio_device *adev,
                 ((uc_info->type == VOICE_CALL &&
                  is_single_device_type_equal(&usecase->device_list,
                                             AUDIO_DEVICE_IN_VOICE_CALL)) ||
-                 platform_check_backends_match(snd_device,\
+                 platform_check_all_backends_match(snd_device,\
                                               usecase->in_snd_device))) &&
                 (usecase->id != USECASE_AUDIO_SPKR_CALIB_TX)) {
             ALOGD("%s: Usecase (%s) is active on (%s) - disabling ..",
@@ -5179,6 +5233,7 @@ int route_output_stream(struct stream_out *out,
     /*handles device and call state changes*/
     audio_extn_extspk_update(adev->extspk);
 
+    clear_devices(&new_devices);
 error:
     ALOGV("%s: exit: code(%d)", __func__, ret);
     return ret;
@@ -5569,7 +5624,8 @@ static uint32_t out_get_latency(const struct audio_stream_out *stream)
     } else {
         latency = (out->config.period_count * out->config.period_size * 1000) /
                    (out->config.rate);
-        if (out->usecase == USECASE_AUDIO_PLAYBACK_DEEP_BUFFER)
+        if (out->usecase == USECASE_AUDIO_PLAYBACK_DEEP_BUFFER ||
+            out->usecase == USECASE_AUDIO_PLAYBACK_LOW_LATENCY)
             latency += platform_render_latency(out)/1000;
     }
 
@@ -9613,7 +9669,7 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
         ret = audio_extn_auto_hal_open_echo_reference_stream(in);
     }
 
-    if (in->source == AUDIO_SOURCE_FM_TUNER) {
+    if ((in->source == AUDIO_SOURCE_FM_TUNER) || (devices == AUDIO_DEVICE_IN_FM_TUNER)) {
         if(!get_usecase_from_list(adev, USECASE_AUDIO_RECORD_FM_VIRTUAL))
             in->usecase = USECASE_AUDIO_RECORD_FM_VIRTUAL;
         else {
@@ -9810,6 +9866,9 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
                     ALOGV("%s: using USECASE_AUDIO_RECORD",__func__);
                     adev->pcm_record_uc_state = 1;
                     pthread_mutex_unlock(&adev->lock);
+                } else if (audio_extn_is_concurrent_pcm_record_enabled()) {
+                    in->usecase = get_record_usecase(adev);
+                    pthread_mutex_unlock(&adev->lock);
                 } else {
                     pthread_mutex_unlock(&adev->lock);
                     /* Assign compress record use case for second record */
@@ -9876,7 +9935,9 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
     return ret;
 
 err_open:
-    if (in->usecase == USECASE_AUDIO_RECORD) {
+    if (audio_extn_is_concurrent_pcm_record_enabled() && is_pcm_record_usecase(in->usecase)) {
+        free_record_usecase(adev, in->usecase);
+    } else if (in->usecase == USECASE_AUDIO_RECORD) {
         pthread_mutex_lock(&adev->lock);
         adev->pcm_record_uc_state = 0;
         pthread_mutex_unlock(&adev->lock);
@@ -9943,7 +10004,9 @@ static void adev_close_input_stream(struct audio_hw_device *dev,
     pthread_mutex_destroy(&in->pre_lock);
 
     pthread_mutex_lock(&adev->lock);
-    if (in->usecase == USECASE_AUDIO_RECORD) {
+    if (audio_extn_is_concurrent_pcm_record_enabled() && is_pcm_record_usecase(in->usecase)) {
+        free_record_usecase(adev, in->usecase);
+    } else if (in->usecase == USECASE_AUDIO_RECORD) {
         adev->pcm_record_uc_state = 0;
     }
 
@@ -10280,10 +10343,12 @@ int adev_create_audio_patch(struct audio_hw_device *dev,
 
     // Update routing for stream
     if (stream != NULL) {
-        if (p_info->patch_type == PATCH_PLAYBACK)
+        if (p_info->patch_type == PATCH_PLAYBACK) {
             ret = route_output_stream((struct stream_out *) stream, &devices);
-        else if (p_info->patch_type == PATCH_CAPTURE)
+            clear_devices(&devices);
+        } else if (p_info->patch_type == PATCH_CAPTURE) {
             ret = route_input_stream((struct stream_in *) stream, &devices, input_source);
+        }
         if (ret < 0) {
             pthread_mutex_lock(&adev->lock);
             s_info->patch_handle = AUDIO_PATCH_HANDLE_NONE;
