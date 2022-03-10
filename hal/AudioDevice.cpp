@@ -805,45 +805,38 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
         goto exit;
     }
 
-    /*> 24 bit is restricted to UNPROCESSED source only,also format supported
-     * from HAL is 24_packed and 8_24
-     *> In case of UNPROCESSED source, for 24 bit, if format requested is other than
-     *  24_packed or 8_24 return error indicating supported format is 8_24
-     *> In case of any other source requesting 24 bit or float return error
-     *  indicating format supported is 16 bit only.
-     *> On error flinger will retry with supported format passed
+    /*  Add 24bit support for UNPROCESSED/MIC/CAMCORDER source,
+     *  In case of any source requesting 32 bit or float return error
+     *  indicating format supported is up to 24 bit only.
+     *  On error flinger will retry with supported format passed
      */
-    if ((config->format == AUDIO_FORMAT_PCM_FLOAT) ||
-        (config->format == AUDIO_FORMAT_PCM_32_BIT) ||
-        (config->format == AUDIO_FORMAT_PCM_24_BIT_PACKED) ||
-        (config->format == AUDIO_FORMAT_PCM_8_24_BIT)) {
-        if ((source != AUDIO_SOURCE_UNPROCESSED) &&
-                (source != AUDIO_SOURCE_CAMCORDER)) {
-            config->format = AUDIO_FORMAT_PCM_16_BIT;
-            if (config->sample_rate > 48000)
-                config->sample_rate = 48000;
-            ret_error = true;
-        } else if (!(config->format == AUDIO_FORMAT_PCM_24_BIT_PACKED ||
-                    config->format == AUDIO_FORMAT_PCM_8_24_BIT)) {
-            /*TODO: This can be updated as AUDIO_FORMAT_PCM_24_BIT_PACKED
-             * based on what the platform wants to configure.
-             */
-            config->format = AUDIO_FORMAT_PCM_8_24_BIT;
-            ret_error = true;
-        }
-
-        if (ret_error) {
+    switch (config->format) {
+        case AUDIO_FORMAT_PCM_FLOAT:
+        case AUDIO_FORMAT_PCM_32_BIT:
+            config->format = AUDIO_FORMAT_PCM_24_BIT_PACKED;
             ret = -EINVAL;
-            goto exit;
-        }
+            break;
+        case AUDIO_FORMAT_PCM_24_BIT_PACKED:
+        case AUDIO_FORMAT_PCM_8_24_BIT:
+            if (source == AUDIO_SOURCE_UNPROCESSED ||
+                source == AUDIO_SOURCE_CAMCORDER ||
+                source == AUDIO_SOURCE_MIC) {
+                AHAL_DBG("go on setting format %d for input source %d", config->format, source);
+            } else {
+                config->format = AUDIO_FORMAT_PCM_16_BIT;
+                ret = -EINVAL;
+            }
+            break;
+        default:
+            break;
     }
-
-    if (config->format == AUDIO_FORMAT_PCM_FLOAT) {
-        AHAL_ERR("format not supported");
-        config->format = AUDIO_FORMAT_PCM_16_BIT;
-        ret = -EINVAL;
+    if (ret != 0) {
+        AHAL_ERR("unsupported format %d, input source %d", config->format, source);
+        if (config->sample_rate > 48000)
+            config->sample_rate = 48000;
         goto exit;
     }
+
 
     astream = adevice->InGetStream(handle);
     if (astream == nullptr)
