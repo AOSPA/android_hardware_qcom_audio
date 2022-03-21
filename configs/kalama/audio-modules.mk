@@ -11,7 +11,9 @@ ifneq ($(TARGET_IS_HEADLESS),true)
 #AGM
 AUDIO_AGM := libagmclient
 AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-impl
+ifneq ($(strip $(AUDIO_FEATURE_ENABLED_AGM_HIDL)), true)
 AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-service
+endif
 AUDIO_AGM += libagm
 AUDIO_AGM += agmplay
 AUDIO_AGM += agmcap
