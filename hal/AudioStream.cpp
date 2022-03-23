@@ -705,6 +705,7 @@ static int astream_out_get_presentation_position(
     if (astream_out) {
        switch (astream_out->GetPalStreamType(astream_out->flags_)) {
        case PAL_STREAM_COMPRESSED:
+       case PAL_STREAM_PCM_OFFLOAD:
           ret = astream_out->GetFrames(frames);
           if (ret != 0) {
              AHAL_ERR("GetTimestamp failed %d", ret);
@@ -743,6 +744,7 @@ static int out_get_render_position(const struct audio_stream_out *stream,
     if (astream_out) {
         switch (astream_out->GetPalStreamType(astream_out->flags_)) {
         case PAL_STREAM_COMPRESSED:
+        case PAL_STREAM_PCM_OFFLOAD:
             ret = astream_out->GetFrames(&frames);
             if (ret != 0) {
                 AHAL_ERR("Get DSP Frames failed %d", ret);
@@ -750,7 +752,6 @@ static int out_get_render_position(const struct audio_stream_out *stream,
             }
             *dsp_frames = (uint32_t) frames;
             break;
-        case PAL_STREAM_PCM_OFFLOAD:
         case PAL_STREAM_LOW_LATENCY:
         case PAL_STREAM_DEEP_BUFFER:
             ret =  astream_out->GetFramesWritten(NULL);
