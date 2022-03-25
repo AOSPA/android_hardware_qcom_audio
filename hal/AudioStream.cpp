@@ -1581,6 +1581,8 @@ pal_stream_type_t StreamInPrimary::GetPalStreamType(
                    (adevice && adevice->voice_ && adevice->voice_->IsAnyCallActive())) {
                     palStreamType = PAL_STREAM_VOICE_CALL_RECORD;
                 }
+            } else if (source_ == AUDIO_SOURCE_ECHO_REFERENCE) {
+                palStreamType = PAL_STREAM_RAW;
             } else {
                 if (isDeviceAvailable(PAL_DEVICE_IN_TELEPHONY_RX)) {
                     palStreamType = PAL_STREAM_PROXY;
@@ -4119,9 +4121,12 @@ uint32_t StreamInPrimary::GetBufferSizeForLowLatencyRecord() {
 /* in bytes */
 uint32_t StreamInPrimary::GetBufferSize() {
     struct pal_stream_attributes streamAttributes_;
+    bool isEchoRef = false;
 
     streamAttributes_.type = StreamInPrimary::GetPalStreamType(flags_,
             config_.sample_rate);
+    if (streamAttributes_.type == PAL_STREAM_RAW && isDeviceAvailable(PAL_DEVICE_IN_ECHO_REF))
+        isEchoRef = true;
     if (streamAttributes_.type == PAL_STREAM_VOIP_TX) {
         return (DEFAULT_VOIP_BUF_DURATION_MS * config_.sample_rate / 1000) *
                audio_bytes_per_frame(
@@ -4134,7 +4139,8 @@ uint32_t StreamInPrimary::GetBufferSize() {
                     config_.format);
     } else if (streamAttributes_.type == PAL_STREAM_ULTRA_LOW_LATENCY) {
         return GetBufferSizeForLowLatencyRecord();
-    } else if (streamAttributes_.type == PAL_STREAM_DEEP_BUFFER) {
+    } else if (streamAttributes_.type == PAL_STREAM_DEEP_BUFFER ||
+               isEchoRef) {
         return (config_.sample_rate/ 1000) * AUDIO_CAPTURE_PERIOD_DURATION_MSEC *
             audio_bytes_per_frame(
                     audio_channel_count_from_in_mask(config_.channel_mask),
