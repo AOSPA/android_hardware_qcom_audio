@@ -24,6 +24,7 @@ MM_AUDIO += libqcomvoiceprocessing
 MM_AUDIO += libshoebox
 MM_AUDIO += libbatterylistener
 MM_AUDIO += audioflacapp
+MM_AUDIO += libvolumelistener
 
 #KERNEL_TESTS
 #KERNEL_TESTS := mm-audio-native-test
