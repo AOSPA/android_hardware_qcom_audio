@@ -243,6 +243,7 @@ static int32_t start_hfp(std::shared_ptr<AudioDevice> adev __unused,
 
     pal_param_btsco_t param_btsco;
 
+    param_btsco.is_bt_hfp = true;
     param_btsco.bt_sco_on = true;
     ret =  pal_set_param(PAL_PARAM_ID_BT_SCO,
                         (void*)&param_btsco,
@@ -383,6 +384,7 @@ static int32_t stop_hfp()
 
     pal_param_btsco_t param_btsco;
 
+    param_btsco.is_bt_hfp = true;
     param_btsco.bt_sco_on = true;
     ret =  pal_set_param(PAL_PARAM_ID_BT_SCO,
                         (void*)&param_btsco,

@@ -1706,6 +1706,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
     ret = str_parms_get_str(parms, "BT_SCO", value, sizeof(value));
     if (ret >= 0) {
         pal_param_btsco_t param_bt_sco;
+        memset(&param_bt_sco, 0, sizeof(pal_param_btsco_t));
         if (strcmp(value, AUDIO_PARAMETER_VALUE_ON) == 0) {
             param_bt_sco.bt_sco_on = true;
         } else {
