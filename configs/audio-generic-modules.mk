@@ -14,6 +14,7 @@ MM_AUDIO += libAlacSwDec
 MM_AUDIO += libApeSwDec
 MM_AUDIO += libcapiv2svacnnvendor
 MM_AUDIO += libcapiv2svarnnvendor
+MM_AUDIO += libcapiv2udk7vendor
 MM_AUDIO += libdsd2pcm
 MM_AUDIO += libFlacSwDec
 MM_AUDIO += libasphere
