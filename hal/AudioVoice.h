@@ -113,6 +113,7 @@ public:
                              std::set<audio_devices_t>& tx_devs);
     bool IsCallActive(voice_session_t *pSession);
     bool IsAnyCallActive();
+    void updateVoiceMetadataForBT(bool call_active);
     int StopCall();
     AudioVoice();
     ~AudioVoice();

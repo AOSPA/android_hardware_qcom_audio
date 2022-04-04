@@ -520,6 +520,9 @@ int AudioVoice::UpdateCalls(voice_session_t *pSession) {
             {
             case CALL_INACTIVE:
                 AHAL_DBG("INACTIVE -> ACTIVE vsid:%x", session->vsid);
+                if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_BLUETOOTH_BLE) {
+                    updateVoiceMetadataForBT(true);
+                }
                 ret = VoiceStart(session);
                 if (ret < 0) {
                     AHAL_ERR("VoiceStart() failed");
@@ -1021,6 +1024,27 @@ int AudioVoice::SetVoiceVolume(float volume) {
     }
     AHAL_DBG("Exit ret: %d", ret);
     return ret;
+}
+
+void AudioVoice::updateVoiceMetadataForBT(bool call_active)
+{
+    ssize_t track_count = 1;
+    std::vector<playback_track_metadata_t> tracks;
+    tracks.resize(track_count);
+
+    AHAL_INFO("track count is %d", track_count);
+
+    if (call_active) {
+        source_metadata_t btSourceMetadata;
+        btSourceMetadata.track_count = track_count;
+        btSourceMetadata.tracks = tracks.data();
+
+        btSourceMetadata.tracks->usage = AUDIO_USAGE_VOICE_COMMUNICATION;
+        btSourceMetadata.tracks->content_type = AUDIO_CONTENT_TYPE_SPEECH;
+
+        //pass the metadata to PAL
+        pal_set_param(PAL_PARAM_ID_SET_SOURCE_METADATA,(void*)&btSourceMetadata,0);
+    }
 }
 
 AudioVoice::AudioVoice() {
