@@ -635,6 +635,9 @@ PRODUCT_PACKAGES += \
     android.hardware.audio.effect@7.0 \
     android.hardware.audio.effect@7.0-impl
 
+# enable audio hidl hal 7.1
+PRODUCT_PACKAGES += android.hardware.audio@7.1-impl
+
 # enable sound trigger hidl hal 2.2
 PRODUCT_PACKAGES += \
     android.hardware.soundtrigger@2.2-impl \
