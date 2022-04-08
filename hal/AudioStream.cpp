@@ -70,14 +70,16 @@ static bool is_pcm_format(audio_format_t format)
     return false;
 }
 
-static bool is_hdr_mode_enabled() {
-    if (!property_get_bool("vendor.audio.hdr.record.enable", false)) {
-        AHAL_INFO("HDR feature is disabled");
-        return false;
+static int get_hdr_mode() {
+    if (property_get_bool("vendor.audio.hdr.spf.record.enable", false)) {
+        AHAL_INFO("HDR SPF feature is enabled");
+        return AUDIO_RECORD_SPF_HDR;
+    } else if (property_get_bool("vendor.audio.hdr.record.enable", false)) {
+        AHAL_INFO("HDR ARM feature is enabled");
+        return AUDIO_RECORD_ARM_HDR;
+    } else {
+        return AUDIO_RECORD_DEFAULT;
     }
-
-    std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
-    return adevice->hdr_record_enabled;
 }
 
 static void setup_hdr_usecase(struct pal_device* palInDevice) {
@@ -1579,6 +1581,8 @@ pal_stream_type_t StreamInPrimary::GetPalStreamType(
                    (adevice && adevice->voice_ && adevice->voice_->IsAnyCallActive())) {
                     palStreamType = PAL_STREAM_VOICE_CALL_RECORD;
                 }
+            } else if (source_ == AUDIO_SOURCE_ECHO_REFERENCE) {
+                palStreamType = PAL_STREAM_RAW;
             } else {
                 if (isDeviceAvailable(PAL_DEVICE_IN_TELEPHONY_RX)) {
                     palStreamType = PAL_STREAM_PROXY;
@@ -1771,7 +1775,7 @@ int StreamOutPrimary::CreateMmapBuffer(int32_t min_size_frames,
 int StreamOutPrimary::Stop() {
     int ret = -ENOSYS;
 
-    AHAL_DBG("Enter");
+    AHAL_INFO("Enter: OutPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
     stream_mutex_.lock();
     if (usecase_ == USECASE_AUDIO_PLAYBACK_MMAP &&
             pal_stream_handle_ && stream_started_) {
@@ -1789,7 +1793,8 @@ int StreamOutPrimary::Stop() {
 
 int StreamOutPrimary::Start() {
     int ret = -ENOSYS;
-    AHAL_DBG("Enter");
+
+    AHAL_INFO("Enter: OutPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
     stream_mutex_.lock();
     if (usecase_ == USECASE_AUDIO_PLAYBACK_MMAP &&
             pal_stream_handle_ && !stream_started_) {
@@ -2103,6 +2108,14 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
             if ((AudioExtn::audio_devices_cmp(mAndroidOutDevices, AUDIO_DEVICE_OUT_SPEAKER_SAFE)) &&
                                    (mPalOutDeviceIds[i] == PAL_DEVICE_OUT_SPEAKER)) {
                 strlcpy(mPalOutDevice[i].custom_config.custom_key, "speaker-safe",
+                        sizeof(mPalOutDevice[i].custom_config.custom_key));
+                AHAL_INFO("Setting custom key as %s", mPalOutDevice[i].custom_config.custom_key);
+            }
+
+            if (((AudioExtn::audio_devices_cmp(mAndroidOutDevices, AUDIO_DEVICE_OUT_SPEAKER)) &&
+                                   (mPalOutDeviceIds[i] == PAL_DEVICE_OUT_SPEAKER)) &&
+                                    property_get_bool("vendor.audio.mspp.enable", false)) {
+                strlcpy(mPalOutDevice[i].custom_config.custom_key, "mspp",
                         sizeof(mPalOutDevice[i].custom_config.custom_key));
                 AHAL_INFO("Setting custom key as %s", mPalOutDevice[i].custom_config.custom_key);
             }
@@ -2478,7 +2491,7 @@ int StreamOutPrimary::Open() {
     uint32_t outBufCount = NO_OF_BUF;
     struct pal_buffer_config outBufCfg = {0, 0, 0};
 
-    pal_param_device_capability_t *device_cap_query;
+    pal_param_device_capability_t *device_cap_query = NULL;
     size_t payload_size = 0;
     dynamic_media_config_t dynamic_media_config;
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
@@ -2487,7 +2500,7 @@ int StreamOutPrimary::Open() {
     bool *payload_hifiFilter = &isHifiFilterEnabled;
     size_t param_size = 0;
 
-    AHAL_DBG("Enter OutPrimary ");
+    AHAL_INFO("Enter: OutPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
 
     if (!mInitialized) {
         AHAL_ERR("Not initialized, returning error");
@@ -2594,31 +2607,10 @@ int StreamOutPrimary::Open() {
                 &payload_size, nullptr);
 
         if (ret<0) {
-            AHAL_DBG("USB device failed, falling back to Speaker");
-            auto it = std::find(mAndroidOutDevices.begin(),mAndroidOutDevices.end(),
-                AUDIO_DEVICE_OUT_USB_DEVICE);
-            if (it != mAndroidOutDevices.end())
-                mAndroidOutDevices.erase(it);
-            it = std::find(mAndroidOutDevices.begin(),mAndroidOutDevices.end(),
-                AUDIO_DEVICE_OUT_USB_HEADSET);
-            if (it != mAndroidOutDevices.end())
-                mAndroidOutDevices.erase(it);
-            mPalOutDevice->id = PAL_DEVICE_OUT_SPEAKER;
-            mAndroidOutDevices.insert(AUDIO_DEVICE_OUT_SPEAKER);
-            mPalOutDevice->address.card_id = 0;
-            mPalOutDevice->address.device_num = 0;
-            mPalOutDevice->config.sample_rate = DEFAULT_OUTPUT_SAMPLING_RATE;
-            mPalOutDevice->config.bit_width = CODEC_BACKEND_DEFAULT_BIT_WIDTH;
-            mPalOutDevice->config.aud_fmt_id = PAL_AUDIO_FMT_PCM_S16_LE;
-            mPalOutDevice->config.ch_info.channels = 2;
-            mPalOutDevice->config.ch_info.ch_map[0] = PAL_CHMAP_CHANNEL_FL;
-            mPalOutDevice->config.ch_info.ch_map[1] = PAL_CHMAP_CHANNEL_FR;
+            AHAL_DBG("Error usb device is not connected");
+            ret = -ENOSYS;
+            goto error_open;
         }
-    }
-
-    if (device_cap_query) {
-        free(device_cap_query);
-        device_cap_query = NULL;
     }
 
     if (adevice->hac_voip && (mPalOutDevice->id == PAL_DEVICE_OUT_HANDSET)) {
@@ -2630,8 +2622,7 @@ int StreamOutPrimary::Open() {
            streamAttributes_.out_media_config.ch_info.channels, streamAttributes_.out_media_config.sample_rate,
            streamAttributes_.out_media_config.aud_fmt_id, streamAttributes_.type,
            streamAttributes_.out_media_config.bit_width);
-    AHAL_DBG("msample_rate %d mchannels %d", msample_rate, mchannels);
-    AHAL_DBG("mNoOfOutDevices %zu", mAndroidOutDevices.size());
+    AHAL_DBG("msample_rate %d mchannels %d mNoOfOutDevices %zu", msample_rate, mchannels, mAndroidOutDevices.size());
     ret = pal_stream_open(&streamAttributes_,
                           mAndroidOutDevices.size(),
                           mPalOutDevice,
@@ -2641,7 +2632,6 @@ int StreamOutPrimary::Open() {
                           (uint64_t)this,
                           &pal_stream_handle_);
 
-    AHAL_DBG("(%x:ret)",ret);
     if (ret) {
         AHAL_ERR("Pal Stream Open Error (%x)", ret);
         ret = -EINVAL;
@@ -2785,6 +2775,10 @@ int StreamOutPrimary::Open() {
     }
 
 error_open:
+    if (device_cap_query) {
+        free(device_cap_query);
+        device_cap_query = NULL;
+    }
     AHAL_DBG("Exit ret: %d", ret);
     return ret;
 }
@@ -3376,6 +3370,13 @@ StreamOutPrimary::StreamOutPrimary(
             AHAL_INFO("Setting custom key as %s", mPalOutDevice[i].custom_config.custom_key);
         }
 
+        if (((AudioExtn::audio_devices_cmp(mAndroidOutDevices, AUDIO_DEVICE_OUT_SPEAKER)) &&
+                               (mPalOutDeviceIds[i] == PAL_DEVICE_OUT_SPEAKER)) &&
+                                property_get_bool("vendor.audio.mspp.enable", false)) {
+            strlcpy(mPalOutDevice[i].custom_config.custom_key, "mspp",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+            AHAL_INFO("Setting custom key as %s", mPalOutDevice[i].custom_config.custom_key);
+        }
     }
 
     if (flags & AUDIO_OUTPUT_FLAG_MMAP_NOIRQ) {
@@ -3477,6 +3478,7 @@ int StreamInPrimary::GetPalDeviceIds(pal_device_id_t *palDevIds, int *numPalDevs
 int StreamInPrimary::Stop() {
     int ret = -ENOSYS;
 
+    AHAL_INFO("Enter: InPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
     stream_mutex_.lock();
     if (usecase_ == USECASE_AUDIO_RECORD_MMAP &&
             pal_stream_handle_ && stream_started_) {
@@ -3492,7 +3494,7 @@ int StreamInPrimary::Stop() {
 int StreamInPrimary::Start() {
     int ret = -ENOSYS;
 
-    AHAL_DBG("Enter");
+    AHAL_INFO("Enter: InPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
     stream_mutex_.lock();
     if (usecase_ == USECASE_AUDIO_RECORD_MMAP &&
             pal_stream_handle_ && !stream_started_) {
@@ -3749,7 +3751,7 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
     struct pal_channel_info ch_info = {0, {0}};
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
 
-    AHAL_DBG("enter ");
+    AHAL_INFO("Enter: InPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
 
     stream_mutex_.lock();
     if (!mInitialized){
@@ -3833,18 +3835,9 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
                         &payload_size, nullptr);
 
                 if (ret<0) {
-                    AHAL_DBG("USB device failed, falling back to Speaker-mic");
-                    auto it = std::find(mAndroidInDevices.begin(),mAndroidInDevices.end(),
-                        AUDIO_DEVICE_IN_USB_DEVICE);
-                    if (it != mAndroidInDevices.end())
-                        mAndroidInDevices.erase(it);
-                    it = std::find(mAndroidInDevices.begin(),mAndroidInDevices.end(),
-                        AUDIO_DEVICE_IN_USB_HEADSET);
-                    if (it != mAndroidInDevices.end())
-                        mAndroidInDevices.erase(it);
-                    mPalInDevice[i].id = PAL_DEVICE_IN_SPEAKER_MIC;
-                    mPalInDevice[i].address.card_id = 0;
-                    mPalInDevice[i].address.device_num = 0;
+                    AHAL_ERR("Error usb device is not connected");
+                    ret = -ENOSYS;
+                    goto done;
                 }
             }
             mPalInDevice[i].config.sample_rate = mPalInDevice[0].config.sample_rate;
@@ -3860,7 +3853,7 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
                     sizeof(mPalInDevice[i].custom_config.custom_key));
 
             /* HDR use case check */
-            if (is_hdr_mode_enabled())
+            if (get_hdr_mode() == AUDIO_RECORD_ARM_HDR || get_hdr_mode() == AUDIO_RECORD_SPF_HDR)
                 setup_hdr_usecase(&mPalInDevice[i]);
 
             if (source_ == AUDIO_SOURCE_CAMCORDER && adevice->cameraOrientation == CAMERA_DEFAULT) {
@@ -3870,10 +3863,6 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
             }
         }
 
-        if (device_cap_query) {
-            free(device_cap_query);
-            device_cap_query = NULL;
-        }
         mAndroidInDevices = new_devices;
 
         if (pal_stream_handle_)
@@ -3881,6 +3870,10 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
     }
 
 done:
+    if (device_cap_query) {
+        free(device_cap_query);
+        device_cap_query = NULL;
+    }
     stream_mutex_.unlock();
     AHAL_DBG("exit %d", ret);
     return ret;
@@ -3912,12 +3905,12 @@ int StreamInPrimary::Open() {
     uint32_t inBufCount = NO_OF_BUF;
     struct pal_buffer_config inBufCfg = {0, 0, 0};
     void *handle = nullptr;
-    pal_param_device_capability_t *device_cap_query;
+    pal_param_device_capability_t *device_cap_query = NULL;
     size_t payload_size = 0;
     dynamic_media_config_t dynamic_media_config;
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
 
-    AHAL_DBG("Enter InPrimary");
+    AHAL_INFO("Enter: InPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
     if (!mInitialized) {
         AHAL_ERR("Not initialized, returning error");
         ret = -EINVAL;
@@ -4047,26 +4040,12 @@ int StreamInPrimary::Open() {
                 &payload_size, nullptr);
 
          if (ret<0) {
-             AHAL_DBG("USB device failed, falling back to Speaker-mic");
-             auto it = std::find(mAndroidInDevices.begin(),mAndroidInDevices.end(),
-                 AUDIO_DEVICE_IN_USB_DEVICE);
-             if (it != mAndroidInDevices.end())
-                 mAndroidInDevices.erase(it);
-             it = std::find(mAndroidInDevices.begin(),mAndroidInDevices.end(),
-                 AUDIO_DEVICE_IN_USB_HEADSET);
-             if (it != mAndroidInDevices.end())
-                 mAndroidInDevices.erase(it);
-             mPalInDevice->id = PAL_DEVICE_IN_SPEAKER_MIC;
-             mAndroidInDevices.insert(AUDIO_DEVICE_IN_BUILTIN_MIC);
-             mPalInDevice->address.card_id = 0;
-             mPalInDevice->address.device_num = 0;
+             AHAL_DBG("Error usb device is not connected");
+             ret = -ENOSYS;
+             goto exit;
          }
     }
 
-    if (device_cap_query) {
-        free(device_cap_query);
-        device_cap_query = NULL;
-    }
     AHAL_DBG("(%x:ret)", ret);
 
     ret = pal_stream_open(&streamAttributes_,
@@ -4077,8 +4056,6 @@ int StreamInPrimary::Open() {
                          &pal_callback,
                          (uint64_t)this,
                          &pal_stream_handle_);
-
-    AHAL_DBG("(%x:ret)", ret);
 
     if (ret) {
         AHAL_ERR("Pal Stream Open Error (%x)", ret);
@@ -4117,6 +4094,10 @@ set_buff_size:
     fragment_size_ = inBufSize;
 
 exit:
+    if (device_cap_query) {
+        free(device_cap_query);
+        device_cap_query = NULL;
+    }
     AHAL_DBG("Exit ret: %d", ret);
     return ret;
 }
@@ -4140,9 +4121,12 @@ uint32_t StreamInPrimary::GetBufferSizeForLowLatencyRecord() {
 /* in bytes */
 uint32_t StreamInPrimary::GetBufferSize() {
     struct pal_stream_attributes streamAttributes_;
+    bool isEchoRef = false;
 
     streamAttributes_.type = StreamInPrimary::GetPalStreamType(flags_,
             config_.sample_rate);
+    if (streamAttributes_.type == PAL_STREAM_RAW && isDeviceAvailable(PAL_DEVICE_IN_ECHO_REF))
+        isEchoRef = true;
     if (streamAttributes_.type == PAL_STREAM_VOIP_TX) {
         return (DEFAULT_VOIP_BUF_DURATION_MS * config_.sample_rate / 1000) *
                audio_bytes_per_frame(
@@ -4155,7 +4139,8 @@ uint32_t StreamInPrimary::GetBufferSize() {
                     config_.format);
     } else if (streamAttributes_.type == PAL_STREAM_ULTRA_LOW_LATENCY) {
         return GetBufferSizeForLowLatencyRecord();
-    } else if (streamAttributes_.type == PAL_STREAM_DEEP_BUFFER) {
+    } else if (streamAttributes_.type == PAL_STREAM_DEEP_BUFFER ||
+               isEchoRef) {
         return (config_.sample_rate/ 1000) * AUDIO_CAPTURE_PERIOD_DURATION_MSEC *
             audio_bytes_per_frame(
                     audio_channel_count_from_in_mask(config_.channel_mask),
@@ -4524,11 +4509,15 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
             uint8_t channels =
                 audio_channel_count_from_in_mask(config_.channel_mask);
             if (channels == 4) {
-                if (is_hdr_mode_enabled()) {
+                if (get_hdr_mode() == AUDIO_RECORD_ARM_HDR) {
                     flags = flags_ = AUDIO_INPUT_FLAG_RAW;
                     setup_hdr_usecase(&mPalInDevice[i]);
                 }
             }
+        }
+
+        if (get_hdr_mode() == AUDIO_RECORD_SPF_HDR) {
+            setup_hdr_usecase(&mPalInDevice[i]);
         }
 
         if (source_ == AUDIO_SOURCE_CAMCORDER && adevice->cameraOrientation == CAMERA_DEFAULT) {

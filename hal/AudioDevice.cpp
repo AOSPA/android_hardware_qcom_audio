@@ -33,6 +33,39 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted (subject to the limitations in the
+ * disclaimer below) provided that the following conditions are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *
+ *   * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+ * GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+ * HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #define LOG_TAG "AHAL: AudioDevice"
@@ -123,6 +156,7 @@ static const struct audio_string_to_enum device_in_types[] = {
     AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_USB_HEADSET),
     AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_BLUETOOTH_BLE),
     AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_DEFAULT),
+    AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_ECHO_REFERENCE),
 };
 
 enum {
@@ -181,6 +215,16 @@ static bool hdr_set_parameters(std::shared_ptr<AudioDevice> adev,
             adev->ans_enabled = false;
 
         AHAL_INFO("ANS Enabled: %d", adev->ans_enabled);
+    }
+
+    /* Checking for Device rotation */
+    ret = str_parms_get_int(parms, AUDIO_PARAMETER_KEY_ROTATION, &val);
+    if (ret >= 0) {
+        adev->inverted = (val == ROTATION_270 || val == ROTATION_180)? true : false;
+        adev->orientation_landscape = (val == ROTATION_90 || val == ROTATION_270)? true : false;
+        changes = true;
+        AHAL_INFO("orientation_landscape is %d and inverted is %d", adev->orientation_landscape,
+            adev->inverted);
     }
 
     ret = str_parms_get_str(parms, AUDIO_PARAMETER_KEY_ORIENTATION, value,
@@ -1035,6 +1079,13 @@ int AudioDevice::Init(hw_device_t **device, const hw_module_t *module) {
     int ret = 0;
     bool is_charging = false;
 
+    /*
+     * register HIDL services for PAL & AGM
+     * pal_init() depends on AGM, so need to initialize
+     * hidl interface before calling to pal_init()
+     */
+    AudioExtn::audio_extn_hidl_init();
+
     ret = pal_init();
     if (ret) {
         AHAL_ERR("pal_init failed ret=(%d)", ret);
@@ -1045,11 +1096,6 @@ int AudioDevice::Init(hw_device_t **device, const hw_module_t *module) {
     if (ret) {
         AHAL_ERR("pal register callback failed ret=(%d)", ret);
     }
-    /*
-     *Once PAL init is sucessfull, register the PAL service
-     *from HAL process context
-     */
-    AudioExtn::audio_extn_hidl_init();
 
     adev_->device_.get()->common.tag = HARDWARE_DEVICE_TAG;
     adev_->device_.get()->common.version = AUDIO_DEVICE_API_VERSION_3_2;
@@ -1324,7 +1370,8 @@ int AudioDevice::SetParameters(const char *kvpairs) {
     }
     AudioExtn::audio_extn_set_parameters(adev_, parms);
 
-    if (property_get_bool("vendor.audio.hdr.record.enable", false)) {
+    if ( (property_get_bool("vendor.audio.hdr.record.enable", false)) ||
+         (property_get_bool("vendor.audio.hdr.spf.record.enable", false))) {
         changes_done = hdr_set_parameters(adev_, parms);
         if (changes_done) {
             for (int i = 0; i < stream_in_list_.size(); i++) {
@@ -1359,6 +1406,9 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                     new_devices = astream_out->mAndroidOutDevices;
                     astream_out->RouteStream(new_devices, true);
                     break;
+                } else if (property_get_bool("vendor.audio.hdr.spf.record.enable", false)) {
+                    new_devices = astream_in->mAndroidInDevices;
+                    astream_in->RouteStream(new_devices, true);
                 }
             }
         }
@@ -1491,6 +1541,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
     if (ret >= 0) {
         int isRotationReq = 0;
         pal_param_device_rotation_t param_device_rotation;
+
         switch (val) {
         case 270:
         {
@@ -2047,6 +2098,7 @@ void AudioDevice::FillAndroidDeviceMap() {
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_HDMI_ARC, PAL_DEVICE_IN_HDMI_ARC);
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_BLUETOOTH_BLE, PAL_DEVICE_IN_BLUETOOTH_BLE);
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_DEFAULT, PAL_DEVICE_IN_DEFAULT));
+    android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_ECHO_REFERENCE, PAL_DEVICE_IN_ECHO_REF));
 }
 
 int AudioDevice::GetPalDeviceIds(const std::set<audio_devices_t>& hal_device_ids,

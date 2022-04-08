@@ -11,7 +11,9 @@ ifneq ($(TARGET_IS_HEADLESS),true)
 #AGM
 AUDIO_AGM := libagmclient
 AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-impl
+ifneq ($(strip $(AUDIO_FEATURE_ENABLED_AGM_HIDL)), true)
 AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-service
+endif
 AUDIO_AGM += libagm
 AUDIO_AGM += agmplay
 AUDIO_AGM += agmcap
@@ -20,6 +22,9 @@ AUDIO_AGM += agmcompressplay
 AUDIO_AGM += libagm_mixer_plugin
 AUDIO_AGM += libagm_pcm_plugin
 AUDIO_AGM += libagm_compress_plugin
+AUDIO_AGM += agmcompresscap
+AUDIO_AGM += agmvoiceui
+AUDIO_AGM += agmhostless
 
 #PAL Service
 AUDIO_PAL += libpalclient
@@ -32,6 +37,8 @@ AUDIO_PAL += lib_bt_aptx
 AUDIO_PAL += lib_bt_ble
 AUDIO_PAL += catf
 AUDIO_PAL += PalTest
+AUDIO_PAL += libaudiochargerlistener
+AUDIO_PAL += libhfp_pal
 
 # C2 Audio
 AUDIO_C2 := libqc2audio_base
@@ -48,6 +55,15 @@ AUDIO_C2 += vendor.qti.media.c2audio@1.0-service
 AUDIO_C2 += qc2audio_test
 AUDIO_C2 += libEvrcSwCodec
 AUDIO_C2 += libQcelp13SwCodec
+AUDIO_C2 += c2audio.vendor.base-arm.policy
+AUDIO_C2 += c2audio.vendor.ext-arm.policy
+AUDIO_C2 += c2audio.vendor.base-arm64.policy
+AUDIO_C2 += c2audio.vendor.ext-arm64.policy
+
+AUDIO_TEST := mcs_test
+AUDIO_TEST += ar_util_in_test_example
+AUDIO_TEST += osal_in_test_example
+
 
 #AUDIO_MODULES := audio.a2dp.default
 AUDIO_MODULES := audio.usb.default
@@ -74,13 +90,14 @@ AUDIO_MODULES += event.eai
 AUDIO_MODULES += music.eai
 AUDIO_MODULES += speech.eai
 AUDIO_MODULES += libqtigefar
-ifeq ($(strip $(AUDIO_FEATURE_ENABLED_MCS)), true)
+AUDIO_MODULES += audiodsd2pcmtest
+AUDIO_MODULES += mm-audio-ftm
 AUDIO_MODULES += libmcs
-endif
 
 AUDIO_MODULES += $(AUDIO_AGM)
 AUDIO_MODULES += $(AUDIO_PAL)
 AUDIO_MODULES += $(AUDIO_C2)
+AUDIO_MODULES += $(AUDIO_TEST)
 
 # for HIDL related packages
 AUDIO_MODULES += \
