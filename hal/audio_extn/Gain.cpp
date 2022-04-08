@@ -71,4 +71,18 @@ bool audio_hw_send_gain_dep_calibration(int level) {
     return (ret != 0) ? false: true;
 }
 
+__attribute__ ((visibility ("default")))
+bool audio_hw_send_linear_gain(int32_t gain) {
+    int32_t ret = 0;
+    pal_param_mspp_linear_gain_t linear_gain;
+    linear_gain.gain = gain;
+
+    ret = pal_set_param(PAL_PARAM_ID_MSPP_LINEAR_GAIN, (void*)&linear_gain, sizeof(pal_param_mspp_linear_gain_t));
+    if (ret != 0) {
+        AHAL_ERR("fail to set PAL_PARAM_ID_MSPP_LINEAR_GAIN %d",ret);
+    }
+
+    return (ret != 0) ? false: true;
+}
+
 } /* extern "C" */
