@@ -71,10 +71,11 @@ static bool is_pcm_format(audio_format_t format)
 }
 
 static int get_hdr_mode() {
+    std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
     if (property_get_bool("vendor.audio.hdr.spf.record.enable", false)) {
         AHAL_INFO("HDR SPF feature is enabled");
         return AUDIO_RECORD_SPF_HDR;
-    } else if (property_get_bool("vendor.audio.hdr.record.enable", false)) {
+    } else if (property_get_bool("vendor.audio.hdr.record.enable", false) && adevice->hdr_record_enabled) {
         AHAL_INFO("HDR ARM feature is enabled");
         return AUDIO_RECORD_ARM_HDR;
     } else {
@@ -3876,15 +3877,17 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
             strlcpy(mPalInDevice[i].custom_config.custom_key, "",
                     sizeof(mPalInDevice[i].custom_config.custom_key));
 
-            /* HDR use case check */
-            if (get_hdr_mode() == AUDIO_RECORD_ARM_HDR || get_hdr_mode() == AUDIO_RECORD_SPF_HDR)
-                setup_hdr_usecase(&mPalInDevice[i]);
-
             if (source_ == AUDIO_SOURCE_CAMCORDER && adevice->cameraOrientation == CAMERA_DEFAULT) {
                 strlcpy(mPalInDevice[i].custom_config.custom_key, "camcorder_landscape",
                         sizeof(mPalInDevice[i].custom_config.custom_key));
                 AHAL_INFO("Setting custom key as %s", mPalInDevice[i].custom_config.custom_key);
             }
+
+            /* HDR use case check */
+            if ((get_hdr_mode() == AUDIO_RECORD_ARM_HDR) ||
+                ((get_hdr_mode() == AUDIO_RECORD_SPF_HDR) &&
+                (source_ == AUDIO_SOURCE_CAMCORDER || source_ == AUDIO_SOURCE_MIC)))
+                setup_hdr_usecase(&mPalInDevice[i]);
         }
 
         mAndroidInDevices = new_devices;
@@ -4549,14 +4552,15 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
             }
         }
 
-        if (get_hdr_mode() == AUDIO_RECORD_SPF_HDR) {
-            setup_hdr_usecase(&mPalInDevice[i]);
-        }
-
         if (source_ == AUDIO_SOURCE_CAMCORDER && adevice->cameraOrientation == CAMERA_DEFAULT) {
             strlcpy(mPalInDevice[i].custom_config.custom_key, "camcorder_landscape",
                     sizeof(mPalInDevice[i].custom_config.custom_key));
             AHAL_INFO("Setting custom key as %s", mPalInDevice[i].custom_config.custom_key);
+        }
+
+        if ((get_hdr_mode() == AUDIO_RECORD_SPF_HDR) &&
+            (source_ == AUDIO_SOURCE_CAMCORDER || source_ == AUDIO_SOURCE_MIC)) {
+            setup_hdr_usecase(&mPalInDevice[i]);
         }
     }
 
