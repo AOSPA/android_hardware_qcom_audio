@@ -189,7 +189,7 @@ public:
     bool hdr_record_enabled = false;
     bool wnr_enabled = false;
     bool ans_enabled = false;
-    bool orientation_landscape = true;
+    bool orientation_landscape = false;
     bool inverted = false;
     int  facing = 0; /*0 - none, 1 - back, 2 - front/selfie*/
     int  hdr_channel_count = 0;
