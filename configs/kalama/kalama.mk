@@ -98,9 +98,6 @@ ifneq ($(strip $(TARGET_USES_RRO)), true)
 #Audio Specific device overlays
 DEVICE_PACKAGE_OVERLAYS += vendor/qcom/opensource/audio-hal/primary-hal/configs/common/overlay
 endif
-PRODUCT_PACKAGES += $(AUDIO_AGM)
-PRODUCT_PACKAGES += $(AUDIO_PAL)
-PRODUCT_PACKAGES += $(AUDIO_C2)
 
 # Audio configuration xml's related to Kailua
 QCV_FAMILY_SKUS := kalama
