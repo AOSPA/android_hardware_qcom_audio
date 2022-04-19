@@ -54,6 +54,24 @@ typedef int(*hfp_set_mic_mute2_t)(std::shared_ptr<AudioDevice> adev, bool state)
 typedef void (*set_parameters_t) (std::shared_ptr<AudioDevice>, struct str_parms*);
 typedef void (*get_parameters_t) (std::shared_ptr<AudioDevice>, struct str_parms*, struct str_parms*);
 
+typedef enum {
+    SESSION_UNKNOWN,
+    /** A2DP legacy that AVDTP media is encoded by Bluetooth Stack */
+    A2DP_SOFTWARE_ENCODING_DATAPATH,
+    /** The encoding of AVDTP media is done by HW and there is control only */
+    A2DP_HARDWARE_OFFLOAD_DATAPATH,
+    /** Used when encoded by Bluetooth Stack and streaming to Hearing Aid */
+    HEARING_AID_SOFTWARE_ENCODING_DATAPATH,
+    /** Used when encoded by Bluetooth Stack and streaming to LE Audio device */
+    LE_AUDIO_SOFTWARE_ENCODING_DATAPATH,
+    /** Used when decoded by Bluetooth Stack and streaming to audio framework */
+    LE_AUDIO_SOFTWARE_DECODED_DATAPATH,
+    /** Encoding is done by HW an there is control only */
+    LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
+    /** Decoding is done by HW an there is control only */
+    LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH,
+}tSESSION_TYPE;
+
 class AudioExtn
 {
 private:

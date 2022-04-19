@@ -518,6 +518,39 @@ int AudioExtn::audio_extn_hfp_set_mic_mute(bool state)
         hfp_set_mic_mute(state) : -1);
 }
 
+static int reconfig_cb (tSESSION_TYPE session_type, int state)
+{
+    int ret = 0;
+    pal_param_bta2dp_t param_bt_a2dp;
+    if (session_type == LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH) {
+
+        /* If reconfiguration is in progress state, we do a2dp suspend.
+         * If reconfiguration is in complete state, we do a2dp resume.
+         */
+        if (state == 0) {
+            param_bt_a2dp.a2dp_suspended = true;
+        } else if (state == 1) {
+            param_bt_a2dp.a2dp_suspended = false;
+        }
+        param_bt_a2dp.dev_id = PAL_DEVICE_OUT_BLUETOOTH_BLE;
+
+        ret = pal_set_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void *)&param_bt_a2dp,
+                            sizeof(pal_param_bta2dp_t));
+    } else if (session_type == LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH) {
+        if (state == 0) {
+            param_bt_a2dp.a2dp_capture_suspended = true;
+        } else if (state == 1) {
+            param_bt_a2dp.a2dp_capture_suspended = false;
+        }
+        param_bt_a2dp.dev_id = PAL_DEVICE_IN_BLUETOOTH_BLE;
+
+        ret = pal_set_param(PAL_PARAM_ID_BT_A2DP_CAPTURE_SUSPENDED, (void *)&param_bt_a2dp,
+                            sizeof(pal_param_bta2dp_t));
+    }
+
+    return ret;
+}
+
 void AudioExtn::audio_extn_hfp_set_parameters(std::shared_ptr<AudioDevice> adev,
     struct str_parms *parms)
 {
@@ -538,6 +571,8 @@ int AudioExtn::audio_extn_hfp_set_mic_mute2(std::shared_ptr<AudioDevice> adev, b
 typedef void (*a2dp_bt_audio_pre_init_t)(void);
 static void *a2dp_bt_lib_source_handle = NULL;
 static a2dp_bt_audio_pre_init_t a2dp_bt_audio_pre_init = nullptr;
+typedef void (*register_reconfig_cb_t)(int (*reconfig_cb)(tSESSION_TYPE, int));
+static register_reconfig_cb_t register_reconfig_cb = nullptr;
 
 int AudioExtn::a2dp_source_feature_init(bool is_feature_enabled)
 {
@@ -565,6 +600,19 @@ int AudioExtn::a2dp_source_feature_init(bool is_feature_enabled)
             // fwk related check's will be done in the BT layer
             a2dp_bt_audio_pre_init();
         }
+
+        if (!(register_reconfig_cb = (register_reconfig_cb_t)dlsym(
+            a2dp_bt_lib_source_handle, "register_reconfig_cb")) ) {
+            AHAL_ERR("dlsym failed");
+            goto feature_disabled;
+        }
+
+        if (a2dp_bt_lib_source_handle && register_reconfig_cb) {
+            AHAL_DBG("calling BT module register reconfig");
+            int (*reconfig_cb_ptr)(tSESSION_TYPE, int) = &reconfig_cb;
+            register_reconfig_cb(reconfig_cb_ptr);
+        }
+
         AHAL_DBG("---- Feature A2DP offload is Enabled ----");
         return 0;
     }
