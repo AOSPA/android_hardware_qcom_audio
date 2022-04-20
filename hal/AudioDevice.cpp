@@ -2119,6 +2119,7 @@ void AudioDevice::FillAndroidDeviceMap() {
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_USB_HEADSET, PAL_DEVICE_OUT_USB_HEADSET));
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_DEFAULT, PAL_DEVICE_OUT_SPEAKER));
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_HEARING_AID, PAL_DEVICE_OUT_HEARING_AID));
+    android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_BLE_BROADCAST, PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST));
 
     /* go through all in devices and pushback */
 
