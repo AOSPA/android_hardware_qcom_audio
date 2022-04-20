@@ -83,7 +83,9 @@ static void get_library_path(char *lib_path)
 
 #define AHAL_GAIN_DEPENDENT_INTERFACE_FUNCTION "audio_hw_send_gain_dep_calibration"
 #define AHAL_GAIN_GET_MAPPING_TABLE "audio_hw_get_gain_level_mapping"
+#define AHAL_GAIN_SET_LINEAR_GAIN "audio_hw_send_linear_gain"
 #define DEFAULT_CAL_STEP 0
+#define LIN_VOLUME_QFACTOR_28 28
 
 #ifdef AUDIO_FEATURE_ENABLED_GCOV
 extern void  __gcov_flush();
@@ -237,6 +239,8 @@ static bool (*send_gain_dep_cal)(int);
 
 static int (*get_custom_gain_table)(struct pal_amp_db_and_gain_table *, int);
 
+static bool (*send_linear_gain)(int32_t);
+
 /* if dumping allowed */
 static bool dumping_enabled = false;
 
@@ -301,6 +305,7 @@ static void check_and_set_gain_dep_cal()
 
     struct listnode *node = NULL;
     float new_vol = -1.0, sum_energy = 0.0, temp_vol = 0.0;
+    uint32_t gain;
     bool sum_energy_used = false;
     int max_level = 0;
     vol_listener_context_t *context = NULL;
@@ -324,6 +329,9 @@ static void check_and_set_gain_dep_cal()
     if (sum_energy_used) {
         new_vol = fmin(sqrt(sum_energy), 1.0);
     }
+
+    gain = (uint32_t)(round(new_vol * (1 << LIN_VOLUME_QFACTOR_28)));
+    send_linear_gain(gain);
 
     if (new_vol != current_vol) {
         ALOGV("%s:: Change in decision :: current volume is %f new volume is %f",
@@ -674,6 +682,7 @@ static void init_once()
     ALOGD("%s Called ", __func__);
     send_gain_dep_cal = NULL;
     get_custom_gain_table = NULL;
+    send_linear_gain = NULL;
 
     pthread_mutex_init(&vol_listner_init_lock, NULL);
 
@@ -688,13 +697,18 @@ static void init_once()
             ALOGV("%s: DLOPEN of %s Success .. next get HAL entry function", __func__, audio_hal_lib);
             send_gain_dep_cal = (bool (*)(int))dlsym(hal_lib_pointer, AHAL_GAIN_DEPENDENT_INTERFACE_FUNCTION);
             if (send_gain_dep_cal == NULL) {
-                ALOGE("Couldnt able to get the function symbol");
+                ALOGE("Couldnt able to get the function %s symbol", AHAL_GAIN_DEPENDENT_INTERFACE_FUNCTION);
+            }
+
+            send_linear_gain = (bool (*)(int))dlsym(hal_lib_pointer, AHAL_GAIN_SET_LINEAR_GAIN);
+            if (send_linear_gain == NULL) {
+                ALOGE("Couldnt able to get the function &s symbol",  AHAL_GAIN_SET_LINEAR_GAIN);
             }
 
             get_custom_gain_table = (int (*) (struct pal_amp_db_and_gain_table *, int))
                dlsym(hal_lib_pointer, AHAL_GAIN_GET_MAPPING_TABLE);
             if (get_custom_gain_table == NULL) {
-                ALOGE("Couldnt able to get the function AHAL_GAIN_GET_MAPPING_TABLE  symbol");
+                ALOGE("Couldnt able to get the function %s symbol", AHAL_GAIN_GET_MAPPING_TABLE);
             } else {
                 max_table_ent = get_custom_gain_table(volume_curve_gain_mapping_table,
                    MAX_VOLUME_CAL_STEPS);
