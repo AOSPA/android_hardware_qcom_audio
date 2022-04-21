@@ -958,6 +958,7 @@ static int astream_out_set_volume(struct audio_stream_out *stream,
         return -EINVAL;
     }
 }
+
 static void out_update_source_metadata_v7(
                                 struct audio_stream_out *stream,
                                 const struct source_metadata_v7 *source_metadata) {
@@ -977,41 +978,63 @@ static void out_update_source_metadata_v7(
     if (adevice) {
         astream_out = adevice->OutGetStream((audio_stream_t*)stream);
     }
-    if (astream_out) {
 
-        //this stream is not on BLE device, so ignore the metadata
+    if (astream_out) {
+        // this stream is not on BLE device, so ignore the metadata
         if(!astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) {
             return;
         }
 
-       ssize_t track_count = source_metadata->track_count;
-       struct playback_track_metadata_v7* track = source_metadata->tracks;
-       std::vector<playback_track_metadata_t> tracks;
-       tracks.resize(track_count);
+        ssize_t track_count = source_metadata->track_count;
+        struct playback_track_metadata_v7* track = source_metadata->tracks;
+        std::vector<playback_track_metadata_t> tracks;
+        tracks.resize(track_count);
 
-       AHAL_ERR("track count is %d",track_count);
+        AHAL_ERR("track count is %d",track_count);
 
-       source_metadata_t btSourceMetadata;
-       btSourceMetadata.track_count = track_count;
-       btSourceMetadata.tracks = tracks.data();
+        source_metadata_t btSourceMetadata;
+        btSourceMetadata.track_count = track_count;
+        btSourceMetadata.tracks = tracks.data();
+        audio_mode_t mode;
+        bool voice_active = false;
 
-       // copy all tracks info from source_metadata_v7 to source_metadata
-       while (track_count && track) {
-           btSourceMetadata.tracks->usage = track->base.usage;
-           btSourceMetadata.tracks->content_type = track->base.content_type;
-           --track_count;
-           ++track;
-           ++btSourceMetadata.tracks;
-       }
+        if (adevice && adevice->voice_) {
+            voice_active = adevice->voice_->get_voice_call_state(&mode);
+        } else {
+            AHAL_ERR("adevice voice is null");
+        }
 
-       //move pointer to base address and do setparam
-       btSourceMetadata.tracks = tracks.data();
+        // copy all tracks info from source_metadata_v7 to source_metadata
+        while (track_count && track) {
+            /* currently after cs call ends, we are getting metadata as
+             * usage voice and content speech, this is causing BT to again
+             * open call session, so added below check to send metadata of
+             * voice only if call is active, else discard it
+             */
+            if (!voice_active && mode != AUDIO_MODE_IN_COMMUNICATION &&
+                track->base.usage == AUDIO_USAGE_VOICE_COMMUNICATION &&
+                track->base.content_type == AUDIO_CONTENT_TYPE_SPEECH) {
+                AHAL_ERR("Unwanted track removed from the list");
+                btSourceMetadata.track_count--;
+                --track_count;
+                ++track;
+            } else {
+                btSourceMetadata.tracks->usage = track->base.usage;
+                btSourceMetadata.tracks->content_type = track->base.content_type;
+                --track_count;
+                ++track;
+                ++btSourceMetadata.tracks;
+            }
+        }
 
-       //pass the metadata to PAL
-       ret = pal_set_param(PAL_PARAM_ID_SET_SOURCE_METADATA,(void*)&btSourceMetadata,0);
-       if (ret != 0) {
-           AHAL_ERR("Set PAL_PARAM_ID_SET_SOURCE_METADATA for %d failed", ret);
-       }
+        // move pointer to base address and do setparam
+        btSourceMetadata.tracks = tracks.data();
+
+        // pass the metadata to PAL
+        ret = pal_set_param(PAL_PARAM_ID_SET_SOURCE_METADATA,(void*)&btSourceMetadata,0);
+        if (ret != 0) {
+            AHAL_ERR("Set PAL_PARAM_ID_SET_SOURCE_METADATA for %d failed", ret);
+        }
     }
 }
 
