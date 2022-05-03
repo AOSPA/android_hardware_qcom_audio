@@ -119,6 +119,7 @@ PRODUCT_COPY_FILES += \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_qrd.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_kalama_qrd.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_mtp.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_kalama_mtp.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_cdp.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_kalama_cdp.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_cdp_wsa883x.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_kalama_cdp_wsa883x.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_kalama_qrd.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_kalama_qrd.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_kalama_mtp.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_kalama_mtp.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_kalama_cdp.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_kalama_cdp.xml \
