@@ -36,12 +36,14 @@
 #include <log/log.h>
 #include "battery_listener.h"
 #define DEFAULT_OUTPUT_SAMPLING_RATE 48000
+#include <mutex>
 
 typedef void (*batt_listener_init_t)(battery_status_change_fn_t);
 typedef void (*batt_listener_deinit_t)();
 typedef bool (*batt_prop_is_charging_t)();
 typedef bool (*audio_device_cmp_fn_t)(audio_devices_t);
 
+extern std::mutex reconfig_wait_mutex_;
 class AudioDevice;
 //HFP
 typedef int audio_usecase_t;

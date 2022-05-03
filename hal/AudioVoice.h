@@ -97,6 +97,7 @@ public:
     void VoiceGetParameters(struct str_parms *query, struct str_parms *reply);
     int RouteStream(const std::set<audio_devices_t>&);
     bool is_valid_call_state(int call_state);
+    bool get_voice_call_state(audio_mode_t *mode);
     bool is_valid_vsid(uint32_t vsid);
     int max_voice_sessions_;
     std::mutex voice_mutex_;
