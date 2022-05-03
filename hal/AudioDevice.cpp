@@ -1431,6 +1431,9 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                         }
                     }
                     break;
+                } else if (property_get_bool("vendor.audio.hdr.spf.record.enable", false)) {
+                    new_devices = astream_in->mAndroidInDevices;
+                    astream_in->RouteStream(new_devices, true);
                 }
             }
         }
@@ -1448,9 +1451,6 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                     new_devices = astream_out->mAndroidOutDevices;
                     astream_out->RouteStream(new_devices, true);
                     break;
-                } else if (property_get_bool("vendor.audio.hdr.spf.record.enable", false)) {
-                    new_devices = astream_in->mAndroidInDevices;
-                    astream_in->RouteStream(new_devices, true);
                 }
             }
         }
