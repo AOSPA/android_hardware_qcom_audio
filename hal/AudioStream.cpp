@@ -1402,9 +1402,17 @@ static void in_update_sink_metadata_v7(
     if ((device == AUDIO_DEVICE_OUT_BLE_HEADSET) || (astream_in && astream_in->isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_BLE))) {
        ssize_t track_count = sink_metadata->track_count;
        struct record_track_metadata_v7* track = sink_metadata->tracks;
-       AHAL_ERR("track count is %d",track_count);
+       AHAL_DBG("track count is %d with channel_mask %d",track_count, track->channel_mask);
 
        if (!track_count) return;
+
+       /* When BLE gets connected, adev_input_stream opens from mixports capabilities. In this
+        * case channel mask is set to "0" by FWK whereas when actual usecase starts,
+        * audioflinger updates the channel mask in updateSinkMetadata as a part of capture
+        * track. Thus channel mask value is checked here to avoid sending unnecessary sink
+        * metadata BT HAL
+        */
+       if (track->channel_mask == 0) return;
 
        std::vector<record_track_metadata_t> tracks;
        tracks.resize(track_count);
