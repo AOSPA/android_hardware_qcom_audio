@@ -764,6 +764,14 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
         ret = -ENODEV;
         goto exit;
     }
+    /* On error AAudioService will retry with supported format passed
+     */
+    if ((flags & AUDIO_OUTPUT_FLAG_MMAP_NOIRQ) &&
+        config->format == AUDIO_FORMAT_PCM_FLOAT) {
+        AHAL_ERR("unsupported format: %#x", config->format);
+        ret = -EINVAL;
+        goto exit;
+    }
 
     astream = adevice->OutGetStream(handle);
     if (astream == nullptr) {
