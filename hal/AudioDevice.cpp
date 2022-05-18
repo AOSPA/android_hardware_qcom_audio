@@ -2,8 +2,10 @@
  * Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
- * Copyright (C) 2013 The Android Open Source Project
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Not a Contribution.
  *
+ * Copyright (C) 2013 The Android Open Source Project
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -66,6 +68,42 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/*
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ *  Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted (subject to the limitations in the
+ *  disclaimer below) provided that the following conditions are met:
+ *
+ *      * Redistributions of source code must retain the above copyright
+ *        notice, this list of conditions and the following disclaimer.
+ *
+ *      * Redistributions in binary form must reproduce the above
+ *        copyright notice, this list of conditions and the following
+ *        disclaimer in the documentation and/or other materials provided
+ *        with the distribution.
+ *
+ *      * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
+ *        contributors may be used to endorse or promote products derived
+ *        from this software without specific prior written permission.
+ *
+ *  NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+ *  GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+ *  HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ *   WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ *  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ *  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ *  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ *  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ *  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #define LOG_TAG "AHAL: AudioDevice"
@@ -149,6 +187,7 @@ static const struct audio_string_to_enum device_in_types[] = {
     AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_LINE),
     AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_SPDIF),
     AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_BLUETOOTH_A2DP),
+    AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_BLE_HEADSET),
     AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_LOOPBACK),
     AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_IP),
     AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_BUS),
@@ -805,45 +844,38 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
         goto exit;
     }
 
-    /*> 24 bit is restricted to UNPROCESSED source only,also format supported
-     * from HAL is 24_packed and 8_24
-     *> In case of UNPROCESSED source, for 24 bit, if format requested is other than
-     *  24_packed or 8_24 return error indicating supported format is 8_24
-     *> In case of any other source requesting 24 bit or float return error
-     *  indicating format supported is 16 bit only.
-     *> On error flinger will retry with supported format passed
+    /*  Add 24bit support for UNPROCESSED/MIC/CAMCORDER source,
+     *  In case of any source requesting 32 bit or float return error
+     *  indicating format supported is up to 24 bit only.
+     *  On error flinger will retry with supported format passed
      */
-    if ((config->format == AUDIO_FORMAT_PCM_FLOAT) ||
-        (config->format == AUDIO_FORMAT_PCM_32_BIT) ||
-        (config->format == AUDIO_FORMAT_PCM_24_BIT_PACKED) ||
-        (config->format == AUDIO_FORMAT_PCM_8_24_BIT)) {
-        if ((source != AUDIO_SOURCE_UNPROCESSED) &&
-                (source != AUDIO_SOURCE_CAMCORDER)) {
-            config->format = AUDIO_FORMAT_PCM_16_BIT;
-            if (config->sample_rate > 48000)
-                config->sample_rate = 48000;
-            ret_error = true;
-        } else if (!(config->format == AUDIO_FORMAT_PCM_24_BIT_PACKED ||
-                    config->format == AUDIO_FORMAT_PCM_8_24_BIT)) {
-            /*TODO: This can be updated as AUDIO_FORMAT_PCM_24_BIT_PACKED
-             * based on what the platform wants to configure.
-             */
-            config->format = AUDIO_FORMAT_PCM_8_24_BIT;
-            ret_error = true;
-        }
-
-        if (ret_error) {
+    switch (config->format) {
+        case AUDIO_FORMAT_PCM_FLOAT:
+        case AUDIO_FORMAT_PCM_32_BIT:
+            config->format = AUDIO_FORMAT_PCM_24_BIT_PACKED;
             ret = -EINVAL;
-            goto exit;
-        }
+            break;
+        case AUDIO_FORMAT_PCM_24_BIT_PACKED:
+        case AUDIO_FORMAT_PCM_8_24_BIT:
+            if (source == AUDIO_SOURCE_UNPROCESSED ||
+                source == AUDIO_SOURCE_CAMCORDER ||
+                source == AUDIO_SOURCE_MIC) {
+                AHAL_DBG("go on setting format %d for input source %d", config->format, source);
+            } else {
+                config->format = AUDIO_FORMAT_PCM_16_BIT;
+                ret = -EINVAL;
+            }
+            break;
+        default:
+            break;
     }
-
-    if (config->format == AUDIO_FORMAT_PCM_FLOAT) {
-        AHAL_ERR("format not supported");
-        config->format = AUDIO_FORMAT_PCM_16_BIT;
-        ret = -EINVAL;
+    if (ret != 0) {
+        AHAL_ERR("unsupported format %d, input source %d", config->format, source);
+        if (config->sample_rate > 48000)
+            config->sample_rate = 48000;
         goto exit;
     }
+
 
     astream = adevice->InGetStream(handle);
     if (astream == nullptr)
@@ -1043,6 +1075,15 @@ int get_audio_port_v7(struct audio_hw_device *dev, struct audio_port_v7 *config)
     return 0;
 }
 
+int adev_set_device_connected_state_v7(struct audio_hw_device *dev,
+                                        struct audio_port_v7 *port,
+                                        bool connected) {
+    std::ignore = dev;
+    std::ignore = port;
+    std::ignore = connected;
+    return -ENOSYS;
+}
+
 int adev_set_audio_port_config(struct audio_hw_device *dev,
                                const struct audio_port_config *config)
 {
@@ -1122,6 +1163,7 @@ int AudioDevice::Init(hw_device_t **device, const hw_module_t *module) {
     adev_->device_.get()->set_audio_port_config = adev_set_audio_port_config;
     adev_->device_.get()->dump = adev_dump;
     adev_->device_.get()->get_microphones = adev_get_microphones;
+    adev_->device_.get()->set_device_connected_state_v7 = adev_set_device_connected_state_v7;
     adev_->device_.get()->common.module = (struct hw_module_t *)module;
     *device = &(adev_->device_.get()->common);
 
@@ -1389,6 +1431,9 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                         }
                     }
                     break;
+                } else if (property_get_bool("vendor.audio.hdr.spf.record.enable", false)) {
+                    new_devices = astream_in->mAndroidInDevices;
+                    astream_in->RouteStream(new_devices, true);
                 }
             }
         }
@@ -1406,9 +1451,6 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                     new_devices = astream_out->mAndroidOutDevices;
                     astream_out->RouteStream(new_devices, true);
                     break;
-                } else if (property_get_bool("vendor.audio.hdr.spf.record.enable", false)) {
-                    new_devices = astream_in->mAndroidInDevices;
-                    astream_in->RouteStream(new_devices, true);
                 }
             }
         }
@@ -1489,7 +1531,8 @@ int AudioDevice::SetParameters(const char *kvpairs) {
             pal_device_count = GetPalDeviceIds({device}, pal_device_ids);
             ret = add_input_headset_if_usb_out_headset(&pal_device_count, &pal_device_ids);
             if (ret) {
-                free(pal_device_ids);
+                if (pal_device_ids)
+                    free(pal_device_ids);
                 AHAL_ERR("adding input headset failed, error:%d", ret);
                 goto exit;
             }
@@ -1520,8 +1563,8 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                     ret = pal_get_param(PAL_PARAM_ID_DEVICE_CAPABILITY,
                             (void **)&device_cap_query,
                             &payload_size, nullptr);
-                    if (dynamic_media_config.sample_rate == 0 && dynamic_media_config.format == 0 &&
-                            dynamic_media_config.mask == 0)
+                    if ((dynamic_media_config.sample_rate == 0 && dynamic_media_config.format == 0 &&
+                            dynamic_media_config.mask == 0) || (dynamic_media_config.jack_status == false))
                         usb_input_dev_enabled = false;
                     free(device_cap_query);
                 } else {
@@ -1679,6 +1722,13 @@ int AudioDevice::SetParameters(const char *kvpairs) {
         if (device) {
             pal_device_ids = (pal_device_id_t *) calloc(1, sizeof(pal_device_id_t));
             pal_device_count = GetPalDeviceIds({device}, pal_device_ids);
+            ret = add_input_headset_if_usb_out_headset(&pal_device_count, &pal_device_ids);
+            if (ret) {
+                if (pal_device_ids)
+                    free(pal_device_ids);
+                AHAL_ERR("adding input headset failed, error:%d", ret);
+                goto exit;
+            }
             for (int i = 0; i < pal_device_count; i++) {
                 param_device_connection.connection_state = false;
                 param_device_connection.id = pal_device_ids[i];
@@ -1689,10 +1739,6 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                     AHAL_ERR("pal set param failed for device disconnect");
                 }
                 AHAL_INFO("pal set param sucess for device disconnect");
-            }
-            if (pal_device_ids) {
-                free(pal_device_ids);
-                pal_device_ids = NULL;
             }
         }
     }
@@ -1721,6 +1767,8 @@ int AudioDevice::SetParameters(const char *kvpairs) {
             param_bt_a2dp.a2dp_suspended = true;
         else
             param_bt_a2dp.a2dp_suspended = false;
+
+        param_bt_a2dp.dev_id = PAL_DEVICE_OUT_BLUETOOTH_A2DP;
 
         AHAL_INFO("BT A2DP Suspended = %s, command received", value);
         ret = pal_set_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void *)&param_bt_a2dp,
@@ -1930,6 +1978,8 @@ int AudioDevice::SetParameters(const char *kvpairs) {
         else
             param_bt_a2dp.a2dp_capture_suspended = false;
 
+        param_bt_a2dp.dev_id = PAL_DEVICE_IN_BLUETOOTH_A2DP;
+
         AHAL_INFO("BT A2DP Capture Suspended = %s, command received", value);
         ret = pal_set_param(PAL_PARAM_ID_BT_A2DP_CAPTURE_SUSPENDED, (void*)&param_bt_a2dp,
             sizeof(pal_param_bta2dp_t));
@@ -2045,6 +2095,8 @@ void AudioDevice::FillAndroidDeviceMap() {
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_BLUETOOTH_SCO_HEADSET, PAL_DEVICE_OUT_BLUETOOTH_SCO));
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_BLUETOOTH_SCO_CARKIT, PAL_DEVICE_OUT_BLUETOOTH_SCO));
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_BLUETOOTH_A2DP, PAL_DEVICE_OUT_BLUETOOTH_A2DP));
+    android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_BLE_HEADSET, PAL_DEVICE_OUT_BLUETOOTH_BLE));
+    android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_BLE_SPEAKER, PAL_DEVICE_OUT_BLUETOOTH_BLE));
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES, PAL_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES));
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER, PAL_DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER));
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_AUX_DIGITAL, PAL_DEVICE_OUT_AUX_DIGITAL));
@@ -2067,6 +2119,7 @@ void AudioDevice::FillAndroidDeviceMap() {
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_USB_HEADSET, PAL_DEVICE_OUT_USB_HEADSET));
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_DEFAULT, PAL_DEVICE_OUT_SPEAKER));
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_HEARING_AID, PAL_DEVICE_OUT_HEARING_AID));
+    android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_BLE_BROADCAST, PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST));
 
     /* go through all in devices and pushback */
 
@@ -2090,6 +2143,7 @@ void AudioDevice::FillAndroidDeviceMap() {
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_LINE, PAL_DEVICE_IN_LINE));
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_SPDIF, PAL_DEVICE_IN_SPDIF));
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_BLUETOOTH_A2DP, PAL_DEVICE_IN_BLUETOOTH_A2DP));
+    android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_BLE_HEADSET, PAL_DEVICE_IN_BLUETOOTH_BLE));
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_LOOPBACK, PAL_DEVICE_IN_LOOPBACK);
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_IP, PAL_DEVICE_IN_IP);
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_BUS, PAL_DEVICE_IN_BUS);

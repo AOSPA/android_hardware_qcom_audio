@@ -11,9 +11,8 @@ ifneq ($(TARGET_IS_HEADLESS),true)
 #AGM
 AUDIO_AGM := libagmclient
 AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-impl
-ifneq ($(strip $(AUDIO_FEATURE_ENABLED_AGM_HIDL)), true)
-AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-service
-endif
+#not needed for kalama products
+#AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-service
 AUDIO_AGM += libagm
 AUDIO_AGM += agmplay
 AUDIO_AGM += agmcap
@@ -85,6 +84,8 @@ AUDIO_MODULES += fai__2.0.0_0.1__3.0.0_0.0__eai_1.36_enpu2.pmd
 AUDIO_MODULES += fai__2.7.2_0.0__3.0.0_0.0__eai_1.36_enpu2.pmd
 AUDIO_MODULES += fai__2.7.20_0.0__3.0.0_0.0__eai_1.36_enpu2.pmd
 AUDIO_MODULES += fai__3.0.0_0.0__eai_1.36_enpu2.pmd
+AUDIO_MODULES += ffv__5.0.1_0.1__3.0.0_0.0__eai_2.7_enpu3.pmd
+AUDIO_MODULES += ffv__5.0.1_0.1__eai_2.7_enpu3.pmd
 AUDIO_MODULES += libfmpal
 AUDIO_MODULES += event.eai
 AUDIO_MODULES += music.eai
@@ -138,6 +139,10 @@ AUDIO_MODULES += \
     android.hardware.audio@7.0-impl \
     android.hardware.audio.effect@7.0 \
     android.hardware.audio.effect@7.0-impl
+
+# enable audio hidl hal 7.1
+AUDIO_MODULES += \
+    android.hardware.audio@7.1-impl
 
 # enable sound trigger hidl hal 2.2
 AUDIO_MODULES += \

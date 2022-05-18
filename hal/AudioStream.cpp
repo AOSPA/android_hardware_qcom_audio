@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2019-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -28,6 +27,42 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ *  Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted (subject to the limitations in the
+ *  disclaimer below) provided that the following conditions are met:
+ *
+ *      * Redistributions of source code must retain the above copyright
+ *        notice, this list of conditions and the following disclaimer.
+ *
+ *      * Redistributions in binary form must reproduce the above
+ *        copyright notice, this list of conditions and the following
+ *        disclaimer in the documentation and/or other materials provided
+ *        with the distribution.
+ *
+ *      * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
+ *        contributors may be used to endorse or promote products derived
+ *        from this software without specific prior written permission.
+ *
+ *  NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+ *  GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+ *  HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ *   WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ *  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ *  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ *  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ *  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ *  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #define LOG_TAG "AHAL: AudioStream"
 #define ATRACE_TAG (ATRACE_TAG_AUDIO | ATRACE_TAG_HAL)
 #include "AudioCommon.h"
@@ -52,6 +87,9 @@
 #define COMPRESS_OFFLOAD_FRAGMENT_SIZE (32 * 1024)
 #define FLAC_COMPRESS_OFFLOAD_FRAGMENT_SIZE (256 * 1024)
 
+#define COMPRESS_CAPTURE_AAC_MAX_OUTPUT_BUFFER_SIZE 2048
+#define COMPRESS_CAPTURE_AAC_PCM_SAMPLES_IN_FRAME 1024
+
 #define MAX_READ_RETRY_COUNT 25
 #define MAX_ACTIVE_MICROPHONES_TO_SUPPORT 10
 #define AFE_PROXY_RECORD_PERIOD_SIZE  768
@@ -71,10 +109,11 @@ static bool is_pcm_format(audio_format_t format)
 }
 
 static int get_hdr_mode() {
+    std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
     if (property_get_bool("vendor.audio.hdr.spf.record.enable", false)) {
         AHAL_INFO("HDR SPF feature is enabled");
         return AUDIO_RECORD_SPF_HDR;
-    } else if (property_get_bool("vendor.audio.hdr.record.enable", false)) {
+    } else if (property_get_bool("vendor.audio.hdr.record.enable", false) && adevice->hdr_record_enabled) {
         AHAL_INFO("HDR ARM feature is enabled");
         return AUDIO_RECORD_ARM_HDR;
     } else {
@@ -615,6 +654,28 @@ static int astream_dump(const struct audio_stream *stream, int fd) {
     return 0;
 }
 
+static int astream_set_latency_mode(struct audio_stream_out *stream, audio_latency_mode_t mode) {
+    std::ignore = stream;
+    std::ignore = mode;
+    return -ENOSYS;
+}
+
+static int astream_get_recommended_latency_modes(struct audio_stream_out *stream,
+                                                audio_latency_mode_t *modes, size_t *num_modes) {
+    std::ignore = stream;
+    std::ignore = modes;
+    std::ignore = num_modes;
+    return -ENOSYS;
+}
+
+static int astream_set_latency_mode_callback(struct audio_stream_out *stream,
+                                        stream_latency_mode_callback_t callback, void *cookie) {
+    std::ignore = stream;
+    std::ignore = callback;
+    std::ignore = cookie;
+    return -ENOSYS;
+}
+
 static uint32_t astream_get_latency(const struct audio_stream_out *stream) {
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
     std::shared_ptr<StreamOutPrimary> astream_out;
@@ -675,8 +736,10 @@ static uint32_t astream_get_latency(const struct audio_stream_out *stream) {
     pal_param_bta2dp_t *param_bt_a2dp = NULL;
     size_t size = 0;
     int32_t ret;
-
-    if (astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP)) {
+    //TODO : check on PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY for BLE
+    if ((astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP)) ||
+            (astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) ||
+            (astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST))) {
         ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY,
                             (void **)&param_bt_a2dp, &size, nullptr);
         if (!ret && param_bt_a2dp)
@@ -895,6 +958,85 @@ static int astream_out_set_volume(struct audio_stream_out *stream,
     } else {
         AHAL_ERR("unable to get audio stream");
         return -EINVAL;
+    }
+}
+
+static void out_update_source_metadata_v7(
+                                struct audio_stream_out *stream,
+                                const struct source_metadata_v7 *source_metadata) {
+
+    int32_t ret = 0;
+    if (stream == NULL
+            || (source_metadata == NULL)
+            || (source_metadata->track_count == 0)
+            || (source_metadata->tracks == NULL)) {
+        AHAL_ERR("%s: stream or source_metadata is NULL", __func__);
+        return;
+    }
+
+    std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
+    std::shared_ptr<StreamOutPrimary> astream_out;
+
+    if (adevice) {
+        astream_out = adevice->OutGetStream((audio_stream_t*)stream);
+    }
+
+    if (astream_out) {
+        // this stream is not on BLE device, so ignore the metadata
+        if(!astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) {
+            return;
+        }
+
+        ssize_t track_count = source_metadata->track_count;
+        struct playback_track_metadata_v7* track = source_metadata->tracks;
+        std::vector<playback_track_metadata_t> tracks;
+        tracks.resize(track_count);
+
+        AHAL_ERR("track count is %d",track_count);
+
+        source_metadata_t btSourceMetadata;
+        btSourceMetadata.track_count = track_count;
+        btSourceMetadata.tracks = tracks.data();
+        audio_mode_t mode;
+        bool voice_active = false;
+
+        if (adevice && adevice->voice_) {
+            voice_active = adevice->voice_->get_voice_call_state(&mode);
+        } else {
+            AHAL_ERR("adevice voice is null");
+        }
+
+        // copy all tracks info from source_metadata_v7 to source_metadata
+        while (track_count && track) {
+            /* currently after cs call ends, we are getting metadata as
+             * usage voice and content speech, this is causing BT to again
+             * open call session, so added below check to send metadata of
+             * voice only if call is active, else discard it
+             */
+            if (!voice_active && mode != AUDIO_MODE_IN_COMMUNICATION &&
+                track->base.usage == AUDIO_USAGE_VOICE_COMMUNICATION &&
+                track->base.content_type == AUDIO_CONTENT_TYPE_SPEECH) {
+                AHAL_ERR("Unwanted track removed from the list");
+                btSourceMetadata.track_count--;
+                --track_count;
+                ++track;
+            } else {
+                btSourceMetadata.tracks->usage = track->base.usage;
+                btSourceMetadata.tracks->content_type = track->base.content_type;
+                --track_count;
+                ++track;
+                ++btSourceMetadata.tracks;
+            }
+        }
+
+        // move pointer to base address and do setparam
+        btSourceMetadata.tracks = tracks.data();
+
+        // pass the metadata to PAL
+        ret = pal_set_param(PAL_PARAM_ID_SET_SOURCE_METADATA,(void*)&btSourceMetadata,0);
+        if (ret != 0) {
+            AHAL_ERR("Set PAL_PARAM_ID_SET_SOURCE_METADATA for %d failed", ret);
+        }
     }
 }
 
@@ -1160,9 +1302,17 @@ uint64_t StreamInPrimary::GetFramesRead(int64_t* time)
     stream_mutex_.lock();
     dsp_latency = StreamInPrimary::GetSourceLatency(flags_);
 
-    signed_frames = mBytesRead / audio_bytes_per_frame(
+    if (usecase_ == USECASE_AUDIO_RECORD_COMPRESS) {
+        /**
+         * TODO get num of pcm frames from below layers
+         **/
+        signed_frames =
+            mCompressReadCalls * COMPRESS_CAPTURE_AAC_PCM_SAMPLES_IN_FRAME;
+    } else {
+        signed_frames = mBytesRead / audio_bytes_per_frame(
         audio_channel_count_from_in_mask(config_.channel_mask),
         config_.format);
+    }
 
     *time = (readAt.tv_sec * 1000000000LL) + readAt.tv_nsec - (dsp_latency * 1000LL);
 
@@ -1172,7 +1322,8 @@ uint64_t StreamInPrimary::GetFramesRead(int64_t* time)
     size_t size = 0;
     int32_t ret;
 
-    if (isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_A2DP)) {
+    if (isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_A2DP) ||
+        isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_BLE)) {
         ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_DECODER_LATENCY,
             (void**)&param_bt_a2dp, &size, nullptr);
         if (!ret && param_bt_a2dp) {
@@ -1226,6 +1377,7 @@ static void in_update_sink_metadata_v7(
     }
     audio_devices_t device = sink_metadata->tracks->base.dest_device;
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
+    std::shared_ptr<StreamInPrimary> astream_in;
     int ret = 0;
 
 
@@ -1242,6 +1394,41 @@ static void in_update_sink_metadata_v7(
             AHAL_ERR("%s: voice handle does not exist", __func__);
         }
     }
+
+    if (adevice) {
+        astream_in = adevice->InGetStream((audio_stream_t*)stream);
+
+    //If its BLE, send update sink metadata
+    if ((device == AUDIO_DEVICE_OUT_BLE_HEADSET) || (astream_in && astream_in->isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_BLE))) {
+       ssize_t track_count = sink_metadata->track_count;
+       struct record_track_metadata_v7* track = sink_metadata->tracks;
+       AHAL_ERR("track count is %d",track_count);
+
+       if (!track_count) return;
+
+       std::vector<record_track_metadata_t> tracks;
+       tracks.resize(track_count);
+
+       sink_metadata_t btSinkMetadata;
+       btSinkMetadata.track_count = track_count;
+       btSinkMetadata.tracks = tracks.data();
+
+       // copy all tracks info from sink_metadata_v7 to sink_metadata
+       while (track_count && track) {
+           btSinkMetadata.tracks->source = track->base.source;
+           --track_count;
+           ++track;
+           ++btSinkMetadata.tracks;
+       }
+
+       btSinkMetadata.tracks = tracks.data();
+       //pass the metadata to PAL
+       ret = pal_set_param(PAL_PARAM_ID_SET_SINK_METADATA,(void*)&btSinkMetadata,0);
+       if (ret != 0) {
+           AHAL_ERR("Set PAL_PARAM_ID_SET_SINK_METADATA for %d failed", ret);
+       }
+    }
+  }
 }
 
 static int astream_in_get_active_microphones(
@@ -1562,8 +1749,10 @@ pal_stream_type_t StreamInPrimary::GetPalStreamType(
             palStreamType = PAL_STREAM_LOW_LATENCY;
             break;
         case AUDIO_INPUT_FLAG_RAW:
-        case AUDIO_INPUT_FLAG_DIRECT:
             palStreamType = PAL_STREAM_RAW;
+            break;
+        case AUDIO_INPUT_FLAG_DIRECT:
+            palStreamType = PAL_STREAM_COMPRESSED;
             break;
         case AUDIO_INPUT_FLAG_VOIP_TX:
             palStreamType = PAL_STREAM_VOIP_TX;
@@ -1686,6 +1875,10 @@ int StreamOutPrimary::FillHalFnPtrs() {
     stream_.get()->drain = astream_drain;
     stream_.get()->flush = astream_flush;
     stream_.get()->set_callback = astream_set_callback;
+    stream_.get()->update_source_metadata_v7 = out_update_source_metadata_v7;
+    stream_.get()->set_latency_mode = astream_set_latency_mode;
+    stream_.get()->get_recommended_latency_modes = astream_get_recommended_latency_modes;
+    stream_.get()->set_latency_mode_callback = astream_set_latency_mode_callback;
     return ret;
 }
 
@@ -2329,7 +2522,9 @@ uint64_t StreamOutPrimary::GetFramesWritten(struct timespec *timestamp)
 
     // Adjustment accounts for A2dp encoder latency with non offload usecases
     // Note: Encoder latency is returned in ms, while platform_render_latency in us.
-    if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP)) {
+    if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP) ||
+           isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE) ||
+           isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST)) {
         ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY,
                             (void **)&param_bt_a2dp, &size, nullptr);
         if (!ret && param_bt_a2dp) {
@@ -2340,6 +2535,25 @@ uint64_t StreamOutPrimary::GetFramesWritten(struct timespec *timestamp)
 
         }
     }
+
+    struct audio_mmap_position position;
+    if (this->GetUseCase() == USECASE_AUDIO_PLAYBACK_MMAP) {
+        signed_frames = 0;
+
+        stream_mutex_.unlock();
+        ret = this->GetMmapPosition(&position);
+        stream_mutex_.lock();
+
+        if (ret != 0) {
+            AHAL_ERR("Failed to get mmap position %d", ret);
+        } else {
+            AHAL_INFO("mmap position is %d", position.position_frames);
+            signed_frames = position.position_frames -
+              (MMAP_PLATFORM_DELAY * (streamAttributes_.out_media_config.sample_rate) / 1000000LL);
+            AHAL_INFO("mmap signed frames %d", signed_frames);
+        }
+    }
+
     stream_mutex_.unlock();
 
     if (signed_frames <= 0) {
@@ -2348,6 +2562,10 @@ uint64_t StreamOutPrimary::GetFramesWritten(struct timespec *timestamp)
            clock_gettime(CLOCK_MONOTONIC, timestamp);
     } else if (timestamp != NULL) {
        *timestamp = writeAt;
+    }
+    if (this->GetUseCase() == USECASE_AUDIO_PLAYBACK_MMAP && (signed_frames > 0)) {
+        timestamp->tv_sec = (position.time_nanoseconds / 1000000000LL);
+        timestamp->tv_nsec = (position.time_nanoseconds % 1000000000LL);
     }
 
     AHAL_VERBOSE("signed frames %lld written frames %lld kernel frames %lld dsp frames %lld, bt extra frames %lld",
@@ -2820,7 +3038,9 @@ int StreamOutPrimary::GetFrames(uint64_t *frames)
 
     // Adjustment accounts for A2dp encoder latency with offload usecases
     // Note: Encoder latency is returned in ms.
-    if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP)) {
+    if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP) ||
+           isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST) ||
+           isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) {
         ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY,
                             (void **)&param_bt_a2dp, &size, nullptr);
         if (!ret && param_bt_a2dp) {
@@ -3852,15 +4072,17 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
             strlcpy(mPalInDevice[i].custom_config.custom_key, "",
                     sizeof(mPalInDevice[i].custom_config.custom_key));
 
-            /* HDR use case check */
-            if (get_hdr_mode() == AUDIO_RECORD_ARM_HDR || get_hdr_mode() == AUDIO_RECORD_SPF_HDR)
-                setup_hdr_usecase(&mPalInDevice[i]);
-
             if (source_ == AUDIO_SOURCE_CAMCORDER && adevice->cameraOrientation == CAMERA_DEFAULT) {
                 strlcpy(mPalInDevice[i].custom_config.custom_key, "camcorder_landscape",
                         sizeof(mPalInDevice[i].custom_config.custom_key));
                 AHAL_INFO("Setting custom key as %s", mPalInDevice[i].custom_config.custom_key);
             }
+
+            /* HDR use case check */
+            if ((get_hdr_mode() == AUDIO_RECORD_ARM_HDR) ||
+                ((get_hdr_mode() == AUDIO_RECORD_SPF_HDR) &&
+                (source_ == AUDIO_SOURCE_CAMCORDER || source_ == AUDIO_SOURCE_MIC)))
+                setup_hdr_usecase(&mPalInDevice[i]);
         }
 
         mAndroidInDevices = new_devices;
@@ -4003,13 +4225,15 @@ int StreamInPrimary::Open() {
     if (is_pcm_format(config_.format)) {
        streamAttributes_.in_media_config.aud_fmt_id = getFormatId.at(config_.format);
        streamAttributes_.in_media_config.bit_width = format_to_bitwidth_table[config_.format];
+    } else if (!is_pcm_format(config_.format) && usecase_ == USECASE_AUDIO_RECORD_COMPRESS) {
+        streamAttributes_.in_media_config.aud_fmt_id = getFormatId.at(config_.format);
+        streamAttributes_.in_media_config.bit_width = format_to_bitwidth_table[config_.format];
     } else {
        /*TODO:Update this to support compressed capture using hal apis*/
        streamAttributes_.in_media_config.bit_width = CODEC_BACKEND_DEFAULT_BIT_WIDTH;
        streamAttributes_.in_media_config.aud_fmt_id = PAL_AUDIO_FMT_PCM_S16_LE;
     }
     streamAttributes_.in_media_config.ch_info = ch_info;
-
     if (streamAttributes_.type == PAL_STREAM_ULTRA_LOW_LATENCY) {
             if (usecase_ == USECASE_AUDIO_RECORD_MMAP)
                 streamAttributes_.flags = (pal_stream_flags_t)
@@ -4018,7 +4242,6 @@ int StreamInPrimary::Open() {
                 streamAttributes_.flags = (pal_stream_flags_t)
                     (PAL_STREAM_FLAG_MMAP);
     }
-
     if (streamAttributes_.type == PAL_STREAM_PROXY) {
         if (isDeviceAvailable(PAL_DEVICE_IN_PROXY))
             streamAttributes_.info.opt_stream_info.tx_proxy_type = PAL_STREAM_PROXY_TX_WFD;
@@ -4061,6 +4284,45 @@ int StreamInPrimary::Open() {
         AHAL_ERR("Pal Stream Open Error (%x)", ret);
         ret = -EINVAL;
         goto exit;
+    }
+
+    // TODO configure this for any audio format
+    // As of now this is configured for AAC only
+    if (streamAttributes_.type == PAL_STREAM_COMPRESSED &&
+        config_.format == AUDIO_FORMAT_AAC_LC) {
+        pal_param_payload *param_payload = nullptr;
+        param_payload = (pal_param_payload *)calloc(
+            1, sizeof(pal_param_payload) + sizeof(pal_snd_enc_t));
+
+        if (!param_payload) {
+            AHAL_ERR("calloc failed for size %zu",
+                     sizeof(pal_param_payload) + sizeof(pal_snd_enc_t));
+        } else {
+            /**
+            * encoder mode
+            0x2       AAC_AOT_LC
+            0x5      AAC_AOT_SBR
+            0x1d      AAC_AOT_PS
+
+            * format flag
+            0x0       AAC_FORMAT_FLAG_ADTS
+            0x1       AAC_FORMAT_FLAG_LOAS
+            0x3       AAC_FORMAT_FLAG_RAW
+            0x4       AAC_FORMAT_FLAG_LATM
+            **/
+            param_payload->payload_size = sizeof(pal_snd_enc_t);
+            palSndEnc.aac_enc.enc_cfg.aac_enc_mode = 0x2;
+            palSndEnc.aac_enc.aac_bit_rate = 36000;
+            palSndEnc.aac_enc.enc_cfg.aac_fmt_flag = 0x00;
+            memcpy(param_payload->payload, &palSndEnc,
+                   param_payload->payload_size);
+
+            ret = pal_stream_set_param(pal_stream_handle_,
+                                       PAL_PARAM_ID_CODEC_CONFIGURATION,
+                                       param_payload);
+            if (ret) AHAL_ERR("Pal Set Param Error (%x)", ret);
+            free(param_payload);
+        }
     }
 
 set_buff_size:
@@ -4121,30 +4383,23 @@ uint32_t StreamInPrimary::GetBufferSizeForLowLatencyRecord() {
 /* in bytes */
 uint32_t StreamInPrimary::GetBufferSize() {
     struct pal_stream_attributes streamAttributes_;
-    bool isEchoRef = false;
+    size_t size = 0;
+    uint32_t bytes_per_period_sample = 0;
 
     streamAttributes_.type = StreamInPrimary::GetPalStreamType(flags_,
             config_.sample_rate);
-    if (streamAttributes_.type == PAL_STREAM_RAW && isDeviceAvailable(PAL_DEVICE_IN_ECHO_REF))
-        isEchoRef = true;
     if (streamAttributes_.type == PAL_STREAM_VOIP_TX) {
-        return (DEFAULT_VOIP_BUF_DURATION_MS * config_.sample_rate / 1000) *
+        size = (DEFAULT_VOIP_BUF_DURATION_MS * config_.sample_rate / 1000) *
                audio_bytes_per_frame(
                        audio_channel_count_from_in_mask(config_.channel_mask),
                        config_.format);
     } else if (streamAttributes_.type == PAL_STREAM_LOW_LATENCY) {
-        return LOW_LATENCY_CAPTURE_PERIOD_SIZE *
+        size = LOW_LATENCY_CAPTURE_PERIOD_SIZE *
             audio_bytes_per_frame(
                     audio_channel_count_from_in_mask(config_.channel_mask),
                     config_.format);
     } else if (streamAttributes_.type == PAL_STREAM_ULTRA_LOW_LATENCY) {
         return GetBufferSizeForLowLatencyRecord();
-    } else if (streamAttributes_.type == PAL_STREAM_DEEP_BUFFER ||
-               isEchoRef) {
-        return (config_.sample_rate/ 1000) * AUDIO_CAPTURE_PERIOD_DURATION_MSEC *
-            audio_bytes_per_frame(
-                    audio_channel_count_from_in_mask(config_.channel_mask),
-                    config_.format);
     } else if (streamAttributes_.type == PAL_STREAM_VOICE_CALL_RECORD) {
         return (config_.sample_rate * AUDIO_CAPTURE_PERIOD_DURATION_MSEC/ 1000) *
             audio_bytes_per_frame(
@@ -4160,9 +4415,28 @@ uint32_t StreamInPrimary::GetBufferSize() {
                 audio_bytes_per_frame(
                         audio_channel_count_from_in_mask(config_.channel_mask),
                         config_.format);
+    } else if (streamAttributes_.type == PAL_STREAM_COMPRESSED) {
+        // TODO make this allocation with respect to AUDIO_FORMAT
+        return COMPRESS_CAPTURE_AAC_MAX_OUTPUT_BUFFER_SIZE;
     } else {
-        return BUF_SIZE_CAPTURE * NO_OF_BUF;
+        /* this else condition will be other stream types like deepbuffer/RAW.. */
+        size = (config_.sample_rate * AUDIO_CAPTURE_PERIOD_DURATION_MSEC) /1000;
+        size *= audio_bytes_per_frame(
+                         audio_channel_count_from_in_mask(config_.channel_mask),
+                         config_.format);;
     }
+    /* make sure the size is multiple of 32 bytes and additionally multiple of
+     * the frame_size (required for 24bit samples and non-power-of-2 channel counts)
+     * At 48 kHz mono 16-bit PCM:
+     *  5.000 ms = 240 frames = 15*16*1*2 = 480, a whole multiple of 32 (15)
+     *  3.333 ms = 160 frames = 10*16*1*2 = 320, a whole multiple of 32 (10)
+     * Also, make sure the size is multiple of bytes per period sample
+     */
+    bytes_per_period_sample = audio_bytes_per_sample(config_.format) *
+                              audio_channel_count_from_in_mask(config_.channel_mask);
+    size = nearest_multiple(size, lcm(32, bytes_per_period_sample));
+
+    return size;
 }
 
 int StreamInPrimary::GetInputUseCase(audio_input_flags_t halStreamFlags, audio_source_t source)
@@ -4181,6 +4455,8 @@ int StreamInPrimary::GetInputUseCase(audio_input_flags_t halStreamFlags, audio_s
     else if (source == AUDIO_SOURCE_VOICE_COMMUNICATION &&
              halStreamFlags & AUDIO_INPUT_FLAG_VOIP_TX)
         usecase = USECASE_AUDIO_RECORD_VOIP;
+    else if ((halStreamFlags & AUDIO_INPUT_FLAG_DIRECT) != 0)
+        usecase = USECASE_AUDIO_RECORD_COMPRESS;
 
     return usecase;
 }
@@ -4228,8 +4504,7 @@ ssize_t StreamInPrimary::read(const void *buffer, size_t bytes) {
     palBuffer.size = bytes;
     palBuffer.offset = 0;
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
-
-    AHAL_VERBOSE("Bytes:(%zu)", bytes);
+    AHAL_VERBOSE("requested bytes: %zu", bytes);
 
     stream_mutex_.lock();
     if (!pal_stream_handle_) {
@@ -4309,6 +4584,11 @@ ssize_t StreamInPrimary::read(const void *buffer, size_t bytes) {
     }
 
     ret = pal_stream_read(pal_stream_handle_, &palBuffer);
+    AHAL_VERBOSE("received size= %d",palBuffer.size);
+    if (usecase_ == USECASE_AUDIO_RECORD_COMPRESS && ret > 0) {
+        size = palBuffer.size;
+        mCompressReadCalls++;
+    }
     // mute pcm data if sva client is reading lab data
     if (adevice->num_va_sessions_ > 0 &&
         source_ != AUDIO_SOURCE_VOICE_RECOGNITION &&
@@ -4325,7 +4605,7 @@ exit:
     }
     stream_mutex_.unlock();
     clock_gettime(CLOCK_MONOTONIC, &readAt);
-
+    AHAL_DBG("Exit: returning size: %zu size ", size);
     return (ret < 0 ? onReadError(bytes, ret) : (size > 0 ? size : bytes));
 }
 
@@ -4516,14 +4796,15 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
             }
         }
 
-        if (get_hdr_mode() == AUDIO_RECORD_SPF_HDR) {
-            setup_hdr_usecase(&mPalInDevice[i]);
-        }
-
         if (source_ == AUDIO_SOURCE_CAMCORDER && adevice->cameraOrientation == CAMERA_DEFAULT) {
             strlcpy(mPalInDevice[i].custom_config.custom_key, "camcorder_landscape",
                     sizeof(mPalInDevice[i].custom_config.custom_key));
             AHAL_INFO("Setting custom key as %s", mPalInDevice[i].custom_config.custom_key);
+        }
+
+        if ((get_hdr_mode() == AUDIO_RECORD_SPF_HDR) &&
+            (source_ == AUDIO_SOURCE_CAMCORDER || source_ == AUDIO_SOURCE_MIC)) {
+            setup_hdr_usecase(&mPalInDevice[i]);
         }
     }
 

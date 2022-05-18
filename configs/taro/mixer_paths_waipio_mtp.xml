@@ -1708,6 +1708,9 @@
     <path name="compress-voip-call bt-a2dp">
     </path>
 
+    <path name="compress-voip-call bt-ble">
+    </path>
+
     <path name="compress-voip-call headphones">
     </path>
 
@@ -1851,6 +1854,9 @@
     </path>
 
     <path name="audio-playback-voip bt-a2dp">
+    </path>
+
+    <path name="audio-playback-voip bt-ble">
     </path>
 
     <path name="audio-playback-voip afe-proxy">
@@ -2859,7 +2865,14 @@
     <path name="bt-a2dp">
     </path>
 
+    <path name="bt-ble">
+    </path>
+
     <path name="bt-a2dp-mic">
+    </path>
+
+
+    <path name="bt-ble-mic">
     </path>
 
     <path name="speaker-and-bt-a2dp">
@@ -2867,45 +2880,92 @@
         <path name="bt-a2dp" />
     </path>
 
+    <path name="speaker-and-bt-ble">
+        <path name="speaker" />
+        <path name="bt-ble" />
+    </path>
+
     <path name="speaker-safe-and-bt-a2dp">
         <path name="speaker-safe" />
         <path name="bt-a2dp" />
     </path>
 
+
+    <path name="speaker-safe-and-bt-ble">
+        <path name="speaker-safe" />
+        <path name="bt-ble" />
+    </path>
+
     <path name="deep-buffer-playback bt-a2dp">
+    </path>
+
+    <path name="deep-buffer-playback bt-ble">
     </path>
 
     <path name="low-latency-playback bt-a2dp">
     </path>
 
+    <path name="low-latency-playback bt-ble">
+    </path>
+
     <path name="compress-offload-playback bt-a2dp">
+    </path>
+
+    <path name="compress-offload-playback bt-ble">
     </path>
 
     <path name="compress-offload-playback2 bt-a2dp">
     </path>
 
+    <path name="compress-offload-playback2 bt-ble">
+    </path>
+
     <path name="compress-offload-playback3 bt-a2dp">
+    </path>
+
+    <path name="compress-offload-playback3 bt-ble">
     </path>
 
     <path name="compress-offload-playback4 bt-a2dp">
     </path>
 
+    <path name="compress-offload-playback4 bt-ble">
+    </path>
+
     <path name="compress-offload-playback5 bt-a2dp">
+    </path>
+
+    <path name="compress-offload-playback5 bt-ble">
     </path>
 
     <path name="compress-offload-playback6 bt-a2dp">
     </path>
 
+    <path name="compress-offload-playback6 bt-ble">
+    </path>
+
     <path name="compress-offload-playback7 bt-a2dp">
+    </path>
+
+    <path name="compress-offload-playback7 bt-ble">
     </path>
 
     <path name="compress-offload-playback8 bt-a2dp">
     </path>
 
+    <path name="compress-offload-playback8 bt-ble">
+    </path>
+
     <path name="compress-offload-playback9 bt-a2dp">
     </path>
 
+    <path name="compress-offload-playback9 bt-ble">
+    </path>
+
     <path name="audio-ull-playback bt-a2dp">
+    </path>
+
+    <path name="audio-ull-playback bt-ble">
     </path>
 
     <path name="deep-buffer-playback speaker-and-bt-a2dp">
@@ -2991,6 +3051,101 @@
     <path name="audio-ull-playback speaker-safe-and-bt-a2dp">
         <path name="audio-ull-playback bt-a2dp" />
         <path name="audio-ull-playback" />
+    </path>
+
+    <path name="deep-buffer-playback speaker-and-bt-ble">
+        <path name="deep-buffer-playback bt-ble" />
+        <path name="deep-buffer-playback" />
+    </path>
+
+    <path name="deep-buffer-playback speaker-safe-and-bt-ble">
+        <path name="deep-buffer-playback bt-ble" />
+        <path name="deep-buffer-playback" />
+    </path>
+
+    <path name="compress-offload-playback speaker-and-bt-ble">
+        <path name="compress-offload-playback bt-ble" />
+        <path name="compress-offload-playback" />
+    </path>
+
+    <path name="compress-offload-playback speaker-safe-and-bt-ble">
+        <path name="compress-offload-playback bt-ble" />
+        <path name="compress-offload-playback" />
+    </path>
+
+    <path name="low-latency-playback speaker-and-bt-ble">
+        <path name="low-latency-playback bt-ble" />
+        <path name="low-latency-playback" />
+    </path>
+
+    <path name="low-latency-playback speaker-safe-and-bt-ble">
+        <path name="low-latency-playback bt-ble" />
+        <path name="low-latency-playback" />
+    </path>
+
+    <path name="compress-offload-playback2 speaker-and-bt-ble">
+        <path name="compress-offload-playback2 bt-ble" />
+        <path name="compress-offload-playback2" />
+    </path>
+
+    <path name="compress-offload-playback2 speaker-safe-and-bt-ble">
+        <path name="compress-offload-playback2 bt-ble" />
+        <path name="compress-offload-playback2" />
+    </path>
+
+    <path name="compress-offload-playback3 speaker-and-bt-ble">
+        <path name="compress-offload-playback3 bt-ble" />
+        <path name="compress-offload-playback3" />
+    </path>
+
+    <path name="compress-offload-playback4 speaker-and-bt-ble">
+        <path name="compress-offload-playback4 bt-ble" />
+        <path name="compress-offload-playback4" />
+    </path>
+
+    <path name="compress-offload-playback5 speaker-and-bt-ble">
+        <path name="compress-offload-playback5 bt-ble" />
+        <path name="compress-offload-playback5" />
+    </path>
+
+    <path name="compress-offload-playback6 speaker-and-bt-ble">
+        <path name="compress-offload-playback6 bt-ble" />
+        <path name="compress-offload-playback6" />
+    </path>
+
+    <path name="compress-offload-playback7 speaker-and-bt-ble">
+        <path name="compress-offload-playback7 bt-ble" />
+        <path name="compress-offload-playback7" />
+    </path>
+
+    <path name="compress-offload-playback8 speaker-and-bt-ble">
+        <path name="compress-offload-playback8 bt-ble" />
+        <path name="compress-offload-playback8" />
+    </path>
+
+    <path name="compress-offload-playback9 speaker-and-bt-ble">
+        <path name="compress-offload-playback9 bt-ble" />
+        <path name="compress-offload-playback9" />
+    </path>
+
+    <path name="audio-ull-playback speaker-and-bt-ble">
+        <path name="audio-ull-playback bt-ble" />
+        <path name="audio-ull-playback" />
+    </path>
+
+    <path name="audio-ull-playback speaker-safe-and-bt-ble">
+        <path name="audio-ull-playback bt-ble" />
+        <path name="audio-ull-playback" />
+    </path>
+
+    <path name="mmap-playback">
+    </path>
+
+    <path name="mmap-playback headphones">
+    </path>
+
+    <path name="mmap-playback headset">
+        <path name="mmap-playback headphones" />
     </path>
 
     <path name="mmap-playback">
@@ -3217,6 +3372,19 @@
         <path name="incall_music_uplink" />
     </path>
 
+    <path name="incall_music_uplink speaker-and-bt-ble">
+        <path name="incall_music_uplink" />
+    </path>
+
+    <path name="incall_music_uplink speaker-safe-and-bt-ble">
+        <path name="incall_music_uplink" />
+    </path>
+
+    <path name="incall_music_uplink bt-ble">
+        <path name="incall_music_uplink" />
+    </path>
+
+
     <path name="incall_music_uplink call-proxy">
         <path name="incall_music_uplink" />
     </path>
@@ -3289,6 +3457,14 @@
     </path>
 
     <path name="incall_music_uplink2 bt-a2dp">
+        <path name="incall_music_uplink2" />
+    </path>
+
+    <path name="incall_music_uplink2 speaker-and-bt-ble">
+        <path name="incall_music_uplink2" />
+    </path>
+
+    <path name="incall_music_uplink2 bt-ble">
         <path name="incall_music_uplink2" />
     </path>
 
