@@ -77,6 +77,7 @@
 #include <audio_extn/AudioExtn.h>
 #include <mutex>
 #include <map>
+#include <unordered_map>
 
 #define LOW_LATENCY_PLATFORM_DELAY (13*1000LL)
 #define DEEP_BUFFER_PLATFORM_DELAY (29*1000LL)
@@ -350,7 +351,10 @@ const uint32_t format_to_bitwidth_table[] = {
     [AUDIO_FORMAT_PCM_8_24_BIT] = 32,
     [AUDIO_FORMAT_PCM_FLOAT] = sizeof(float) * 8,
     [AUDIO_FORMAT_PCM_24_BIT_PACKED] = 24,
-    [AUDIO_FORMAT_AAC_LC] = 16,
+};
+
+const std::unordered_map<uint32_t, uint32_t> compressRecordBitWidthTable {
+    {AUDIO_FORMAT_AAC_LC, 16},
 };
 
 const std::map<uint32_t, uint32_t> getAlsaSupportedFmt {

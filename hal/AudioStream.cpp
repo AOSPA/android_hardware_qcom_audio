@@ -4228,7 +4228,8 @@ int StreamInPrimary::Open() {
        streamAttributes_.in_media_config.bit_width = format_to_bitwidth_table[config_.format];
     } else if (!is_pcm_format(config_.format) && usecase_ == USECASE_AUDIO_RECORD_COMPRESS) {
         streamAttributes_.in_media_config.aud_fmt_id = getFormatId.at(config_.format);
-        streamAttributes_.in_media_config.bit_width = format_to_bitwidth_table[config_.format];
+        streamAttributes_.in_media_config.bit_width =
+                                                compressRecordBitWidthTable.at(config_.format);
     } else {
        /*TODO:Update this to support compressed capture using hal apis*/
        streamAttributes_.in_media_config.bit_width = CODEC_BACKEND_DEFAULT_BIT_WIDTH;
