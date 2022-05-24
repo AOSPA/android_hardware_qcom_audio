@@ -2269,6 +2269,8 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
         ret = pal_get_param(PAL_PARAM_ID_HIFI_PCM_FILTER,
                             (void **)&payload_hifiFilter, &param_size, nullptr);
 
+        mAndroidOutDevices = new_devices;
+
         for (int i = 0; i < noPalDevices; i++) {
             mPalOutDevice[i].id = mPalOutDeviceIds[i];
             mPalOutDevice[i].config.sample_rate = mPalOutDevice[0].config.sample_rate;
@@ -2325,8 +2327,6 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
                        sizeof(mPalOutDevice[i].custom_config.custom_key));
             }
         }
-
-        mAndroidOutDevices = new_devices;
 
         std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
         if (adevice->hac_voip && (mPalOutDevice->id == PAL_DEVICE_OUT_HANDSET)) {
