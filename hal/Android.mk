@@ -73,6 +73,7 @@ LOCAL_SHARED_LIBRARIES := \
     libexpat \
     libhidlbase \
     libprocessgroup \
+    libfmq \
     libutils \
     libar-pal
 
