@@ -1805,8 +1805,7 @@ pal_stream_type_t StreamOutPrimary::GetPalStreamType(
     }
     if ((halStreamFlags & AUDIO_OUTPUT_FLAG_RAW) != 0) {
         palStreamType = PAL_STREAM_ULTRA_LOW_LATENCY;
-    } else if (halStreamFlags ==
-                    (AUDIO_OUTPUT_FLAG_FAST | AUDIO_OUTPUT_FLAG_DEEP_BUFFER)) {
+    } else if ((halStreamFlags & AUDIO_OUTPUT_FLAG_SPATIALIZER) != 0) {
         palStreamType = PAL_STREAM_SPATIAL_AUDIO;
     } else if ((halStreamFlags & AUDIO_OUTPUT_FLAG_FAST) != 0) {
         palStreamType = PAL_STREAM_LOW_LATENCY;
@@ -3085,9 +3084,8 @@ int StreamOutPrimary::GetOutputUseCase(audio_output_flags_t halStreamFlags)
             usecase = USECASE_AUDIO_PLAYBACK_OFFLOAD;
         else
             usecase = USECASE_AUDIO_PLAYBACK_OFFLOAD2;
-    } else if (halStreamFlags ==
-               (AUDIO_OUTPUT_FLAG_FAST | AUDIO_OUTPUT_FLAG_DEEP_BUFFER))
-            usecase = USECASE_AUDIO_PLAYBACK_SPATIAL;
+    } else if (halStreamFlags & AUDIO_OUTPUT_FLAG_SPATIALIZER)
+        usecase = USECASE_AUDIO_PLAYBACK_SPATIAL;
     else if (halStreamFlags & AUDIO_OUTPUT_FLAG_RAW)
         usecase = USECASE_AUDIO_PLAYBACK_ULL;
     else if (halStreamFlags & AUDIO_OUTPUT_FLAG_FAST)
