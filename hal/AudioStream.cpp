@@ -87,8 +87,6 @@
 #define COMPRESS_OFFLOAD_FRAGMENT_SIZE (32 * 1024)
 #define FLAC_COMPRESS_OFFLOAD_FRAGMENT_SIZE (256 * 1024)
 
-#define COMPRESS_CAPTURE_AAC_MAX_OUTPUT_BUFFER_SIZE 2048
-#define COMPRESS_CAPTURE_AAC_PCM_SAMPLES_IN_FRAME 1024
 
 #define MAX_READ_RETRY_COUNT 25
 #define MAX_ACTIVE_MICROPHONES_TO_SUPPORT 10
@@ -1742,6 +1740,15 @@ pal_stream_type_t StreamInPrimary::GetPalStreamType(
     }
 
     /*
+     * check for input direct flag which is exclusive
+     * meant for compress offload capture.
+     */
+    if ((halStreamFlags & AUDIO_INPUT_FLAG_DIRECT) != 0) {
+        palStreamType = PAL_STREAM_COMPRESSED;
+        return palStreamType;
+    }
+
+    /*
      *For AUDIO_SOURCE_UNPROCESSED we use LL pal stream as it corresponds to
      *RAW record graphs ( record with no pp)
      */
@@ -1762,9 +1769,6 @@ pal_stream_type_t StreamInPrimary::GetPalStreamType(
             break;
         case AUDIO_INPUT_FLAG_RAW:
             palStreamType = PAL_STREAM_RAW;
-            break;
-        case AUDIO_INPUT_FLAG_DIRECT:
-            palStreamType = PAL_STREAM_COMPRESSED;
             break;
         case AUDIO_INPUT_FLAG_VOIP_TX:
             palStreamType = PAL_STREAM_VOIP_TX;
