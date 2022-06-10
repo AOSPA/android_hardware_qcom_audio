@@ -674,29 +674,63 @@ int AudioVoice::VoiceStart(voice_session_t *session) {
     if (streamAttributes.info.voice_call_info.tty_mode == PAL_TTY_HCO) {
         /**  device pairs for HCO usecase
           *  <handset, headset-mic>
+          *  <handset, usb-headset-mic>
           *  <speaker, headset-mic>
+          *  <speaker, usb-headset-mic>
           *  override devices accordingly.
           */
-        if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_WIRED_HEADSET)
+        if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_WIRED_HEADSET ||
+            (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_USB_HEADSET &&
+                        adevice->usb_input_dev_enabled))
             palDevices[1].id = PAL_DEVICE_OUT_HANDSET;
-        else if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_SPEAKER)
-            palDevices[0].id = PAL_DEVICE_IN_WIRED_HEADSET;
-        else
+        else if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_SPEAKER) {
+            if (adevice->usb_out_headset) {
+               if (adevice->usb_input_dev_enabled) {
+                  palDevices[0].id = PAL_DEVICE_IN_USB_HEADSET;
+               } else {
+                 AHAL_DBG("3-pole USB Headset connected.No MIC");
+                 palDevices[0].id = PAL_DEVICE_IN_SPEAKER_MIC;
+                 AHAL_DBG("tty_hco_mode:Device pairs:Speaker-Speaker_mic");
+               }
+            } else {
+                /*Need to add support for 3-pole Wired Headset */
+                 palDevices[0].id = PAL_DEVICE_IN_WIRED_HEADSET;
+	    }
+        }
+        else {
             AHAL_ERR("Invalid device pair for the usecase");
+        }
     }
     if (streamAttributes.info.voice_call_info.tty_mode == PAL_TTY_VCO) {
         /**  device pairs for VCO usecase
           *  <headphones, handset-mic>
+          *  <usb-headset, handset-mic>
           *  <headphones, speaker-mic>
+          *  <usb-headset, speaker-mic>
           *  override devices accordingly.
           */
         if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_WIRED_HEADSET ||
-            pal_voice_rx_device_id_ == PAL_DEVICE_OUT_WIRED_HEADPHONE)
+            pal_voice_rx_device_id_ == PAL_DEVICE_OUT_WIRED_HEADPHONE ||
+            pal_voice_rx_device_id_ == PAL_DEVICE_OUT_USB_HEADSET)
             palDevices[0].id = PAL_DEVICE_IN_HANDSET_MIC;
-        else if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_SPEAKER)
-            palDevices[1].id = PAL_DEVICE_OUT_WIRED_HEADSET;
-        else
+        else if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_SPEAKER) {
+            if (adevice->usb_out_headset) {
+               if (adevice->usb_input_dev_enabled) {
+                   palDevices[0].id = PAL_DEVICE_IN_USB_HEADSET;
+               }
+               else {
+                   AHAL_DBG("3-pole USB Headset connected.No MIC");
+                   palDevices[0].id = PAL_DEVICE_IN_SPEAKER_MIC;
+                   AHAL_DBG("tty_vco_mode:Device pairs:Speaker-Speaker_mic");
+               }
+            } else {
+                /*Need to add support for 3-pole Wired Headset */
+                palDevices[1].id = PAL_DEVICE_OUT_WIRED_HEADSET;
+            }
+        }
+        else {
             AHAL_ERR("Invalid device pair for the usecase");
+        }
     }
     streamAttributes.direction = PAL_AUDIO_INPUT_OUTPUT;
     streamAttributes.in_media_config.sample_rate = 48000;
@@ -927,29 +961,65 @@ int AudioVoice::VoiceSetDevice(voice_session_t *session) {
     if (session && session->tty_mode == PAL_TTY_HCO) {
         /**  device pairs for HCO usecase
           *  <handset, headset-mic>
+          *  <handset, usb-headset-mic>
           *  <speaker, headset-mic>
+          *  <speaker, usb-headset-mic>
           *  override devices accordingly.
           */
-        if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_WIRED_HEADSET)
+        if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_WIRED_HEADSET ||
+            (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_USB_HEADSET &&
+                                     adevice->usb_input_dev_enabled))
             palDevices[1].id = PAL_DEVICE_OUT_HANDSET;
-        else if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_SPEAKER)
-            palDevices[0].id = PAL_DEVICE_IN_WIRED_HEADSET;
-        else
+        else if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_SPEAKER) {
+            if (adevice->usb_out_headset) {
+               if (adevice->usb_input_dev_enabled) {
+                   palDevices[0].id = PAL_DEVICE_IN_USB_HEADSET;
+               }
+               else {
+                 AHAL_DBG("3-pole USB with No Mic Connected!!");
+                 palDevices[0].id = PAL_DEVICE_IN_SPEAKER_MIC;
+                 AHAL_DBG("tty_hco_mode:Device pairs:Speaker-Speaker_mic");
+               }
+            }
+            else {
+                 /* does not handle 3-pole wired headset */
+                 palDevices[0].id = PAL_DEVICE_IN_WIRED_HEADSET;
+            }
+        }
+        else {
             AHAL_ERR("Invalid device pair for the usecase");
+        }
     }
     if (session && session->tty_mode == PAL_TTY_VCO) {
         /**  device pairs for VCO usecase
           *  <headphones, handset-mic>
+          *  <usb-headset, handset-mic>
           *  <headphones, speaker-mic>
+          *  <usb-headset, speaker-mic>
           *  override devices accordingly.
           */
         if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_WIRED_HEADSET ||
-            pal_voice_rx_device_id_ == PAL_DEVICE_OUT_WIRED_HEADPHONE)
+            pal_voice_rx_device_id_ == PAL_DEVICE_OUT_WIRED_HEADPHONE ||
+            pal_voice_rx_device_id_ == PAL_DEVICE_OUT_USB_HEADSET)
             palDevices[0].id = PAL_DEVICE_IN_HANDSET_MIC;
-        else if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_SPEAKER)
-            palDevices[1].id = PAL_DEVICE_OUT_WIRED_HEADSET;
-        else
+        else if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_SPEAKER) {
+            if (adevice->usb_out_headset) {
+               if (adevice->usb_input_dev_enabled) {
+                   palDevices[0].id = PAL_DEVICE_IN_USB_HEADSET;
+               }
+               else {
+                   AHAL_DBG("3-pole USB Headset connected.No MIC");
+                   palDevices[0].id = PAL_DEVICE_IN_SPEAKER_MIC;
+                   AHAL_DBG("tty_vco_mode:Device pairs:Speaker-Speaker_mic");
+               }
+            } else {
+                /* does not handle 3-pole wired headset */
+                palDevices[1].id = PAL_DEVICE_OUT_WIRED_HEADSET;
+            }
+        }
+        else {
             AHAL_ERR("Invalid device pair for the usecase");
+        }
     }
 
     if (session && session->volume_boost) {

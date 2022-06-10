@@ -1447,6 +1447,7 @@ int AudioDevice::add_input_headset_if_usb_out_headset(int *device_count,
     for (int i = 0; i < count; i++) {
          if (*pal_device_ids[i] == PAL_DEVICE_OUT_USB_HEADSET) {
              is_usb_headset = true;
+             usb_out_headset = true;
              break;
          }
     }
@@ -1823,6 +1824,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                 }
                 AHAL_INFO("pal set param sucess for device disconnect");
             }
+            usb_out_headset = false;
             usb_input_dev_enabled = false;
             AHAL_DBG("usb_input_dev_enabled flag is cleared.");
         }
