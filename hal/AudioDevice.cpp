@@ -839,6 +839,7 @@ static int audio_source_supports_24bit_record(audio_source_t source) {
         case AUDIO_SOURCE_MIC:
         case AUDIO_SOURCE_CAMCORDER:
         case AUDIO_SOURCE_UNPROCESSED:
+        case AUDIO_SOURCE_VOICE_RECOGNITION:
             return true;
         default:
             return false;
