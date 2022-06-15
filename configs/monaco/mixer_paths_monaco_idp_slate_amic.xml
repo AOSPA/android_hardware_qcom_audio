@@ -24,11 +24,31 @@
 <!-- BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,  -->
 <!-- OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN -->
 <!-- IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                          -->
+
+<!---Changes from Qualcomm Innovation Center are provided under the following license: -->
+<!---Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.          -->
+<!---SPDX-License-Identifier: BSD-3-Clause-Clear                                       -->
+
 <mixer>
     <!-- These are the initial mixer settings -->
+    <ctl name="TX0_MIXER TX1_CAP" value="0" />
+    <ctl name="I2S0_D0_L_MUX" value="ZERO" />
+    <ctl name="TXCH1 Switch" value="0" />
+    <ctl name="TX1_INP_MUX" value="ZERO" />
+    <ctl name="TX0_MIXER TX0_CAP" value="0" />
+    <ctl name="I2S0_D0_R_MUX" value="ZERO" />
+    <ctl name="TXCH0 Switch" value="0" />
+    <ctl name="TX0_INP_MUX" value="ZERO" />
+
     <ctl name="CDC_RX0_MUX" value="ZERO" />
     <ctl name="RX0_SWITCH Switch" value="0" />
     <ctl name="SWR_DAC_PORT_0 Switch" value="0" />
+    <ctl name="SPKR_OUT_S Switch" value="0" />
+    <ctl name="VAD_OP_MODE" value="HW_VAD" />
+    <ctl name="AMIC_1_S Switch" value="0" />
+    <ctl name="AMIC_0_S Switch" value="0" />
+    <ctl name="BB_MIC_BIAS1" value="BIAS_OFF" />
+    <ctl name="BB_MIC_BIAS2" value="BIAS_OFF" />
 
     <!-- split a2dp -->
     <ctl name="BT SampleRate" value="KHZ_8" />
@@ -36,21 +56,33 @@
     <ctl name="SLIM7_RX ADM Channels" value="Zero" />
     <!-- split a2dp end-->
 
-    <!-- ADSP testfwk -->
-    <ctl name="RX_CDC_DMA_RX_0_DL_HL Switch" value="0" />
-    <!-- ADSP testfwk end-->
-
     <!-- These are actual sound device specific mixer settings -->
     <path name="amic1">
+        <ctl name="TX0_MIXER TX0_CAP" value="1" />
+        <ctl name="I2S0_D0_L_MUX" value="CDC_TX1" />
+        <ctl name="TXCH1 Switch" value="1" />
+        <ctl name="TX1_PGA_GAIN" value="205" />
+        <ctl name="TX1_INP_MUX" value="SWR_HQ1" />
+        <ctl name="AMIC_1_S Switch" value="1" />
+        <ctl name="BB_MIC_BIAS2" value="BIAS_ON" />
     </path>
 
     <path name="amic2">
+        <ctl name="TX0_MIXER TX1_CAP" value="1" />
+        <ctl name="I2S0_D0_R_MUX" value="CDC_TX0" />
+        <ctl name="TXCH0 Switch" value="1" />
+        <ctl name="TX0_PGA_GAIN" value="205" />
+        <ctl name="TX0_INP_MUX" value="SWR_HQ0" />
+        <ctl name="AMIC_0_S Switch" value="1" />
+        <ctl name="BB_MIC_BIAS1" value="BIAS_ON" />
     </path>
 
     <path name="speaker">
         <ctl name="CDC_RX0_MUX" value="I2S0_D2_L" />
         <ctl name="RX0_SWITCH Switch" value="1" />
         <ctl name="SWR_DAC_PORT_0 Switch" value="1" />
+        <ctl name="RX0_PGA_GAIN" value="169" />
+        <ctl name="SPKR_OUT_S Switch" value="1" />
     </path>
 
     <path name="speaker-protected">
@@ -81,6 +113,7 @@
 
     <path name="speaker-mic">
         <path name="amic1" />
+        <path name="amic2" />
     </path>
 
     <path name="speaker-mic-liquid">
@@ -96,6 +129,7 @@
 
     <path name="handset-mic">
         <path name="amic1" />
+        <path name="amic2" />
     </path>
 
     <path name="va-mic-mono">
@@ -105,6 +139,26 @@
     <path name="va-mic">
         <path name="amic1" />
         <path name="amic2" />
+    </path>
+
+    <path name="va-mic-mono-hw">
+         <path name="va-mic-mono" />
+         <ctl name="VAD_OP_MODE" value="HW_VAD" />
+    </path>
+
+    <path name="va-mic-mono-ld">
+         <path name="va-mic-mono" />
+         <ctl name="VAD_OP_MODE" value="LVL_DETECTOR" />
+    </path>
+
+    <path name="va-mic-hw">
+         <path name="va-mic" />
+         <ctl name="VAD_OP_MODE" value="HW_VAD" />
+    </path>
+
+    <path name="va-mic-ld">
+         <path name="va-mic" />
+         <ctl name="VAD_OP_MODE" value="LVL_DETECTOR" />
     </path>
 
     <path name="hph-highquality-mode">
@@ -196,7 +250,103 @@
     <path name="bt-sco-mic-swb">
     </path>
 
+    <path name="bt-sco">
+    </path>
+
+    <path name="bt-sco-wb">
+    </path>
+
+    <path name="bt-sco-swb">
+    </path>
+
+    <path name="bt-a2dp-mic">
+    </path>
+
     <path name="capture-fm">
+    </path>
+
+    <!-- Dual MIC devices -->
+    <path name="handset-amic-endfire">
+         <path name="amic1" />
+         <path name="amic2" />
+    </path>
+
+    <path name="speaker-amic-endfire">
+         <path name="amic1" />
+         <path name="amic2" />
+    </path>
+
+    <path name="amic-endfire">
+        <path name="handset-amic-endfire" />
+    </path>
+
+    <path name="amic-endfire-liquid">
+        <path name="handset-amic-endfire" />
+    </path>
+
+    <path name="handset-stereo-amic-ef">
+        <path name="handset-amic-endfire" />
+    </path>
+
+    <path name="speaker-stereo-amic-ef">
+        <path name="speaker-amic-endfire" />
+    </path>
+
+    <path name="voice-amic-ef-tmus">
+        <path name="amic-endfire" />
+    </path>
+
+    <path name="voice-amic-ef">
+        <path name="amic-endfire" />
+    </path>
+
+    <path name="voice-speaker-amic-ef">
+        <path name="speaker-amic-endfire" />
+    </path>
+
+    <path name="voice-rec-amic-ef">
+        <path name="amic-endfire" />
+    </path>
+
+    <path name="voice-rec-amic-ef-fluence">
+        <path name="amic-endfire" />
+    </path>
+
+    <path name="handset-stereo-amic-ef-liquid">
+        <path name="handset-amic-endfire" />
+    </path>
+
+    <path name="speaker-stereo-amic-ef-liquid">
+        <path name="speaker-amic-endfire" />
+    </path>
+
+    <path name="voice-amic-ef-liquid-liquid">
+        <path name="amic-endfire-liquid" />
+    </path>
+
+    <path name="voice-speaker-amic-ef-liquid">
+        <path name="amic-endfire-liquid" />
+    </path>
+
+    <path name="voice-rec-amic-ef-liquid">
+        <path name="amic-endfire-liquid" />
+    </path>
+
+    <path name="voice-rec-amic-ef-fluence-liquid">
+        <path name="amic-endfire-liquid" />
+    </path>
+
+    <path name="speaker-amic-broadside">
+         <path name="amic1" />
+         <path name="amic2" />
+    </path>
+
+    <path name="amic-broadside">
+        <path name="speaker-amic-broadside" />
+    </path>
+
+    <path name="voice-speaker-amic-broadside">
+        <path name="amic-broadside" />
     </path>
 
     <!-- TTY devices -->
@@ -228,7 +378,6 @@
 
     <!-- Added for ADSP testfwk -->
     <path name="ADSP testfwk">
-        <ctl name="RX_CDC_DMA_RX_0_DL_HL Switch" value="1" />
     </path>
 
     <path name="bt-a2dp">
