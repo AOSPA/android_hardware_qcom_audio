@@ -25,6 +25,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #define LOG_TAG "AHAL: Gain"
@@ -35,9 +39,19 @@
 
 extern "C" {
 
+#define CHECK_SERVICES_REGISTERED()                       \
+    ({                                                    \
+        if(!AudioExtn::isServiceRegistered()) {           \
+            AHAL_ERR("service not registered");           \
+            return 0;                                     \
+        }                                                 \
+    })
+
 __attribute__ ((visibility ("default")))
 int audio_hw_get_gain_level_mapping(struct pal_amp_db_and_gain_table *mapping_tbl,
                                       int table_size) {
+    CHECK_SERVICES_REGISTERED();
+
     int ret = 0;
     size_t payload_size = 0;
     pal_param_gain_lvl_map_t gain_lvl_map;
@@ -59,6 +73,8 @@ int audio_hw_get_gain_level_mapping(struct pal_amp_db_and_gain_table *mapping_tb
 
 __attribute__ ((visibility ("default")))
 bool audio_hw_send_gain_dep_calibration(int level) {
+    CHECK_SERVICES_REGISTERED();
+
     int32_t ret = 0;
     pal_param_gain_lvl_cal_t gain_lvl_cal;
     gain_lvl_cal.level = level;
@@ -73,6 +89,8 @@ bool audio_hw_send_gain_dep_calibration(int level) {
 
 __attribute__ ((visibility ("default")))
 bool audio_hw_send_linear_gain(int32_t gain) {
+    CHECK_SERVICES_REGISTERED();
+
     int32_t ret = 0;
     pal_param_mspp_linear_gain_t linear_gain;
     linear_gain.gain = gain;
