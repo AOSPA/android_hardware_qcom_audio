@@ -2587,8 +2587,10 @@ uint64_t StreamOutPrimary::GetFramesWritten(struct timespec *timestamp)
        *timestamp = writeAt;
     }
     if (this->GetUseCase() == USECASE_AUDIO_PLAYBACK_MMAP && (signed_frames > 0)) {
-        timestamp->tv_sec = (position.time_nanoseconds / 1000000000LL);
-        timestamp->tv_nsec = (position.time_nanoseconds % 1000000000LL);
+        if (timestamp != NULL) {
+            timestamp->tv_sec = (position.time_nanoseconds / 1000000000LL);
+            timestamp->tv_nsec = (position.time_nanoseconds % 1000000000LL);
+        }
     }
 
     AHAL_VERBOSE("signed frames %lld written frames %lld kernel frames %lld dsp frames %lld, bt extra frames %lld",
