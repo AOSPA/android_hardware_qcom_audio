@@ -77,9 +77,11 @@
 #include <audio_extn/AudioExtn.h>
 #include <mutex>
 #include <map>
+#include <unordered_map>
 
 #define LOW_LATENCY_PLATFORM_DELAY (13*1000LL)
 #define DEEP_BUFFER_PLATFORM_DELAY (29*1000LL)
+#define SPATIAL_AUDIO_PLATFORM_DELAY (13*1000LL)
 #define PCM_OFFLOAD_PLATFORM_DELAY (30*1000LL)
 #define MMAP_PLATFORM_DELAY        (3*1000LL)
 #define ULL_PLATFORM_DELAY         (4*1000LL)
@@ -87,6 +89,7 @@
 #define DEEP_BUFFER_OUTPUT_PERIOD_DURATION 40
 #define PCM_OFFLOAD_OUTPUT_PERIOD_DURATION 80
 #define LOW_LATENCY_OUTPUT_PERIOD_DURATION 5
+#define SPATIAL_AUDIO_OUTPUT_PERIOD_DURATION 10
 #define VOIP_PERIOD_COUNT_DEFAULT 2
 #define DEFAULT_VOIP_BUF_DURATION_MS 20
 #define DEFAULT_VOIP_BIT_DEPTH_BYTE sizeof(int16_t)
@@ -100,6 +103,9 @@
 #define DEEP_BUFFER_PLAYBACK_PERIOD_COUNT 2 /** Deep Buffer*/
 
 #define DEEP_BUFFER_PLAYBACK_PERIOD_SIZE 1920 /** 40ms; frames */
+
+#define SPATIAL_PLAYBACK_PERIOD_SIZE 480 /** 10 ms; frames */
+#define SPATIAL_PLAYBACK_PERIOD_COUNT 2
 
 #define ULL_PERIOD_SIZE (DEFAULT_OUTPUT_SAMPLING_RATE / 1000) /** 1ms; frames */
 #define ULL_PERIOD_COUNT_DEFAULT 512
@@ -160,6 +166,7 @@ enum {
     /* Playback usecases */
     USECASE_AUDIO_PLAYBACK_DEEP_BUFFER = 0,
     USECASE_AUDIO_PLAYBACK_LOW_LATENCY,
+    USECASE_AUDIO_PLAYBACK_SPATIAL,
     USECASE_AUDIO_PLAYBACK_MULTI_CH,
     USECASE_AUDIO_PLAYBACK_OFFLOAD,
     USECASE_AUDIO_PLAYBACK_OFFLOAD2,
@@ -350,7 +357,10 @@ const uint32_t format_to_bitwidth_table[] = {
     [AUDIO_FORMAT_PCM_8_24_BIT] = 32,
     [AUDIO_FORMAT_PCM_FLOAT] = sizeof(float) * 8,
     [AUDIO_FORMAT_PCM_24_BIT_PACKED] = 24,
-    [AUDIO_FORMAT_AAC_LC] = 16,
+};
+
+const std::unordered_map<uint32_t, uint32_t> compressRecordBitWidthTable {
+    {AUDIO_FORMAT_AAC_LC, 16},
 };
 
 const std::map<uint32_t, uint32_t> getAlsaSupportedFmt {
@@ -365,6 +375,7 @@ const std::map<uint32_t, uint32_t> getAlsaSupportedFmt {
 const char * const use_case_table[AUDIO_USECASE_MAX] = {
     [USECASE_AUDIO_PLAYBACK_DEEP_BUFFER] = "deep-buffer-playback",
     [USECASE_AUDIO_PLAYBACK_LOW_LATENCY] = "low-latency-playback",
+    [USECASE_AUDIO_PLAYBACK_SPATIAL] = "spatial-audio-playback",
     [USECASE_AUDIO_PLAYBACK_WITH_HAPTICS] = "audio-with-haptics-playback",
     [USECASE_AUDIO_PLAYBACK_ULL]         = "audio-ull-playback",
     [USECASE_AUDIO_PLAYBACK_MULTI_CH]    = "multi-channel-playback",
@@ -581,6 +592,7 @@ protected:
     uint16_t mchannels;
     std::shared_ptr<audio_stream_out>   stream_;
     uint64_t mBytesWritten; /* total bytes written, not cleared when entering standby */
+    uint64_t mCachedPosition = 0; /* cache pcm offload position when entering standby */
     offload_effects_start_output fnp_offload_effect_start_output_ = nullptr;
     offload_effects_stop_output fnp_offload_effect_stop_output_ = nullptr;
     visualizer_hal_start_output fnp_visualizer_start_output_ = nullptr;

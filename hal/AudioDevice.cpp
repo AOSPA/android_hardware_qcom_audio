@@ -764,6 +764,14 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
         ret = -ENODEV;
         goto exit;
     }
+    /* On error AAudioService will retry with supported format passed
+     */
+    if ((flags & AUDIO_OUTPUT_FLAG_MMAP_NOIRQ) &&
+        config->format == AUDIO_FORMAT_PCM_FLOAT) {
+        AHAL_ERR("unsupported format: %#x", config->format);
+        ret = -EINVAL;
+        goto exit;
+    }
 
     astream = adevice->OutGetStream(handle);
     if (astream == nullptr) {
@@ -823,6 +831,21 @@ void adev_close_input_stream(struct audio_hw_device *dev,
     AHAL_DBG("Exit");
 }
 
+/*
+ *  Add 24bit recording support for MIC, CAMCORDER, UNPROCESSED input sources.
+*/
+static int audio_source_supports_24bit_record(audio_source_t source) {
+    switch(source) {
+        case AUDIO_SOURCE_MIC:
+        case AUDIO_SOURCE_CAMCORDER:
+        case AUDIO_SOURCE_UNPROCESSED:
+        case AUDIO_SOURCE_VOICE_RECOGNITION:
+            return true;
+        default:
+            return false;
+    }
+}
+
 static int adev_open_input_stream(struct audio_hw_device *dev,
                                   audio_io_handle_t handle,
                                   audio_devices_t devices,
@@ -832,8 +855,8 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
                                   const char *address,
                                   audio_source_t source) {
     int32_t ret = 0;
-    bool ret_error = false;
     std::shared_ptr<StreamInPrimary> astream = nullptr;
+    audio_format_t inputFormat = config->format;
     AHAL_DBG("enter: sample_rate(%d) channel_mask(%#x) devices(%#x)\
         io_handle(%d) source(%d) format %x", config->sample_rate,
         config->channel_mask, devices, handle, source, config->format);
@@ -844,23 +867,21 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
         goto exit;
     }
 
-    /*  Add 24bit support for UNPROCESSED/MIC/CAMCORDER source,
-     *  In case of any source requesting 32 bit or float return error
+    /*  In case of any source requesting 32 bit or float return error
      *  indicating format supported is up to 24 bit only.
-     *  On error flinger will retry with supported format passed
+     *  On error AudioFlinger will retry with supported format passed.
      */
+    if (config->format == AUDIO_FORMAT_PCM_FLOAT ||
+        config->format == AUDIO_FORMAT_PCM_32_BIT) {
+        config->format = AUDIO_FORMAT_PCM_24_BIT_PACKED;
+        ret = -EINVAL;
+    }
+
     switch (config->format) {
-        case AUDIO_FORMAT_PCM_FLOAT:
-        case AUDIO_FORMAT_PCM_32_BIT:
-            config->format = AUDIO_FORMAT_PCM_24_BIT_PACKED;
-            ret = -EINVAL;
-            break;
         case AUDIO_FORMAT_PCM_24_BIT_PACKED:
         case AUDIO_FORMAT_PCM_8_24_BIT:
-            if (source == AUDIO_SOURCE_UNPROCESSED ||
-                source == AUDIO_SOURCE_CAMCORDER ||
-                source == AUDIO_SOURCE_MIC) {
-                AHAL_DBG("go on setting format %d for input source %d", config->format, source);
+            if (audio_source_supports_24bit_record(source)) {
+                AHAL_DBG("set format %d for input source %d", config->format, source);
             } else {
                 config->format = AUDIO_FORMAT_PCM_16_BIT;
                 ret = -EINVAL;
@@ -869,8 +890,10 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
         default:
             break;
     }
+
     if (ret != 0) {
-        AHAL_ERR("unsupported format %d, input source %d", config->format, source);
+        AHAL_ERR("unsupported input format %d, fallback format %d input source %d", inputFormat,
+                config->format, source);
         if (config->sample_rate > 48000)
             config->sample_rate = 48000;
         goto exit;
@@ -1566,6 +1589,8 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                     if ((dynamic_media_config.sample_rate == 0 && dynamic_media_config.format == 0 &&
                             dynamic_media_config.mask == 0) || (dynamic_media_config.jack_status == false))
                         usb_input_dev_enabled = false;
+                    else
+                        usb_input_dev_enabled = true;
                     free(device_cap_query);
                 } else {
                     AHAL_ERR("Failed to allocate mem for device_cap_query");
@@ -1985,9 +2010,11 @@ int AudioDevice::SetParameters(const char *kvpairs) {
             sizeof(pal_param_bta2dp_t));
     }
 
-    str_parms_destroy(parms);
 
 exit:
+    if (parms)
+        str_parms_destroy(parms);
+
     AHAL_DBG("exit: %s", kvpairs);
     return 0;
 }
