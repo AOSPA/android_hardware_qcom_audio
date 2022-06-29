@@ -771,7 +771,7 @@ int AudioExtn::karaoke_close(){
 
 int AudioExtn::audio_extn_hidl_init() {
 
-    int num_threads = 32;
+    int num_threads = 48;
 #ifdef PAL_HIDL_ENABLED
    /* register audio PAL HIDL */
     sp<IPAL> service = new PAL();
@@ -785,7 +785,6 @@ int AudioExtn::audio_extn_hidl_init() {
         return -EINVAL;
     } else {
         AHAL_DBG("successfully registered PAL service");
-        num_threads += 16;
     }
 #endif
 
