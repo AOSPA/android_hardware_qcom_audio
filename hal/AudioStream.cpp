@@ -2036,7 +2036,7 @@ int StreamOutPrimary::Pause() {
     // VOIP RX is specified to direct output in qcom audio policy config,
     // which doesn't need pause/resume actually.
     if (streamAttributes_.type == PAL_STREAM_VOIP_RX) {
-        AHAL_DBG("no need to pause for VOIP RX: %d");
+        AHAL_DBG("no need to pause for VOIP RX:");
         ret = -1;
         goto exit;
     }
@@ -2573,7 +2573,7 @@ uint64_t StreamOutPrimary::GetFramesWritten(struct timespec *timestamp)
             AHAL_INFO("mmap position is %d", position.position_frames);
             signed_frames = position.position_frames -
               (MMAP_PLATFORM_DELAY * (streamAttributes_.out_media_config.sample_rate) / 1000000LL);
-            AHAL_INFO("mmap signed frames %d", signed_frames);
+            AHAL_INFO("mmap signed frames %llu", signed_frames);
         }
     }
 
