@@ -122,7 +122,6 @@ ifeq ($(TARGET_SUPPORTS_DS),true)
 AUDIO_USE_POWER_STATE_MONITOR := true
 endif
 
-AUDIO_HARDWARE := audio.a2dp.default
 AUDIO_HARDWARE += audio.usb.default
 AUDIO_HARDWARE += audio.r_submix.default
 AUDIO_HARDWARE += audio.primary.monaco
@@ -430,10 +429,6 @@ ro.bluetooth.a2dp_offload.supported=true
 # Disable A2DP offload
 PRODUCT_PROPERTY_OVERRIDES += \
 persist.bluetooth.a2dp_offload.disabled=false
-
-# A2DP offload DSP supported encoder list
-PRODUCT_PROPERTY_OVERRIDES += \
-persist.bluetooth.a2dp_offload.cap=sbc-aac-aptx-aptxhd-ldac
 
 #enable software decoders for ALAC and APE
 PRODUCT_PROPERTY_OVERRIDES += \
