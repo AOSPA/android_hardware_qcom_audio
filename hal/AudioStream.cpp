@@ -653,7 +653,7 @@ static int astream_dump(const struct audio_stream *stream, int fd) {
     AHAL_DBG("dump function not implemented");
     return 0;
 }
-
+#ifdef USEHIDL7_1
 static int astream_set_latency_mode(struct audio_stream_out *stream, audio_latency_mode_t mode) {
     std::ignore = stream;
     std::ignore = mode;
@@ -675,6 +675,7 @@ static int astream_set_latency_mode_callback(struct audio_stream_out *stream,
     std::ignore = cookie;
     return -ENOSYS;
 }
+#endif
 
 static uint32_t astream_get_latency(const struct audio_stream_out *stream) {
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
@@ -1894,9 +1895,11 @@ int StreamOutPrimary::FillHalFnPtrs() {
     stream_.get()->flush = astream_flush;
     stream_.get()->set_callback = astream_set_callback;
     stream_.get()->update_source_metadata_v7 = out_update_source_metadata_v7;
+#ifdef USEHIDL7_1
     stream_.get()->set_latency_mode = astream_set_latency_mode;
     stream_.get()->get_recommended_latency_modes = astream_get_recommended_latency_modes;
     stream_.get()->set_latency_mode_callback = astream_set_latency_mode_callback;
+#endif
     return ret;
 }
 

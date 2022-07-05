@@ -1195,7 +1195,9 @@ int AudioDevice::Init(hw_device_t **device, const hw_module_t *module) {
     adev_->device_.get()->set_audio_port_config = adev_set_audio_port_config;
     adev_->device_.get()->dump = adev_dump;
     adev_->device_.get()->get_microphones = adev_get_microphones;
+#ifdef USEHIDL7_1
     adev_->device_.get()->set_device_connected_state_v7 = adev_set_device_connected_state_v7;
+#endif
     adev_->device_.get()->common.module = (struct hw_module_t *)module;
     *device = &(adev_->device_.get()->common);
 
@@ -2157,8 +2159,9 @@ void AudioDevice::FillAndroidDeviceMap() {
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_USB_HEADSET, PAL_DEVICE_OUT_USB_HEADSET));
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_DEFAULT, PAL_DEVICE_OUT_SPEAKER));
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_HEARING_AID, PAL_DEVICE_OUT_HEARING_AID));
+#ifdef USEHILD7_1
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_OUT_BLE_BROADCAST, PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST));
-
+#endif
     /* go through all in devices and pushback */
 
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_BUILTIN_MIC, PAL_DEVICE_IN_HANDSET_MIC));

@@ -1,6 +1,6 @@
 LOCAL_PATH := $(call my-dir)
 
-LOCAL_AUDIO_SERVICE_64 := taro kalama
+LOCAL_AUDIO_SERVICE_64 := taro kalama anorak
 
 include $(CLEAR_VARS)
 ifeq ($(call is-board-platform-in-list,$(LOCAL_AUDIO_SERVICE_64)), true)
@@ -43,6 +43,10 @@ LOCAL_CFLAGS += -Wno-shorten-64-to-32
 LOCAL_CFLAGS += -Wno-tautological-compare
 LOCAL_CFLAGS += -Wno-unused-function
 LOCAL_CFLAGS += -Wno-unused-local-typedef
+ifneq ($(filter 12 S, $(PLATFORM_VERSION)),)
+LOCAL_C_FLAGS += -DUSEHIDL7_1
+endif
+
 LOCAL_CPPFLAGS += -fexceptions
 
 LOCAL_C_INCLUDES += \
