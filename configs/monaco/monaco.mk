@@ -10,6 +10,10 @@ endif
 ifneq ($(AUDIO_USE_STUB_HAL), true)
 BOARD_USES_ALSA_AUDIO := true
 
+ifeq ($(TARGET_SUPPORTS_WEAR_ANDROID), true)
+AUDIO_FEATURE_ENABLED_CODEC_2_0 := true
+endif
+
 ifneq ($(TARGET_USES_AOSP_FOR_AUDIO), true)
 USE_CUSTOM_AUDIO_POLICY := 1
 AUDIO_FEATURE_QSSI_COMPLIANCE := true
@@ -35,6 +39,9 @@ AUDIO_FEATURE_ENABLED_MPEGH_SW_DECODER := true
 AUDIO_FEATURE_ENABLED_PROXY_DEVICE := true
 AUDIO_FEATURE_ENABLED_SSR := true
 AUDIO_FEATURE_ENABLED_DTS_EAGLE := false
+ifeq ($(AUDIO_FEATURE_ENABLED_CODEC_2_0), true)
+AUDIO_FEATURE_ENABLED_PAL_HIDL := true
+endif
 BOARD_USES_SRS_TRUEMEDIA := false
 DTS_CODEC_M_ := false
 MM_AUDIO_ENABLED_SAFX := true
@@ -83,6 +90,10 @@ AUDIO_FEATURE_ENABLED_SND_MONITOR := true
 AUDIO_FEATURE_ENABLED_USB_BURST_MODE := true
 AUDIO_FEATURE_ENABLED_SVA_MULTI_STAGE := true
 AUDIO_FEATURE_ENABLED_BATTERY_LISTENER := true
+ifeq ($(TARGET_SUPPORTS_WEAR_AON),true)
+AUDIO_FEATURE_ENABLE_BT_A2DP_LPI := true
+AUDIO_FEATURE_ENABLED_MCS := true
+endif
 ##AUDIO_FEATURE_FLAGS
 #AGM
 AUDIO_AGM := libagmclient
@@ -101,19 +112,46 @@ AUDIO_AGM += libagm_compress_plugin
 
 #PAL Module
 AUDIO_PAL := libar-pal
-AUDIO_PAL += lib_bt_bundle
 AUDIO_PAL += catf
+AUDIO_PAL += libaudiochargerlistener
+AUDIO_PAL += lib_bt_bundle
 AUDIO_PAL += lib_bt_aptx
+AUDIO_PAL += lib_bt_ble
 BOARD_SUPPORTS_OPENSOURCE_STHAL := true
+ifeq ($(TARGET_SUPPORTS_DS),true)
+AUDIO_USE_POWER_STATE_MONITOR := true
+endif
 
-AUDIO_HARDWARE := audio.a2dp.default
 AUDIO_HARDWARE += audio.usb.default
 AUDIO_HARDWARE += audio.r_submix.default
 AUDIO_HARDWARE += audio.primary.monaco
+AUDIO_HARDWARE += libhfp_pal
 
 #HAL Wrapper
 AUDIO_WRAPPER := libqahw
 AUDIO_WRAPPER += libqahwwrapper
+
+ifeq ($(AUDIO_FEATURE_ENABLED_CODEC_2_0), true)
+#PAL Service
+AUDIO_PAL += libpalclient
+AUDIO_PAL += vendor.qti.hardware.pal@1.0-impl
+
+# C2 Audio
+AUDIO_C2 := libqc2audio_base
+AUDIO_C2 += libqc2audio_utils
+AUDIO_C2 += libqc2audio_platform
+AUDIO_C2 += libqc2audio_core
+AUDIO_C2 += libqc2audio_basecodec
+AUDIO_C2 += libqc2audio_hooks
+AUDIO_C2 += libqc2audio_swaudiocodec
+AUDIO_C2 += libqc2audio_swaudiocodec_data_common
+AUDIO_C2 += libqc2audio_hwaudiocodec
+AUDIO_C2 += libqc2audio_hwaudiocodec_data_common
+AUDIO_C2 += vendor.qti.media.c2audio@1.0-service
+AUDIO_C2 += qc2audio_test
+AUDIO_C2 += libEvrcSwCodec
+AUDIO_C2 += libQcelp13SwCodec
+endif
 
 #HAL Test app
 AUDIO_HAL_TEST_APPS := hal_play_test
@@ -122,20 +160,26 @@ AUDIO_HAL_TEST_APPS += hal_rec_test
 PRODUCT_PACKAGES += $(AUDIO_HARDWARE)
 PRODUCT_PACKAGES += $(AUDIO_WRAPPER)
 PRODUCT_PACKAGES += $(AUDIO_HAL_TEST_APPS)
-ifeq ($(TARGET_SUPPORTS_WEAR_AON),true)
- PRODUCT_PACKAGES += IDP_acdb_cal_monaco_slate.acdb
- PRODUCT_PACKAGES += IDP_workspaceFileXml_monaco_slate.qwsp
- PRODUCT_PACKAGES += IDP_acdb_cal_monaco_slate_amic.acdb
- PRODUCT_PACKAGES += IDP_workspaceFileXml_monaco_slate_amic.qwsp
- PRODUCT_PACKAGES += IDP_acdb_cal_monaco_slate_wsa.acdb
- PRODUCT_PACKAGES += IDP_workspaceFileXml_monaco_slate_wsa.qwsp
-else
- PRODUCT_PACKAGES += IDP_acdb_cal_monaco.acdb
- PRODUCT_PACKAGES += IDP_workspaceFileXml_monaco.qwsp
- PRODUCT_PACKAGES += IDP_acdb_cal_monaco_amic.acdb
- PRODUCT_PACKAGES += IDP_workspaceFileXml_monaco_amic.qwsp
- PRODUCT_PACKAGES += IDP_acdb_cal_monaco_wsa.acdb
- PRODUCT_PACKAGES += IDP_workspaceFileXml_monaco_wsa.qwsp
+PRODUCT_PACKAGES += ftm_test_config
+
+PRODUCT_PACKAGES += IDP_acdb_cal_monaco_slate.acdb
+PRODUCT_PACKAGES += IDP_workspaceFileXml_monaco_slate.qwsp
+PRODUCT_PACKAGES += IDP_acdb_cal_monaco_slate_amic.acdb
+PRODUCT_PACKAGES += IDP_workspaceFileXml_monaco_slate_amic.qwsp
+PRODUCT_PACKAGES += IDP_acdb_cal_monaco_slate_wsa.acdb
+PRODUCT_PACKAGES += IDP_workspaceFileXml_monaco_slate_wsa.qwsp
+PRODUCT_PACKAGES += fai__2.6.0_0.0__3.0.0_0.0__eai_1.10.pmd
+PRODUCT_PACKAGES += fai__3.0.0_0.0__eai_1.10.pmd
+
+PRODUCT_PACKAGES += IDP_acdb_cal_monaco.acdb
+PRODUCT_PACKAGES += IDP_workspaceFileXml_monaco.qwsp
+PRODUCT_PACKAGES += IDP_acdb_cal_monaco_amic.acdb
+PRODUCT_PACKAGES += IDP_workspaceFileXml_monaco_amic.qwsp
+PRODUCT_PACKAGES += IDP_acdb_cal_monaco_wsa.acdb
+PRODUCT_PACKAGES += IDP_workspaceFileXml_monaco_wsa.qwsp
+
+ifeq ($(strip $(AUDIO_FEATURE_ENABLED_MCS)), true)
+ PRODUCT_PACKAGES += libmcs
 endif
 
 ifeq ($(AUDIO_FEATURE_ENABLED_DLKM),true)
@@ -212,6 +256,9 @@ DEVICE_PACKAGE_OVERLAYS += vendor/qcom/opensource/audio-hal/primary-hal/configs/
 endif
 PRODUCT_PACKAGES += $(AUDIO_AGM)
 PRODUCT_PACKAGES += $(AUDIO_PAL)
+ifeq ($(AUDIO_FEATURE_ENABLED_CODEC_2_0), true)
+PRODUCT_PACKAGES += $(AUDIO_C2)
+endif
 
 PRODUCT_COPY_FILES += \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/monaco/audio_io_policy.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_io_policy.conf \
@@ -226,7 +273,6 @@ PRODUCT_COPY_FILES += \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/monaco/audio_configs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_configs.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/monaco/audio_configs_stock.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_configs_stock.xml \
     frameworks/native/data/etc/android.hardware.audio.pro.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.pro.xml \
-    frameworks/native/data/etc/android.hardware.audio.low_latency.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.low_latency.xml \
     vendor/qcom/opensource/pal/configs/monaco/resourcemanager_monaco_idp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_monaco_idp.xml \
     vendor/qcom/opensource/pal/configs/monaco/resourcemanager_monaco_idp_amic.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_monaco_idp_amic.xml \
     vendor/qcom/opensource/pal/configs/monaco/resourcemanager_monaco_idp_wsa.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_monaco_idp_wsa.xml \
@@ -236,19 +282,41 @@ PRODUCT_COPY_FILES += \
     vendor/qcom/opensource/pal/configs/monaco/usecaseKvManager.xml:$(TARGET_COPY_OUT_VENDOR)/etc/usecaseKvManager.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/monaco/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml
 
+ifeq ($(AUDIO_FEATURE_ENABLED_MCS),true)
+PRODUCT_COPY_FILES += \
+    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/monaco/mcs_defs_monaco_idp_slate.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mcs_defs_monaco_idp_slate.xml
+endif
+
 #XML Audio configuration files
-ifneq ($(TARGET_USES_AOSP_FOR_AUDIO), true)
+ifeq ($(TARGET_SUPPORTS_WEAR_ANDROID), true)
 PRODUCT_COPY_FILES += \
     $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/monaco/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/audio_policy_configuration.xml
 endif
+ifeq ($(TARGET_SUPPORTS_WEAR_OS), true)
 PRODUCT_COPY_FILES += \
-    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
+    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/monaco/audio_policy_configuration_lw.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
+else
+PRODUCT_COPY_FILES += \
+    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
+endif
+PRODUCT_COPY_FILES += \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/a2dp_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/a2dp_audio_policy_configuration.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_volumes.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/default_volume_tables.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/r_submix_audio_policy_configuration.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/usb_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/usb_audio_policy_configuration.xml \
     $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/bluetooth_qti_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/bluetooth_qti_audio_policy_configuration.xml
+
+# C2 Audio files
+ifeq ($(AUDIO_FEATURE_ENABLED_CODEC_2_0), true)
+PRODUCT_COPY_FILES += \
+    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/monaco/media_codecs_c2_audio.xml:vendor/etc/media_codecs_c2_audio.xml \
+    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/media_codecs_vendor_audio.xml:vendor/etc/media_codecs_vendor_audio.xml \
+    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/codec2/service/1.0/c2audio.vendor.base-arm.policy:vendor/etc/seccomp_policy/c2audio.vendor.base-arm.policy \
+    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/codec2/service/1.0/c2audio.vendor.base-arm64.policy:vendor/etc/seccomp_policy/c2audio.vendor.base-arm64.policy \
+    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/codec2/service/1.0/c2audio.vendor.ext-arm.policy:vendor/etc/seccomp_policy/c2audio.vendor.ext-arm.policy \
+    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/codec2/service/1.0/c2audio.vendor.ext-arm64.policy:vendor/etc/seccomp_policy/c2audio.vendor.ext-arm64.policy
+endif
 
 # Low latency audio buffer size in frames
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -362,10 +430,6 @@ ro.bluetooth.a2dp_offload.supported=true
 PRODUCT_PROPERTY_OVERRIDES += \
 persist.bluetooth.a2dp_offload.disabled=false
 
-# A2DP offload DSP supported encoder list
-PRODUCT_PROPERTY_OVERRIDES += \
-persist.bluetooth.a2dp_offload.cap=sbc-aac-aptx-aptxhd-ldac
-
 #enable software decoders for ALAC and APE
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.use.sw.alac.decoder=true
@@ -379,6 +443,17 @@ vendor.audio.use.sw.mpegh.decoder=true
 #enable hw aac encoder by default
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.hw.aac.encoder=false
+
+#offload minimum duration set to 30sec
+PRODUCT_PRODUCT_PROPERTIES += \
+audio.offload.min.duration.secs=30
+
+#Set AudioFlinger client heap size
+PRODUCT_PRODUCT_PROPERTIES += \
+ro.af.client_heap_size_kbyte=7168
+
+PRODUCT_PRODUCT_PROPERTIES += \
+af.fast_track_multiplier=1
 
 #Set HAL buffer size to samples equal to 3 ms
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -399,6 +474,26 @@ vendor.audio.volume.headset.gain.depcal=true
 #enable dualmic fluence for voice communication
 PRODUCT_PROPERTY_OVERRIDES += \
 persist.vendor.audio.fluence.voicecomm=true
+
+ifeq ($(AUDIO_FEATURE_ENABLED_CODEC_2_0), true)
+#enable c2 based encoders/decoders as default NT decoders/encoders
+PRODUCT_PROPERTY_OVERRIDES += \
+vendor.audio.c2.preferred=true
+
+#Enable dmaBuf heap usage by C2 components
+PRODUCT_PROPERTY_OVERRIDES += \
+debug.c2.use_dmabufheaps=1
+
+#Enable qc2 audio sw flac frame decode
+PRODUCT_PROPERTY_OVERRIDES += \
+vendor.qc2audio.per_frame.flac.dec.enabled=true
+
+ifneq ($(GENERIC_ODM_IMAGE),true)
+$(warning "Enabling codec2.0 SW only for non-generic odm build variant")
+#Rank OMX SW codecs lower than OMX HW codecs
+PRODUCT_PROPERTY_OVERRIDES += debug.stagefright.omx_default_rank=0
+endif
+endif
 endif
 
 USE_XML_AUDIO_POLICY_CONF := 1
