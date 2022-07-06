@@ -24,6 +24,11 @@
 <!-- BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,  -->
 <!-- OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN -->
 <!-- IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                          -->
+
+<!---Changes from Qualcomm Innovation Center are provided under the following license: -->
+<!---Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.          -->
+<!---SPDX-License-Identifier: BSD-3-Clause-Clear                                       -->
+
 <mixer>
     <!-- These are the initial mixer settings -->
     <ctl name="Voice Rx Device Mute" id="0" value="0" />
@@ -420,20 +425,30 @@
     <path name="bt-sco-mic-swb">
     </path>
 
+    <path name="bt-sco">
+    </path>
+
+    <path name="bt-sco-wb">
+    </path>
+
+    <path name="bt-sco-swb">
+    </path>
+
+    <path name="bt-a2dp-mic">
+    </path>
+
     <path name="capture-fm">
     </path>
 
     <!-- Dual MIC devices -->
     <path name="handset-dmic-endfire">
         <path name="dmic3" />
-        <path name="dmic4" />
-        <ctl name="TX_DEC1 Volume" value="84" />
+        <path name="dmic1" />
     </path>
 
     <path name="speaker-dmic-endfire">
         <path name="dmic3" />
-        <path name="dmic4" />
-        <ctl name="TX_DEC1 Volume" value="84" />
+        <path name="dmic1" />
     </path>
 
     <path name="dmic-endfire">
@@ -500,7 +515,7 @@
 
     <path name="speaker-dmic-broadside">
         <path name="dmic3" />
-        <path name="dmic4" />
+        <path name="dmic1" />
     </path>
 
     <path name="dmic-broadside">
