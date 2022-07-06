@@ -56,6 +56,14 @@ AC_ARG_ENABLE(target,
                [TARGET_SUPPORT=none]
 )
 
+AC_ARG_WITH(hal-path,
+        AS_HELP_STRING([--with-hal-path=DIR], [Specify the HAL modules location in run time]),
+        [HAL_PATH="$withval"],
+        [HAL_PATH="no"])
+
+AM_CONDITIONAL([HAL_PATH_SPECIFIED], [test "x${HAL_PATH}" != "xno"])
+AC_SUBST(HAL_PATH)
+
 if (test "x${with_glib}" = "xyes"); then
         PKG_CHECK_MODULES(GTHREAD, gthread-2.0 >= 2.16, dummy=yes,
                                 AC_MSG_ERROR(GThread >= 2.16 is required))
@@ -106,7 +114,7 @@ fi
 if (test x$TARGET_SUPPORT = xsdmsteppe); then
          AC_SUBST([TARGET_PLATFORM], ["msm8974"])
          TARGET_CFLAGS="-DPLATFORM_MSMSTEPPE"
-         TARGET_CFLAGS+=" -DMAX_TARGET_SPECIFIC_CHANNEL_CNT=\"4\""
+         TARGET_CFLAGS+=" -DMAX_TARGET_SPECIFIC_CHANNEL_CNT=\"16\""
          TARGET_CFLAGS+=" -DINCALL_STEREO_CAPTURE_ENABLED"
 fi
 if (test x$TARGET_SUPPORT = xqrbx210); then

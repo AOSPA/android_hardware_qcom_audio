@@ -141,6 +141,7 @@ MM_AUDIO += capi_v2_sumx
 MM_AUDIO += capi_v2_synth
 MM_AUDIO += capi_v2_avc
 MM_AUDIO += capi_v2_asrc
+MM_AUDIO += capi_v2_ecmx
 MM_AUDIO += icc_module.so.1
 MM_AUDIO += sec_module.so.1
 MM_AUDIO += audio-nxp-auto
@@ -201,7 +202,7 @@ PRODUCT_PACKAGES_DEBUG += $(MM_AUDIO_DBG)
 # audio specific
 # ------
 TARGET_USES_AOSP := true
-TARGET_USES_AOSP_FOR_AUDIO := true
+TARGET_USES_AOSP_FOR_AUDIO := false
 
 # sdm845 specific rules
 ifeq ($(TARGET_BOARD_PLATFORM),sdm845)
