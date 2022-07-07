@@ -1157,7 +1157,11 @@ int AudioDevice::Init(hw_device_t **device, const hw_module_t *module) {
      * pal_init() depends on AGM, so need to initialize
      * hidl interface before calling to pal_init()
      */
-    AudioExtn::audio_extn_hidl_init();
+    ret = AudioExtn::audio_extn_hidl_init();
+    if (ret) {
+        AHAL_ERR("audio_extn_hidl_init failed ret=(%d)", ret);
+        return ret;
+    }
 
     ret = pal_init();
     if (ret) {
