@@ -578,9 +578,9 @@ int AudioDevice::CreateAudioPatch(audio_patch_handle_t *handle,
         patch->sinks = sinks;
     }
 
-    ret = stream->RouteStream(device_types);
     if (voice_ && patch_type == AudioPatch::PATCH_PLAYBACK)
-        ret |= voice_->RouteStream(device_types);
+        ret = voice_->RouteStream(device_types);
+    ret |= stream->RouteStream(device_types);
 
     if (ret) {
         if (new_patch)
@@ -1031,6 +1031,15 @@ static size_t adev_get_input_buffer_size(
 
     size_t size = 0;
     uint32_t bytes_per_period_sample = 0;
+
+    /* input for compress formats */
+    if (config && !audio_is_linear_pcm(config->format)) {
+        if (config->format == AUDIO_FORMAT_AAC_LC) {
+            return COMPRESS_CAPTURE_AAC_MAX_OUTPUT_BUFFER_SIZE;
+        }
+        return 0;
+    }
+
     if (config != NULL) {
         int channel_count = audio_channel_count_from_in_mask(config->channel_mask);
 
@@ -1408,7 +1417,7 @@ int AudioDevice::add_input_headset_if_usb_out_headset(int *device_count,
 
 int AudioDevice::SetParameters(const char *kvpairs) {
     int ret = 0, val = 0;
-    struct str_parms *parms;
+    struct str_parms *parms = NULL;
     char value[256];
     int pal_device_count = 0;
     pal_device_id_t* pal_device_ids = NULL;
@@ -1431,7 +1440,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
     if (!parms) {
         AHAL_ERR("Error in str_parms_create_str");
         ret = 0;
-        goto exit;
+        return ret;
     }
     AudioExtn::audio_extn_set_parameters(adev_, parms);
 
@@ -1765,6 +1774,8 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                 }
                 AHAL_INFO("pal set param sucess for device disconnect");
             }
+            usb_input_dev_enabled = false;
+            AHAL_DBG("usb_input_dev_enabled flag is cleared.");
         }
     }
 
