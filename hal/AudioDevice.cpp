@@ -676,6 +676,9 @@ std::shared_ptr<StreamInPrimary> AudioDevice::CreateStreamIn(
     stream_in_list_.push_back(astream);
     in_list_mutex.unlock();
     AHAL_DBG("input stream %d %p",(int)stream_in_list_.size(), stream_in);
+    if (voice_) {
+        voice_->stream_in_primary_ = astream;
+    }
     return astream;
 }
 

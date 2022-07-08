@@ -578,6 +578,8 @@ public:
     int RouteStream(const std::set<audio_devices_t>&, bool force_device_switch = false);
     ssize_t splitAndWriteAudioHapticsStream(const void *buffer, size_t bytes);
     bool period_size_is_plausible_for_low_latency(int period_size);
+    static source_metadata_t btSourceMetadata;
+    static std::vector<playback_track_metadata_t> tracks;
 protected:
     struct timespec writeAt;
     int get_compressed_buffer_size();
@@ -653,6 +655,8 @@ public:
     int64_t GetSourceLatency(audio_input_flags_t halStreamFlags);
     uint64_t GetFramesRead(int64_t *time);
     int GetPalDeviceIds(pal_device_id_t *palDevIds, int *numPalDevs);
+    static sink_metadata_t btSinkMetadata;
+    static std::vector<record_track_metadata_t> tracks;
 protected:
     struct timespec readAt;
     uint32_t fragments_ = 0;
