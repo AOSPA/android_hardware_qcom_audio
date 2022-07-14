@@ -11,7 +11,6 @@ ifneq ($(TARGET_IS_HEADLESS),true)
 #AGM
 AUDIO_AGM := libagmclient
 AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-impl
-#not needed for kalama products
 #AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-service
 AUDIO_AGM += libagm
 AUDIO_AGM += agmplay
@@ -68,16 +67,14 @@ AUDIO_TEST += osal_in_test_example
 AUDIO_MODULES := audio.usb.default
 AUDIO_MODULES += audio.r_submix.default
 AUDIO_MODULES += audio.primary.anorak
-AUDIO_MODULES += ftm_test_config
-AUDIO_MODULES += ftm_test_config_kalama-qrd-snd-card
+AUDIO_MODULES += ftm_test_config_anorak-idp-snd-card
+AUDIO_MODULES += ftm_test_config_anorak-qxr-snd-card
 AUDIO_MODULES += audioadsprpcd
 AUDIO_MODULES += android.hardware.audio.service_64
-AUDIO_MODULES += MTP_acdb_cal.acdb
-AUDIO_MODULES += MTP_workspaceFileXml.qwsp
-AUDIO_MODULES += CDP_acdb_cal.acdb
-AUDIO_MODULES += CDP_workspaceFileXml.qwsp
-AUDIO_MODULES += QRD_acdb_cal.acdb
-AUDIO_MODULES += QRD_workspaceFileXml.qwsp
+AUDIO_MODULES += IDP_acdb_cal.acdb
+AUDIO_MODULES += IDP_workspaceFileXml.qwsp
+AUDIO_MODULES += QXR_acdb_cal.acdb
+AUDIO_MODULES += QXR_workspaceFileXml.qwsp
 AUDIO_MODULES += fai__2.3.0_0.1__3.0.0_0.0__eai_1.10.pmd
 AUDIO_MODULES += fai__2.3.0_0.1__3.0.0_0.0__eai_1.36_enpu2_comp.pmd
 AUDIO_MODULES += fai__2.0.0_0.1__3.0.0_0.0__eai_1.36_enpu2.pmd

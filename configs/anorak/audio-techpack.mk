@@ -1,4 +1,4 @@
-include vendor/qcom/opensource/audio-hal/primary-hal/configs/kalama/audio-modules.mk
+include vendor/qcom/opensource/audio-hal/primary-hal/configs/anorak/audio-modules.mk
 include vendor/qcom/opensource/audio-hal/primary-hal/configs/audio-generic-modules.mk
 include vendor/qcom/opensource/audio-kernel/audio_kernel_modules.mk
 
