@@ -4949,6 +4949,18 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
             AHAL_INFO("Setting custom key as %s", mPalInDevice[i].custom_config.custom_key);
         }
 
+        usecase_ = GetInputUseCase(flags, source);
+        if (usecase_ == USECASE_AUDIO_RECORD_LOW_LATENCY ||
+            usecase_ == USECASE_AUDIO_RECORD_MMAP) {
+            uint8_t channels =
+                audio_channel_count_from_in_mask(config_.channel_mask);
+            if (channels == 2) {
+                strlcpy(mPalInDevice[i].custom_config.custom_key, "dual-mic",
+                sizeof(mPalInDevice[i].custom_config.custom_key));
+                AHAL_INFO("Setting custom key as %s", mPalInDevice[i].custom_config.custom_key);
+           }
+        }
+
         if ((get_hdr_mode() == AUDIO_RECORD_SPF_HDR) &&
             (source_ == AUDIO_SOURCE_CAMCORDER || source_ == AUDIO_SOURCE_MIC)) {
             setup_hdr_usecase(&mPalInDevice[i]);
