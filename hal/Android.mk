@@ -44,7 +44,7 @@ LOCAL_CFLAGS += -Wno-tautological-compare
 LOCAL_CFLAGS += -Wno-unused-function
 LOCAL_CFLAGS += -Wno-unused-local-typedef
 ifneq ($(filter 12 S, $(PLATFORM_VERSION)),)
-LOCAL_C_FLAGS += -DUSEHIDL7_1
+LOCAL_CFLAGS += -DUSEHIDL7_1
 endif
 
 LOCAL_CPPFLAGS += -fexceptions
