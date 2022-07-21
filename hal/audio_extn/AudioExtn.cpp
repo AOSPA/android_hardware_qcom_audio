@@ -25,10 +25,6 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #define LOG_TAG "AHAL: AudioExtn"
@@ -81,8 +77,6 @@ static void *batt_listener_lib_handle;
 static bool audio_extn_kpi_optimize_feature_enabled = false;
 //TODO make this mutex part of class
 std::mutex reconfig_wait_mutex_;
-
-std::atomic<bool> AudioExtn::sServicesRegistered = false;
 
 int AudioExtn::audio_extn_parse_compress_metadata(struct audio_config *config_, pal_snd_dec_t *pal_snd_dec,
                                str_parms *parms, uint32_t *sr, uint16_t *ch, bool *isCompressMetadataAvail) {
@@ -782,7 +776,6 @@ int AudioExtn::audio_extn_hidl_init() {
     configureRpcThreadpool(num_threads, false /*callerWillJoin*/);
     if(android::OK !=  service->registerAsService()) {
         AHAL_ERR("Could not register PAL service");
-        return -EINVAL;
     } else {
         AHAL_DBG("successfully registered PAL service");
         num_threads += 16;
@@ -797,14 +790,12 @@ int AudioExtn::audio_extn_hidl_init() {
     if (temp->is_agm_initialized()) {
         if(android::OK != agm_service->registerAsService()) {
             AHAL_ERR("Could not register AGM service");
-            return -EINVAL;
         } else {
             AHAL_DBG("successfully registered AGM service");
         }
     }
 #endif
     /* to register other hidls */
-    sServicesRegistered = true;
     return 0;
 }
 

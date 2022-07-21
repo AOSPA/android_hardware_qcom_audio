@@ -25,17 +25,12 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #ifndef AUDIOEXTN_H
 #define AUDIOEXTN_H
 #include <cutils/str_parms.h>
 #include <set>
-#include <atomic>
 #include "PalDefs.h"
 #include "audio_defs.h"
 #include <log/log.h>
@@ -135,13 +130,9 @@ public:
             int *perf_lock_opts, int size);
     static void audio_extn_perf_lock_release(int *handle);
     /* end kpi optimize perf apis */
-
-    static bool isServiceRegistered() { return sServicesRegistered; }
 protected:
     pal_stream_handle_t *karaoke_stream_handle;
     struct pal_stream_attributes sattr;
-private:
-    static std::atomic<bool> sServicesRegistered;
 
 };
 
