@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2019-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -734,9 +735,9 @@ int AudioExtn::karaoke_open(pal_device_id_t device_out, pal_stream_callback pal_
                                  &payload_size, nullptr);
             pal_devs[i].address.card_id = adevice->usb_card_id_;
             pal_devs[i].address.device_num = adevice->usb_dev_num_;
-            pal_devs[i].config.sample_rate = dynamic_media_config.sample_rate;
+            pal_devs[i].config.sample_rate = dynamic_media_config.sample_rate[0];
             pal_devs[i].config.ch_info = ch_info;
-            pal_devs[i].config.aud_fmt_id = (pal_audio_fmt_t)dynamic_media_config.format;
+            pal_devs[i].config.aud_fmt_id = (pal_audio_fmt_t)dynamic_media_config.format[0];
             free(device_cap_query);
         } else {
             pal_devs[i].config.sample_rate = DEFAULT_OUTPUT_SAMPLING_RATE;
