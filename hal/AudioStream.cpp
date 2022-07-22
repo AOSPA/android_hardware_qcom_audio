@@ -653,7 +653,7 @@ static int astream_dump(const struct audio_stream *stream, int fd) {
     AHAL_DBG("dump function not implemented");
     return 0;
 }
-
+#ifdef USEHIDL7_1
 static int astream_set_latency_mode(struct audio_stream_out *stream, audio_latency_mode_t mode) {
     std::ignore = stream;
     std::ignore = mode;
@@ -675,6 +675,7 @@ static int astream_set_latency_mode_callback(struct audio_stream_out *stream,
     std::ignore = cookie;
     return -ENOSYS;
 }
+#endif
 
 static uint32_t astream_get_latency(const struct audio_stream_out *stream) {
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
@@ -1894,9 +1895,11 @@ int StreamOutPrimary::FillHalFnPtrs() {
     stream_.get()->flush = astream_flush;
     stream_.get()->set_callback = astream_set_callback;
     stream_.get()->update_source_metadata_v7 = out_update_source_metadata_v7;
+#ifdef USEHIDL7_1
     stream_.get()->set_latency_mode = astream_set_latency_mode;
     stream_.get()->get_recommended_latency_modes = astream_get_recommended_latency_modes;
     stream_.get()->set_latency_mode_callback = astream_set_latency_mode_callback;
+#endif
     return ret;
 }
 
@@ -2036,7 +2039,7 @@ int StreamOutPrimary::Pause() {
     // VOIP RX is specified to direct output in qcom audio policy config,
     // which doesn't need pause/resume actually.
     if (streamAttributes_.type == PAL_STREAM_VOIP_RX) {
-        AHAL_DBG("no need to pause for VOIP RX: %d");
+        AHAL_DBG("no need to pause for VOIP RX:");
         ret = -1;
         goto exit;
     }
@@ -2573,7 +2576,7 @@ uint64_t StreamOutPrimary::GetFramesWritten(struct timespec *timestamp)
             AHAL_INFO("mmap position is %d", position.position_frames);
             signed_frames = position.position_frames -
               (MMAP_PLATFORM_DELAY * (streamAttributes_.out_media_config.sample_rate) / 1000000LL);
-            AHAL_INFO("mmap signed frames %d", signed_frames);
+            AHAL_INFO("mmap signed frames %llu", signed_frames);
         }
     }
 
@@ -3055,6 +3058,19 @@ int StreamOutPrimary::GetFrames(uint64_t *frames)
         *frames = 0;
         return 0;
     }
+    /*
+     * when ssr happens, dsp position for pcm offload could be 0,
+     * so return written frames instead
+     */
+    if ((PAL_STREAM_PCM_OFFLOAD == streamAttributes_.type) &&
+        (CARD_STATUS_OFFLINE == AudioDevice::sndCardState)) {
+        struct timespec ts;
+        *frames = GetFramesWritten(&ts);
+        mCachedPosition = *frames;
+        AHAL_DBG("card is offline, return written frames %lld", (long long) *frames);
+        goto exit;
+    }
+
     ret = pal_get_timestamp(pal_stream_handle_, &tstamp);
     if (ret != 0) {
        AHAL_ERR("pal_get_timestamp failed %d", ret);

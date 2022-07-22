@@ -702,7 +702,7 @@ static void init_once()
 
             send_linear_gain = (bool (*)(int))dlsym(hal_lib_pointer, AHAL_GAIN_SET_LINEAR_GAIN);
             if (send_linear_gain == NULL) {
-                ALOGE("Couldnt able to get the function &s symbol",  AHAL_GAIN_SET_LINEAR_GAIN);
+                ALOGE("Couldnt able to get the function %s symbol",  AHAL_GAIN_SET_LINEAR_GAIN);
             }
 
             get_custom_gain_table = (int (*) (struct pal_amp_db_and_gain_table *, int))
