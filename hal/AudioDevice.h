@@ -153,6 +153,8 @@ public:
     int SetGEFParam(void *data, int length);
     int GetGEFParam(void *data, int *length);
     std::shared_ptr<StreamOutPrimary> OutGetStream(audio_io_handle_t handle);
+    std::vector<std::shared_ptr<StreamOutPrimary>> OutGetBLEStreamOutputs();
+    std::vector<std::shared_ptr<StreamInPrimary>> InGetBLEStreamInputs();
     std::shared_ptr<StreamOutPrimary> OutGetStream(audio_stream_t* audio_stream);
     std::shared_ptr<StreamInPrimary> CreateStreamIn(
             audio_io_handle_t handle,
