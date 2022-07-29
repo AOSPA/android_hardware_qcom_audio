@@ -25,27 +25,26 @@
 * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*
+* Changes from Qualcomm Innovation Center are provided under the following license:
+*
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 #define LOG_TAG "audio_hw::BatteryListener"
 #include <log/log.h>
-#include <android/hidl/manager/1.0/IServiceManager.h>
-#include <android/hardware/health/2.1/IHealth.h>
-#include <android/hardware/health/2.1/IHealthInfoCallback.h>
-#include <healthhalutils/HealthHalUtils.h>
-#include <hidl/HidlTransportSupport.h>
+#include <android/binder_manager.h>
+#include <aidl/android/hardware/health/IHealth.h>
+#include <aidl/android/hardware/health/IHealthInfoCallback.h>
+#include <aidl/android/hardware/health/BnHealthInfoCallback.h>
 #include <thread>
 #include "battery_listener.h"
 
-using android::hardware::interfacesEqual;
-using android::hardware::Return;
-using android::hardware::Void;
-using android::hardware::health::V1_0::BatteryStatus;
-using android::hardware::health::V1_0::toString;
-using android::hardware::health::V2_1::HealthInfo;
-using android::hardware::health::V2_1::IHealthInfoCallback;
-using android::hardware::health::V2_1::IHealth;
-using android::hardware::health::V2_0::Result;
-using android::hidl::manager::V1_0::IServiceManager;
+using aidl::android::hardware::health::BatteryStatus;
+using aidl::android::hardware::health::HealthInfo;
+using aidl::android::hardware::health::IHealthInfoCallback;
+using aidl::android::hardware::health::BnHealthInfoCallback;
+using aidl::android::hardware::health::IHealth;
 using namespace std::literals::chrono_literals;
 
 namespace android {
@@ -53,30 +52,26 @@ namespace android {
 #define GET_HEALTH_SVC_RETRY_CNT 5
 #define GET_HEALTH_SVC_WAIT_TIME_MS 500
 
-struct BatteryListenerImpl : public hardware::health::V2_1::IHealthInfoCallback,
-                             public hardware::hidl_death_recipient {
+struct BatteryListenerImpl : public BnHealthInfoCallback {
     typedef std::function<void(bool)> cb_fn_t;
     BatteryListenerImpl(cb_fn_t cb);
-    virtual ~BatteryListenerImpl ();
-    virtual hardware::Return<void> healthInfoChanged(
-            const hardware::health::V2_0::HealthInfo& info);
-    virtual hardware::Return<void> healthInfoChanged_2_1(
-            const hardware::health::V2_1::HealthInfo& info);
-    virtual void serviceDied(uint64_t cookie,
-                             const wp<hidl::base::V1_0::IBase>& who);
+    ~BatteryListenerImpl ();
+    ndk::ScopedAStatus healthInfoChanged(const HealthInfo& info) override;
+    static void serviceDied(void *cookie);
     bool isCharging() {
         std::lock_guard<std::mutex> _l(mLock);
         return statusToBool(mStatus);
     }
     void reset();
-  private:
-    sp<hardware::health::V2_1::IHealth> mHealth;
     status_t init();
+  private:
+    std::shared_ptr<IHealth> mHealth;
     BatteryStatus mStatus;
     cb_fn_t mCb;
     std::mutex mLock;
     std::condition_variable mCond;
     std::unique_ptr<std::thread> mThread;
+    ndk::ScopedAIBinder_DeathRecipient mDeathRecipient;
     bool mDone;
     bool statusToBool(const BatteryStatus &s) const {
         return (s == BatteryStatus::CHARGING) ||
@@ -84,15 +79,19 @@ struct BatteryListenerImpl : public hardware::health::V2_1::IHealthInfoCallback,
     }
 };
 
+static std::shared_ptr<BatteryListenerImpl> batteryListener;
+
 status_t BatteryListenerImpl::init()
 {
     int tries = 0;
+    auto service_name = std::string() + IHealth::descriptor + "/default";
 
     if (mHealth != NULL)
         return INVALID_OPERATION;
 
     do {
-        mHealth = IHealth::getService();
+        mHealth = IHealth::fromBinder(ndk::SpAIBinder(
+            AServiceManager_getService(service_name.c_str())));
         if (mHealth != NULL)
             break;
         usleep(GET_HEALTH_SVC_WAIT_TIME_MS * 1000);
@@ -106,13 +105,7 @@ status_t BatteryListenerImpl::init()
         ALOGI("Get health service in %d tries", tries);
     }
     mStatus = BatteryStatus::UNKNOWN;
-    auto ret = mHealth->getChargeStatus([&](Result r, BatteryStatus status) {
-        if (r != Result::SUCCESS) {
-            ALOGE("batterylistener: cannot get battery status");
-            return;
-        }
-        mStatus = status;
-    });
+    auto ret = mHealth->getChargeStatus(&mStatus);
     if (!ret.isOk())
         ALOGE("batterylistener: get charge status transaction error");
 
@@ -155,47 +148,64 @@ status_t BatteryListenerImpl::init()
                 }
             }
         });
-    mHealth->registerCallback(this);
-    mHealth->linkToDeath(this, 0 /* cookie */);
+    mHealth->registerCallback(batteryListener);
+    binder_status_t binder_status = AIBinder_linkToDeath(
+        mHealth->asBinder().get(), mDeathRecipient.get(), this);
+    if (binder_status != STATUS_OK) {
+        ALOGE("Failed to link to death, status %d",
+            static_cast<int>(binder_status));
+        return NO_INIT;
+    }
     return NO_ERROR;
 }
 
 BatteryListenerImpl::BatteryListenerImpl(cb_fn_t cb) :
-        mCb(cb)
+        mCb(cb),
+        mDeathRecipient(AIBinder_DeathRecipient_new(BatteryListenerImpl::serviceDied))
 {
-    init();
+
 }
 
 BatteryListenerImpl::~BatteryListenerImpl()
 {
+    {
+        std::lock_guard<std::mutex> _l(mLock);
+        mDone = true;
+        mCond.notify_one();
+    }
     mThread->join();
 }
 
-void BatteryListenerImpl::reset(){
+void BatteryListenerImpl::reset() {
     std::lock_guard<std::mutex> _l(mLock);
     if (mHealth != nullptr) {
-        mHealth->unregisterCallback(this);
-        mHealth->unlinkToDeath(this);
+        mHealth->unregisterCallback(batteryListener);
+        binder_status_t status = AIBinder_unlinkToDeath(
+            mHealth->asBinder().get(), mDeathRecipient.get(), this);
+        if (status != STATUS_OK && status != STATUS_DEAD_OBJECT)
+            ALOGE("Cannot unlink to death");
     }
     mStatus = BatteryStatus::UNKNOWN;
     mDone = true;
     mCond.notify_one();
 }
-void BatteryListenerImpl::serviceDied(uint64_t cookie __unused,
-                                     const wp<hidl::base::V1_0::IBase>& who)
+void BatteryListenerImpl::serviceDied(void *cookie)
 {
+    BatteryListenerImpl *listener = reinterpret_cast<BatteryListenerImpl *>(cookie);
     {
-        std::lock_guard<std::mutex> _l(mLock);
-        if (mHealth == NULL || !interfacesEqual(mHealth, who.promote())) {
-            ALOGE("health not initialized or unknown interface died");
+        std::lock_guard<std::mutex> _l(listener->mLock);
+        if (listener->mHealth == NULL) {
+            ALOGE("health not initialized");
             return;
         }
         ALOGI("health service died, reinit");
-        mDone = true;
+        listener->mDone = true;
+        listener->mCond.notify_one();
     }
-    mThread->join();
-    std::lock_guard<std::mutex> _l(mLock);
-    init();
+    listener->mThread->join();
+    std::lock_guard<std::mutex> _l(listener->mLock);
+    listener->mHealth = NULL;
+    listener->init();
 }
 
 // this callback seems to be a SYNC callback and so
@@ -203,36 +213,26 @@ void BatteryListenerImpl::serviceDied(uint64_t cookie __unused,
 // therefore we need not have a queue to process
 // NOT_CHARGING and CHARGING concurrencies.
 // Replace single var by a list if this assumption is broken
-Return<void> BatteryListenerImpl::healthInfoChanged(
-        const hardware::health::V2_0::HealthInfo& info)
+ndk::ScopedAStatus BatteryListenerImpl::healthInfoChanged(const HealthInfo& info)
 {
-    ALOGV("healthInfoChanged: %d", info.legacy.batteryStatus);
+    ALOGV("healthInfoChanged: %d", info.batteryStatus);
     std::unique_lock<std::mutex> l(mLock);
-    if (info.legacy.batteryStatus != mStatus) {
-        mStatus = info.legacy.batteryStatus;
+    if (info.batteryStatus != mStatus) {
+        mStatus = info.batteryStatus;
         mCond.notify_one();
     }
-    return Void();
+    return ndk::ScopedAStatus::ok();
 }
 
-Return<void> BatteryListenerImpl::healthInfoChanged_2_1(
-        const hardware::health::V2_1::HealthInfo& info) {
-    ALOGV("healthInfoChanged_2_1: %d", info.legacy.legacy.batteryStatus);
-    healthInfoChanged(info.legacy);
-    return Void();
-}
-
-static sp<BatteryListenerImpl> batteryListener;
 status_t batteryPropertiesListenerInit(BatteryListenerImpl::cb_fn_t cb)
 {
-    batteryListener = new BatteryListenerImpl(cb);
-    return NO_ERROR;
+    batteryListener = ndk::SharedRefBase::make<BatteryListenerImpl>(cb);
+    return batteryListener->init();
 }
 
 status_t batteryPropertiesListenerDeinit()
 {
     batteryListener->reset();
-    batteryListener.clear();
     return OK;
 }
 
