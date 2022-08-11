@@ -519,6 +519,7 @@ protected:
     struct pal_volume_data *volume_; /* used to cache volume */
     std::map <audio_devices_t, pal_device_id_t> mAndroidDeviceMap;
     int mmap_shared_memory_fd;
+    pal_param_device_capability_t *device_cap_query_;
 };
 
 class StreamOutPrimary : public StreamPrimary {

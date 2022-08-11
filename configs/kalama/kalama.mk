@@ -107,6 +107,9 @@ PRODUCT_PACKAGES += fai__2.6.5_0.0__3.0.0_0.0__3.1.0_0.0__3.2.0_0.0__eai_2.10_en
 PRODUCT_PACKAGES += fai__2.7.8_0.0__3.0.0_0.0__3.1.0_0.0__3.2.0_0.0__eai_2.10_enpuv3.pmd
 PRODUCT_PACKAGES += fai__4.8.3_0.0__3.0.0_0.0__3.1.0_0.0__3.2.0_0.0__eai_2.10_enpuv3.pmd
 PRODUCT_PACKAGES += fai__3.0.0_0.0__eai_2.10_enpuv3.pmd
+PRODUCT_PACKAGES += fai__2.6.5_0.0__3.0.0_0.0__3.1.1_0.0__3.2.0_0.0__eai_2.10_enpuv3.pmd
+PRODUCT_PACKAGES += fai__2.7.8_0.0__3.0.0_0.0__3.1.1_0.0__3.2.0_0.0__eai_2.10_enpuv3.pmd
+PRODUCT_PACKAGES += fai__4.8.4_0.0__3.0.0_0.0__3.1.1_0.0__3.2.0_0.0__eai_2.10_enpuv3.pmd
 
 # Audio configuration xml's related to Kailua
 QCV_FAMILY_SKUS := kalama
@@ -358,6 +361,12 @@ vendor.qc2audio.suspend.enabled=true
 #Enable qc2 audio sw flac frame decode
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.qc2audio.per_frame.flac.dec.enabled=true
+
+# compress capture feature related
+PRODUCT_PROPERTY_OVERRIDES += \
+vendor.audio.compress_capture.enabled=true \
+vendor.audio.compress_capture.aac=true
+# compress capture end
 
 ifneq ($(GENERIC_ODM_IMAGE),true)
 $(warning "Enabling codec2.0 SW only for non-generic odm build variant")
