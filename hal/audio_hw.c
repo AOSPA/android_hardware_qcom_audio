@@ -2863,6 +2863,9 @@ static struct stream_in *get_priority_input(struct audio_device *adev)
             in = usecase->stream.in;
             if (!in)
                 continue;
+
+            if (USECASE_AUDIO_RECORD_FM_VIRTUAL == usecase->id)
+                continue;
             priority = source_priority(in->source);
 
             if (priority > last_priority) {
@@ -9399,6 +9402,7 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
         }
     }
 
+    audio_extn_auto_hal_set_parameters(adev, parms);
     audio_extn_set_parameters(adev, parms);
 done:
     str_parms_destroy(parms);
