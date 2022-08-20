@@ -576,7 +576,7 @@ int AudioVoice::UpdateCalls(voice_session_t *pSession) {
                     session->state.current_ = session->state.new_;
                 }
 
-                AHAL_DBG("ACTIVE -> INACTIVE update meta data as MUSIC");
+                AHAL_DBG("ACTIVE -> INACTIVE update cached meta data");
                 updateVoiceMetadataForBT(false);
                 break;
 
@@ -1059,30 +1059,50 @@ int AudioVoice::SetVoiceVolume(float volume) {
 void AudioVoice::updateVoiceMetadataForBT(bool call_active)
 {
     ssize_t track_count = 1;
-    std::vector<playback_track_metadata_t> tracks;
-    tracks.resize(track_count);
+    std::vector<playback_track_metadata_t> Sourcetracks;
+    std::vector<record_track_metadata_t> Sinktracks;
+    Sourcetracks.resize(track_count);
+    Sinktracks.resize(track_count);
 
     AHAL_INFO("track count is %d", track_count);
 
     source_metadata_t btSourceMetadata;
+    sink_metadata_t btSinkMetadata;
 
-    if (pal_voice_rx_device_id_ == PAL_DEVICE_OUT_BLUETOOTH_BLE) {
-        if (call_active) {
-            btSourceMetadata.track_count = track_count;
-            btSourceMetadata.tracks = tracks.data();
+    if (call_active) {
+        btSourceMetadata.track_count = track_count;
+        btSourceMetadata.tracks = Sourcetracks.data();
 
-            btSourceMetadata.tracks->usage = AUDIO_USAGE_VOICE_COMMUNICATION;
-            btSourceMetadata.tracks->content_type = AUDIO_CONTENT_TYPE_SPEECH;
-            // pass the metadata to PAL
-            pal_set_param(PAL_PARAM_ID_SET_SOURCE_METADATA, (void*)&btSourceMetadata, 0);
-        } else {
-            btSourceMetadata.track_count = track_count;
-            btSourceMetadata.tracks = tracks.data();
+        btSourceMetadata.tracks->usage = AUDIO_USAGE_VOICE_COMMUNICATION;
+        btSourceMetadata.tracks->content_type = AUDIO_CONTENT_TYPE_SPEECH;
 
-            btSourceMetadata.tracks->usage = AUDIO_USAGE_MEDIA;
-            btSourceMetadata.tracks->content_type = AUDIO_CONTENT_TYPE_MUSIC;
-            // pass the metadata to PAL
-            pal_set_param(PAL_PARAM_ID_SET_SOURCE_METADATA, (void*)&btSourceMetadata, 0);
+        AHAL_DBG("Source metadata for voice call usage:%d content_type:%d",
+            btSourceMetadata.tracks->usage, btSourceMetadata.tracks->content_type);
+        //Pass the source metadata to PAL
+        pal_set_param(PAL_PARAM_ID_SET_SOURCE_METADATA, (void*)&btSourceMetadata, 0);
+
+        btSinkMetadata.track_count = track_count;
+        btSinkMetadata.tracks = Sinktracks.data();
+
+        btSinkMetadata.tracks->source = AUDIO_SOURCE_VOICE_CALL;
+
+        AHAL_DBG("Sink metadata for voice call source:%d", btSinkMetadata.tracks->source);
+        //Pass the sink metadata to PAL
+        pal_set_param(PAL_PARAM_ID_SET_SINK_METADATA, (void*)&btSinkMetadata, 0);
+    } else {
+
+        /* When voice call ends, we need to restore metadata configuration for
+         * source and sink sessions same as prior to the call. Send cached source
+         * and sink metadata separately to BT.
+         */
+        if (stream_out_primary_ && stream_out_primary_->btSourceMetadata.track_count != 0) {
+            pal_set_param(PAL_PARAM_ID_SET_SOURCE_METADATA,
+                          (void*)&stream_out_primary_->btSourceMetadata, 0);
+        }
+
+        if (stream_in_primary_ && stream_in_primary_->btSinkMetadata.track_count != 0) {
+            pal_set_param(PAL_PARAM_ID_SET_SINK_METADATA,
+                          (void*)&stream_in_primary_->btSinkMetadata, 0);
         }
     }
 }
