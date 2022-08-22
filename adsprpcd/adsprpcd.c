@@ -25,6 +25,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #ifndef VERIFY_PRINT_ERROR
@@ -33,12 +37,13 @@
 
 #define VERIFY_PRINT_INFO 0
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <dlfcn.h>
 #include <unistd.h>
+#include <errno.h>
 #include "verify.h"
 #include "AEEStdErr.h"
-
 
 #ifndef ADSP_DEFAULT_LISTENER_NAME
 #define ADSP_DEFAULT_LISTENER_NAME "libadsp_default_listener.so"
@@ -49,6 +54,27 @@
 
 typedef int (*adsp_default_listener_start_t)(int argc, char *argv[]);
 
+#ifndef LINUX_ENABLED
+#define ADSP_LIB_DIRECTORY_PATH "/data/vendor/audio_dsp"
+
+static void set_adsp_lib_path()
+{
+    errno = 0;
+    if (access(ADSP_LIB_DIRECTORY_PATH, F_OK) == 0) {
+        if (setenv("DSP_LIBRARY_PATH", ADSP_LIB_DIRECTORY_PATH, 1)) {
+            VERIFY_EPRINTF("setting DSP_LIBRARY_PATH failed: %s", strerror(errno));
+        } else {
+            VERIFY_IPRINTF("DSP_LIBRARY_PATH set to %s, %s", getenv("DSP_LIBRARY_PATH"), strerror(errno));
+        }
+    } else {
+        VERIFY_EPRINTF("%s not found: %s", ADSP_LIB_DIRECTORY_PATH, strerror(errno));
+    }
+}
+#else
+static void set_adsp_lib_path() {}
+#endif
+
+
 int main(int argc, char *argv[]) {
 
     int nErr = 0;
@@ -57,6 +83,7 @@ int main(int argc, char *argv[]) {
 
     VERIFY_EPRINTF("audio adsp daemon starting");
     if(NULL != (libhidlbaseHandler = dlopen(ADSP_LIBHIDL_NAME, RTLD_NOW))) {
+        set_adsp_lib_path();
         while (1) {
             if(NULL != (adsphandler = dlopen(ADSP_DEFAULT_LISTENER_NAME, RTLD_NOW))) {
                 if(NULL != (listener_start =
