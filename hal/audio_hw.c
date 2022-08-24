@@ -804,7 +804,7 @@ static int parse_snd_card_status(struct str_parms *parms, int *card,
 
 bool is_combo_audio_input_device(struct listnode *devices){
 
-    if (devices == NULL)
+    if ((devices == NULL) || (!list_empty(devices)))
         return false;
 
     if(compare_device_type(devices, AUDIO_DEVICE_IN_BUILTIN_MIC|AUDIO_DEVICE_IN_SPEAKER_MIC2))
@@ -2884,6 +2884,9 @@ static struct stream_in *get_priority_input(struct audio_device *adev)
         if (usecase->type == PCM_CAPTURE) {
             in = usecase->stream.in;
             if (!in)
+                continue;
+
+            if (USECASE_AUDIO_RECORD_FM_VIRTUAL == usecase->id)
                 continue;
             priority = source_priority(in->source);
 
@@ -9422,6 +9425,7 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
         }
     }
 
+    audio_extn_auto_hal_set_parameters(adev, parms);
     audio_extn_set_parameters(adev, parms);
 done:
     str_parms_destroy(parms);
