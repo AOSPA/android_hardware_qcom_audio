@@ -2097,7 +2097,7 @@ int StreamOutPrimary::Start() {
 int StreamOutPrimary::Pause() {
     int ret = 0;
 
-    AHAL_DBG("Enter" );
+    AHAL_INFO("Enter: usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
 
     stream_mutex_.lock();
     if (!pal_stream_handle_ || !stream_started_) {
@@ -2132,7 +2132,7 @@ exit:
 int StreamOutPrimary::Resume() {
     int ret = 0;
 
-    AHAL_DBG("Enter" );
+    AHAL_INFO("Enter: usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
 
     stream_mutex_.lock();
     if (!pal_stream_handle_ || !stream_started_) {
@@ -2158,7 +2158,7 @@ exit:
 
 int StreamOutPrimary::Flush() {
     int ret = 0;
-    AHAL_DBG("Enter");
+    AHAL_INFO("Enter: usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
 
     stream_mutex_.lock();
     if (pal_stream_handle_) {
@@ -2189,6 +2189,7 @@ int StreamOutPrimary::Drain(audio_drain_type_t type) {
     int ret = 0;
     pal_drain_type_t palDrainType;
 
+    AHAL_INFO("Enter: usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
     switch (type) {
       case AUDIO_DRAIN_ALL:
            palDrainType = PAL_DRAIN;
@@ -2524,7 +2525,8 @@ error:
 
 int StreamOutPrimary::SetVolume(float left , float right) {
     int ret = 0;
-    AHAL_DBG("Enter: left %f, right %f", left, right);
+
+    AHAL_DBG("Enter: left %f, right %f for usecase(%d: %s)", left, right, GetUseCase(), use_case_table[GetUseCase()]);
 
     stream_mutex_.lock();
     /* free previously cached volume if any */
@@ -4213,7 +4215,7 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
         goto done;
     }
 
-    AHAL_DBG("mAndroidInDevices %d, mNoOfInDevices %zu, new_devices %d, num new_devices: %zu",
+    AHAL_DBG("mAndroidInDevices 0x%x, mNoOfInDevices %zu, new_devices 0x%x, num new_devices: %zu",
              AudioExtn::get_device_types(mAndroidInDevices),
              mAndroidInDevices.size(), AudioExtn::get_device_types(new_devices), new_devices.size());
 
