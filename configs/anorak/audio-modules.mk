@@ -11,7 +11,7 @@ ifneq ($(TARGET_IS_HEADLESS),true)
 #AGM
 AUDIO_AGM := libagmclient
 AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-impl
-#AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-service
+AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-service
 AUDIO_AGM += libagm
 AUDIO_AGM += agmplay
 AUDIO_AGM += agmcap
@@ -23,6 +23,8 @@ AUDIO_AGM += libagm_compress_plugin
 AUDIO_AGM += agmcompresscap
 AUDIO_AGM += agmvoiceui
 AUDIO_AGM += agmhostless
+AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-service.rc
+AUDIO_AGM += libagmservice
 
 #PAL Service
 AUDIO_PAL += libpalclient

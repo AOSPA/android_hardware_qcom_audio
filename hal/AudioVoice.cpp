@@ -1063,6 +1063,7 @@ void AudioVoice::updateVoiceMetadataForBT(bool call_active)
     std::vector<record_track_metadata_t> Sinktracks;
     Sourcetracks.resize(track_count);
     Sinktracks.resize(track_count);
+    int32_t ret = 0;
 
     AHAL_INFO("track count is %d", track_count);
 
@@ -1092,17 +1093,21 @@ void AudioVoice::updateVoiceMetadataForBT(bool call_active)
     } else {
 
         /* When voice call ends, we need to restore metadata configuration for
-         * source and sink sessions same as prior to the call. Send cached source
+         * source and sink sessions same as prior to the call. Send source
          * and sink metadata separately to BT.
          */
-        if (stream_out_primary_ && stream_out_primary_->btSourceMetadata.track_count != 0) {
-            pal_set_param(PAL_PARAM_ID_SET_SOURCE_METADATA,
-                          (void*)&stream_out_primary_->btSourceMetadata, 0);
+        if (stream_out_primary_) {
+            ret = stream_out_primary_->SetAggregateSourceMetadata(false);
+            if (ret != 0) {
+                AHAL_ERR("Set PAL_PARAM_ID_SET_SOURCE_METADATA for %d failed", ret);
+            }
         }
 
-        if (stream_in_primary_ && stream_in_primary_->btSinkMetadata.track_count != 0) {
-            pal_set_param(PAL_PARAM_ID_SET_SINK_METADATA,
-                          (void*)&stream_in_primary_->btSinkMetadata, 0);
+        if (stream_in_primary_) {
+            ret = stream_in_primary_->SetAggregateSinkMetadata(false);
+            if (ret != 0) {
+                AHAL_ERR("Set PAL_PARAM_ID_SET_SINK_METADATA for %d failed", ret);
+            }
         }
     }
 }

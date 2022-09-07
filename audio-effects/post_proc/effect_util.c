@@ -163,13 +163,13 @@ void update_effects_node(int device_id, int effect_type, int enable_or_set, int 
                     s1 = strstr(buf, paramList[keyParamIndex]);
                     s2 = strstr(s1,";");
                     index1 = s1 - buf;
-                    strncpy(resultBuf, buf, index1);
-                    strncat(resultBuf, paramList[keyParamIndex], sizeof(resultBuf)-strlen(resultBuf)-1);
-                    strncat(resultBuf, "=", sizeof(resultBuf)-strlen(resultBuf)-1);
+                    strlcpy(resultBuf, buf, index1);
+                    strlcat(resultBuf, paramList[keyParamIndex], sizeof(resultBuf));
+                    strlcat(resultBuf, "=", sizeof(resultBuf));
                     snprintf(parameterValue, sizeof(parameterValue), "%d", paramValue);
-                    strncat(resultBuf, parameterValue, sizeof(resultBuf)-strlen(resultBuf)-1);
+                    strlcat(resultBuf, parameterValue, sizeof(resultBuf));
                     if (s2)
-                        strncat(resultBuf, s2, sizeof(resultBuf)-strlen(resultBuf)-1);
+                        strlcat(resultBuf, s2, sizeof(resultBuf));
                     fclose(fp);
                     if ((fd=open(path, O_TRUNC|O_WRONLY)) < 0) {
                        ALOGV("opening file for writing failed");
