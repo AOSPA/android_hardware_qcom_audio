@@ -170,6 +170,11 @@ PRODUCT_COPY_FILES += \
     $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/codec2/service/1.0/c2audio.vendor.ext-arm.policy:vendor/etc/seccomp_policy/c2audio.vendor.ext-arm.policy \
     $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/codec2/service/1.0/c2audio.vendor.ext-arm64.policy:vendor/etc/seccomp_policy/c2audio.vendor.ext-arm64.policy
 
+ifneq (,$(filter userdebug eng, $(TARGET_BUILD_VARIANT)))
+PRODUCT_COPY_FILES += \
+    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/init.qti.audio.debug.sh:$(TARGET_COPY_OUT_VENDOR)/bin/init.qti.audio.debug.sh
+endif
+
 # Reduce client buffer size for fast audio output tracks
 PRODUCT_PROPERTY_OVERRIDES += \
     af.fast_track_multiplier=1
