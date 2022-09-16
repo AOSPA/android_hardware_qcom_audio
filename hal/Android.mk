@@ -8,6 +8,14 @@ LOCAL_ARM_MODE := arm
 
 AUDIO_PLATFORM := $(TARGET_BOARD_PLATFORM)
 
+ifneq ($(TARGET_BOARD_AUTO),true)
+LIBRARY_TINYCOMPRESS := libtinycompress
+LIBRARY_TINYCOMPRESS_INC := external/tinycompress/include
+else
+LIBRARY_TINYCOMPRESS := libqti-tinycompress
+LIBRARY_TINYCOMPRESS_INC := $(TOP)/vendor/qcom/opensource/tinycompress/include
+endif
+
 ifneq ($(filter msm8974 msm8226 msm8084 msm8610 apq8084 msm8994 msm8992 msm8996 msm8998 apq8098_latv sdm845 sdm710 qcs605 sdmshrike msmnile kona lahaina holi sdm660 msm8937 msm8953 $(MSMSTEPPE) $(TRINKET) lito atoll bengal,$(TARGET_BOARD_PLATFORM)),)
   # B-family platform uses msm8974 code base
   AUDIO_PLATFORM = msm8974
@@ -138,6 +146,10 @@ LOCAL_CFLAGS += -Wno-macro-redefined
 
 LOCAL_HEADER_LIBRARIES := libhardware_headers
 
+ifeq ($(ENABLE_AUDIO_LEGACY_TECHPACK),true)
+LOCAL_HEADER_LIBRARIES += qti_legacy_audio_kernel_uapi
+endif
+
 LOCAL_SRC_FILES := \
     audio_hw.c \
     acdb.c \
@@ -162,7 +174,7 @@ LOCAL_SHARED_LIBRARIES := \
     liblog \
     libcutils \
     libtinyalsa \
-    libtinycompress \
+    $(LIBRARY_TINYCOMPRESS) \
     libaudioroute \
     libdl \
     libaudioutils \
@@ -173,7 +185,7 @@ LOCAL_SHARED_LIBRARIES := \
 
 LOCAL_C_INCLUDES += \
     external/tinyalsa/include \
-    external/tinycompress/include \
+    $(LIBRARY_TINYCOMPRESS_INC) \
     system/media/audio_utils/include \
     external/expat/lib \
     $(call include-path-for, audio-route) \
@@ -251,6 +263,16 @@ ifeq ($(strip $(AUDIO_FEATURE_ENABLED_QAF)),true)
     LOCAL_CFLAGS += -DQAF_EXTN_ENABLED
     LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/mm-audio/qaf/
     LOCAL_SRC_FILES += audio_extn/qaf.c
+endif
+
+# Concurrent capture
+ifeq ($(strip $(AUDIO_FEATURE_ENABLED_CONCURRENT_CAPTURE)),true)
+    LOCAL_CFLAGS += -DCONCURRENT_CAPTURE_ENABLED
+endif
+
+# soft step volume params control
+ifeq ($(strip $(AUDIO_FEATURE_ENABLED_SOFT_VOLUME)),true)
+    LOCAL_CFLAGS += -DSOFT_VOLUME
 endif
 
 # Hardware specific feature

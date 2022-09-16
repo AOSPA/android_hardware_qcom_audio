@@ -40,6 +40,18 @@ MM_AUDIO += libApeSwDec
 MM_AUDIO += libMpeghSwEnc
 MM_AUDIO += libdsd2pcm
 MM_AUDIO += audioflacapp
+ifeq ($(TARGET_BOARD_PLATFORM),sdm845)
+MM_AUDIO += libOmxQcelp13Dec
+MM_AUDIO += libOmxEvrcDec
+MM_AUDIO += libOmxWmaDec
+MM_AUDIO += libOmxAlacDec
+MM_AUDIO += libOmxApeDec
+MM_AUDIO += libOmxDsdDec
+MM_AUDIO += libOmxAmrwbplusDec
+MM_AUDIO += libOmxAmrDec
+MM_AUDIO += libOmxAlacDecSw
+MM_AUDIO += libOmxApeDecSw
+endif
 MM_AUDIO += libqct_resampler
 MM_AUDIO += libaudiodevarb
 MM_AUDIO += audiod
@@ -129,6 +141,7 @@ MM_AUDIO += capi_v2_sumx
 MM_AUDIO += capi_v2_synth
 MM_AUDIO += capi_v2_avc
 MM_AUDIO += capi_v2_asrc
+MM_AUDIO += capi_v2_ecmx
 MM_AUDIO += icc_module.so.1
 MM_AUDIO += sec_module.so.1
 MM_AUDIO += audio-nxp-auto
@@ -153,7 +166,11 @@ MM_AUDIO += audcalparam_commands.cfg
 MM_AUDIO += libsynth
 MM_AUDIO += libicc
 
+ifneq ( ,$(filter T Tiramisu 13, $(PLATFORM_VERSION)))
+MM_AUDIO += vendor.qti.hardware.automotive.audiocontrol-service
+else
 MM_AUDIO += android.hardware.automotive.audiocontrol-service.example
+endif
 MM_AUDIO += libaudiopowerpolicy
 endif
 
@@ -189,7 +206,7 @@ PRODUCT_PACKAGES_DEBUG += $(MM_AUDIO_DBG)
 # audio specific
 # ------
 TARGET_USES_AOSP := true
-TARGET_USES_AOSP_FOR_AUDIO := true
+TARGET_USES_AOSP_FOR_AUDIO := false
 
 # sdm845 specific rules
 ifeq ($(TARGET_BOARD_PLATFORM),sdm845)

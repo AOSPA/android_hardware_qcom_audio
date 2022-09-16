@@ -57,6 +57,7 @@
                 <item>Sys Notification Bus</item>
                 <item>Nav Guidance Bus</item>
                 <item>Phone Bus</item>
+                <item>Alerts Bus</item>
                 <item>Front Passenger Bus</item>
                 <item>Rear Seat Bus</item>
                 <item>Built-In Mic</item>
@@ -65,6 +66,7 @@
                 <item>Front Passenger In Bus</item>
                 <item>Rear Seat In Bus</item>
                 <item>Echo Reference</item>
+                <item>FM Tuner</item>
             </attachedDevices>
             <defaultOutputDevice>Media Bus</defaultOutputDevice>
             <mixPorts>
@@ -77,11 +79,40 @@
                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
                              samplingRates="48000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
                 </mixPort>
+                <mixPort name="carplay_8k_sys" role="source">
+                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+                        samplingRates="8000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
+                </mixPort>
+                <mixPort name="carplay_16k_sys" role="source">
+                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+                        samplingRates="16000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
+                </mixPort>
+                <mixPort name="carplay_24k_sys" role="source">
+                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+                        samplingRates="24000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
+                </mixPort>
+                <mixPort name="carplay_32k_sys" role="source">
+                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+                        samplingRates="32000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
+                </mixPort>
+                <mixPort name="carplay_48k_sys" role="source">
+                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+                        samplingRates="48000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
+                </mixPort>
+                <mixPort name="mixport_tuner0" role="sink">
+                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+                             samplingRates="48000"
+                             channelMasks="AUDIO_CHANNEL_IN_STEREO"/>
+                </mixPort>
                 <mixPort name="nav_guidance" role="source">
                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
                              samplingRates="48000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
                 </mixPort>
                 <mixPort name="phone" role="source">
+                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+                             samplingRates="48000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
+                </mixPort>
+                <mixPort name="alerts" role="source">
                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
                              samplingRates="48000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
                 </mixPort>
@@ -141,7 +172,7 @@
                              samplingRates="8000,16000,48000"
                              channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
                 </mixPort>
-                <mixPort name="primary input" role="sink">
+                <mixPort name="primary input" role="sink" maxOpenCount="3" maxActiveCount="3">
                     <profile name="" format="AUDIO_FORMAT_PCM_8_24_BIT"
                              samplingRates="8000,11025,12000,16000,22050,24000,32000,44100,48000"
                              channelMasks="AUDIO_CHANNEL_IN_MONO,AUDIO_CHANNEL_IN_STEREO,AUDIO_CHANNEL_IN_FRONT_BACK,AUDIO_CHANNEL_INDEX_MASK_3"/>
@@ -200,6 +231,15 @@
                 </devicePort>
                 <devicePort tagName="Phone Bus" role="sink" type="AUDIO_DEVICE_OUT_BUS"
                         address="BUS03_PHONE">
+                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+                             samplingRates="48000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
+                    <gains>
+                        <gain name="" mode="AUDIO_GAIN_MODE_JOINT"
+                                minValueMB="-6000" maxValueMB="600" defaultValueMB="0" stepValueMB="100"/>
+                    </gains>
+                </devicePort>
+                <devicePort tagName="Alerts Bus" role="sink" type="AUDIO_DEVICE_OUT_BUS"
+                        address="BUS05_ALERTS">
                     <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
                              samplingRates="48000" channelMasks="AUDIO_CHANNEL_OUT_STEREO"/>
                     <gains>
@@ -291,16 +331,23 @@
                              samplingRates="16000,48000"
                              channelMasks="AUDIO_CHANNEL_IN_MONO,AUDIO_CHANNEL_IN_STEREO"/>
                 </devicePort>
+                <devicePort tagName="FM Tuner" type="AUDIO_DEVICE_IN_FM_TUNER" role="source"> 
+                    <profile name="" format="AUDIO_FORMAT_PCM_16_BIT"
+                             samplingRates="48000"
+                             channelMasks="AUDIO_CHANNEL_IN_MONO,AUDIO_CHANNEL_IN_STEREO"/>
+                </devicePort>
             </devicePorts>
             <routes>
                 <route type="mix" sink="Media Bus"
                        sources="media"/>
                 <route type="mix" sink="Sys Notification Bus"
-                       sources="sys_notification"/>
+                       sources="sys_notification,carplay_8k_sys,carplay_16k_sys,carplay_24k_sys,carplay_32k_sys,carplay_48k_sys"/>
                 <route type="mix" sink="Nav Guidance Bus"
                        sources="nav_guidance"/>
                 <route type="mix" sink="Phone Bus"
                        sources="phone"/>
+                <route type="mix" sink="Alerts Bus"
+                       sources="alerts"/>
                 <route type="mix" sink="Front Passenger Bus"
                        sources="front_passenger"/>
                 <route type="mix" sink="Rear Seat Bus"
@@ -337,6 +384,8 @@
                        sources="primary output,deep_buffer,compressed_offload,voip_rx"/>
                 <route type="mix" sink="BT A2DP Speaker"
                        sources="primary output,deep_buffer,compressed_offload,voip_rx"/>
+                <route type="mix" sink="mixport_tuner0"
+                       sources="FM Tuner"/>
             </routes>
         </module>
 

@@ -98,6 +98,14 @@
 #define AUDIO_OUTPUT_FLAG_INTERACTIVE 0x4000000
 #endif
 
+#ifndef AUDIO_DEVICE_IN_SPEAKER_MIC2
+#define AUDIO_DEVICE_IN_SPEAKER_MIC2 0x10000000
+#endif
+
+#ifndef AUDIO_DEVICE_IN_SPEAKER_MIC3
+#define AUDIO_DEVICE_IN_SPEAKER_MIC3 0x20000000
+#endif
+
 int audio_extn_parse_compress_metadata(struct stream_out *out,
                                        struct str_parms *parms);
 
@@ -1345,6 +1353,9 @@ int audio_extn_utils_get_license_params(const struct audio_device *adev,  struct
 #ifndef AUDIO_OUTPUT_FLAG_PHONE
 #define AUDIO_OUTPUT_FLAG_PHONE 0x800000
 #endif
+#ifndef AUDIO_OUTPUT_FLAG_ALERTS
+#define AUDIO_OUTPUT_FLAG_ALERTS 0x4000000
+#endif
 #ifndef AUDIO_OUTPUT_FLAG_FRONT_PASSENGER
 #define AUDIO_OUTPUT_FLAG_FRONT_PASSENGER 0x1000000
 #endif
@@ -1411,6 +1422,7 @@ typedef struct auto_hal_init_config {
     fp_platform_set_echo_reference_t             fp_platform_set_echo_reference;
     fp_platform_get_eccarstate_t                 fp_platform_get_eccarstate;
     fp_generate_patch_handle_t                   fp_generate_patch_handle;
+    fp_platform_get_pcm_device_id_t              fp_platform_get_pcm_device_id;
 } auto_hal_init_config_t;
 // END: AUTO_HAL FEATURE ==================================================
 
@@ -1427,6 +1439,17 @@ typedef struct synth_init_config {
     fp_select_devices_t                          fp_select_devices;
 } synth_init_config_t;
 // END: SYNTH_HAL FEATURE ==================================================
+
+// START: POWER_POLICY FEATURE ==================================================
+
+typedef void (*fp_in_set_power_policy_t) (uint8_t);
+typedef void (*fp_out_set_power_policy_t) (uint8_t);
+
+typedef struct power_policy_init_config {
+    fp_in_set_power_policy_t                      fp_in_set_power_policy;
+    fp_out_set_power_policy_t                     fp_out_set_power_policy;
+} power_policy_init_config_t;
+// END: POWER_POLICY FEATURE ==================================================
 
 bool audio_extn_edid_is_supported_sr(edid_audio_info* info, int sr);
 bool audio_extn_edid_is_supported_bps(edid_audio_info* info, int bps);
@@ -1458,4 +1481,5 @@ snd_device_t audio_extn_get_loopback_snd_device(struct audio_device *adev,
                                                 int channel_count);
 
 void audio_get_vendor_config_path(char* config_file_path, int path_size);
+bool audio_extn_is_concurrent_pcm_record_enabled();
 #endif /* AUDIO_EXTN_H */
