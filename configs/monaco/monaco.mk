@@ -57,7 +57,14 @@ AUDIO_FEATURE_ENABLED_EXTENDED_COMPRESS_FORMAT := true
 DOLBY_ENABLE := false
 endif
 
+#Disable DLKM compilation for audio on 5.15.
+#Change will be reverted once basic kernel compilation is enabled
+ifeq ($(TARGET_KERNEL_VERSION), 5.15)
+AUDIO_FEATURE_ENABLED_DLKM := false
+else
 AUDIO_FEATURE_ENABLED_DLKM := true
+endif
+
 BOARD_SUPPORTS_SOUND_TRIGGER := true
 BOARD_SUPPORTS_GCS := false
 AUDIO_FEATURE_ENABLED_INSTANCE_ID := true
