@@ -206,6 +206,7 @@ public:
     int cameraOrientation = CAMERA_DEFAULT;
     bool hac_voip = false;
     bool usb_input_dev_enabled = false;
+    bool usb_out_headset = false;
     static bool mic_characteristics_available;
     static microphone_characteristics_t microphones;
     static snd_device_to_mic_map_t microphone_maps[PAL_MAX_INPUT_DEVICES];
