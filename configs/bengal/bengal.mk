@@ -89,6 +89,7 @@ BOARD_SUPPORTS_OPENSOURCE_STHAL := true
 AUDIO_HARDWARE += audio.usb.default
 AUDIO_HARDWARE += audio.r_submix.default
 AUDIO_HARDWARE += audio.primary.bengal
+AUDIO_HARDWARE += audio.usb.bengal
 
 #HAL Wrapper
 AUDIO_WRAPPER := libqahw
