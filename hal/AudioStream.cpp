@@ -3626,7 +3626,8 @@ StreamOutPrimary::StreamOutPrimary(
                         visualizer_hal_stop_output visualizer_stop_output):
     StreamPrimary(handle, devices, config),
     mAndroidOutDevices(devices),
-    flags_(flags)
+    flags_(flags),
+    btSourceMetadata{0, nullptr}
 {
     stream_ = std::shared_ptr<audio_stream_out> (new audio_stream_out());
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
@@ -4889,7 +4890,8 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
     audio_source_t source) :
     StreamPrimary(handle, devices, config),
     mAndroidInDevices(devices),
-    flags_(flags)
+    flags_(flags),
+    btSinkMetadata{0, nullptr}
 {
     stream_ = std::shared_ptr<audio_stream_in> (new audio_stream_in());
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
