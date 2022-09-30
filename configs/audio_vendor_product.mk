@@ -163,10 +163,15 @@ MM_AUDIO += libqtiautobundle
 MM_AUDIO += autoeffects
 MM_AUDIO += autoeffects.xml
 MM_AUDIO += audcalparam_commands.cfg
+MM_AUDIO += audcalparam_commands_elite.cfg
 MM_AUDIO += libsynth
 MM_AUDIO += libicc
 
+ifneq ( ,$(filter T Tiramisu 13, $(PLATFORM_VERSION)))
+MM_AUDIO += vendor.qti.hardware.automotive.audiocontrol-service
+else
 MM_AUDIO += android.hardware.automotive.audiocontrol-service.example
+endif
 MM_AUDIO += libaudiopowerpolicy
 endif
 
