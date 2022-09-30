@@ -4692,12 +4692,9 @@ uint32_t StreamInPrimary::GetBufferSizeForLowLatencyRecord() {
 
 /* in bytes */
 uint32_t StreamInPrimary::GetBufferSize() {
-    struct pal_stream_attributes streamAttributes_;
     size_t size = 0;
     uint32_t bytes_per_period_sample = 0;
 
-    streamAttributes_.type = StreamInPrimary::GetPalStreamType(flags_,
-            config_.sample_rate);
     if (streamAttributes_.type == PAL_STREAM_VOIP_TX) {
         size = (DEFAULT_VOIP_BUF_DURATION_MS * config_.sample_rate / 1000) *
                audio_bytes_per_frame(
