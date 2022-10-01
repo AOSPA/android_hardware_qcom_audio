@@ -833,6 +833,7 @@ static int astream_out_get_presentation_position(
                astream_out->UpdatemCachedPosition(*frames);
                break;
            }
+           [[fallthrough]];
             /* fall through if the card is online for PCM OFFLOAD stream */
        case PAL_STREAM_COMPRESSED:
            ret = astream_out->GetFrames(frames);
@@ -879,6 +880,7 @@ static int out_get_render_position(const struct audio_stream_out *stream,
                 astream_out->UpdatemCachedPosition(*dsp_frames);
                 break;
             }
+            [[fallthrough]];
              /* fall through if the card is online for PCM OFFLOAD stream */
         case PAL_STREAM_COMPRESSED:
             ret = astream_out->GetFrames(&frames);
@@ -1431,80 +1433,83 @@ static uint32_t astream_in_get_input_frames_lost(
 static void in_update_sink_metadata_v7(
                                 struct audio_stream_in *stream,
                                 const struct sink_metadata_v7 *sink_metadata) {
-    if (stream == NULL
-            || sink_metadata == NULL
-            || sink_metadata->tracks == NULL) {
+    if (stream == NULL || sink_metadata == NULL) {
         AHAL_ERR("%s: stream or sink_metadata is NULL", __func__);
         return;
     }
-    audio_devices_t device = sink_metadata->tracks->base.dest_device;
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
     std::shared_ptr<StreamInPrimary> astream_in;
     int ret = 0;
 
+    if (sink_metadata->tracks != NULL) {
+        audio_devices_t device = sink_metadata->tracks->base.dest_device;
+        AHAL_DBG("%s: sink device %d", __func__, device);
 
-    AHAL_DBG("%s: sink device %d", __func__, device);
-
-    if (device == AUDIO_DEVICE_OUT_HEARING_AID) {
-        std::set<audio_devices_t> device_types;
-        device_types.insert(device);
-        if (adevice && adevice->voice_) {
-            ret = adevice->voice_->RouteStream(device_types);
-            AHAL_DBG("%s voice RouteStream ret = %d", __func__, ret);
-        }
-        else {
-            AHAL_ERR("%s: voice handle does not exist", __func__);
+        if (device == AUDIO_DEVICE_OUT_HEARING_AID) {
+            std::set<audio_devices_t> device_types;
+            device_types.insert(device);
+            if (adevice && adevice->voice_) {
+                ret = adevice->voice_->RouteStream(device_types);
+                AHAL_DBG("%s voice RouteStream ret = %d", __func__, ret);
+            }
+            else {
+                AHAL_ERR("%s: voice handle does not exist", __func__);
+            }
         }
     }
 
     if (adevice) {
         astream_in = adevice->InGetStream((audio_stream_t*)stream);
 
-    if (astream_in) {
-       ssize_t track_count = sink_metadata->track_count;
-       struct record_track_metadata_v7* track = sink_metadata->tracks;
-       AHAL_DBG("track count is %d with channel_mask %d",track_count, track->channel_mask);
-       audio_mode_t mode;
-       bool voice_active = false;
+        if (astream_in) {
+            ssize_t track_count = sink_metadata->track_count;
+            struct record_track_metadata_v7* track = sink_metadata->tracks;
+            audio_mode_t mode;
+            bool voice_active = false;
+            AHAL_DBG("track count is %d", track_count);
 
-       /* When BLE gets connected, adev_input_stream opens from mixports capabilities. In this
-        * case channel mask is set to "0" by FWK whereas when actual usecase starts,
-        * audioflinger updates the channel mask in updateSinkMetadata as a part of capture
-        * track. Thus channel mask value is checked here to avoid sending unnecessary sink
-        * metadata BT HAL
-        */
-       if (track->channel_mask == 0) return;
+            /* When BLE gets connected, adev_input_stream opens from mixports capabilities. In this
+             * case channel mask is set to "0" by FWK whereas when actual usecase starts,
+             * audioflinger updates the channel mask in updateSinkMetadata as a part of capture
+             * track. Thus channel mask value is checked here to avoid sending unnecessary sink
+             * metadata BT HAL
+             */
+            if (track != NULL) {
+                AHAL_DBG("channel_mask %d", track->channel_mask);
+                if (track->channel_mask == 0) return;
+            }
 
-       astream_in->tracks.resize(track_count);
+            astream_in->tracks.resize(track_count);
 
-       astream_in->btSinkMetadata.track_count = track_count;
-       astream_in->btSinkMetadata.tracks = astream_in->tracks.data();
+            astream_in->btSinkMetadata.track_count = track_count;
+            astream_in->btSinkMetadata.tracks = astream_in->tracks.data();
 
-       if (adevice && adevice->voice_) {
-           voice_active = adevice->voice_->get_voice_call_state(&mode);
-       } else {
-           AHAL_ERR("adevice voice is null");
-       }
+            if (adevice && adevice->voice_) {
+                voice_active = adevice->voice_->get_voice_call_state(&mode);
+            }
+            else {
+                AHAL_ERR("adevice voice is null");
+            }
 
-       // copy all tracks info from sink_metadata_v7 to sink_metadata per stream basis
-       while (track_count && track) {
-           astream_in->btSinkMetadata.tracks->source = track->base.source;
-           AHAL_DBG("Sink metadata source:%d", astream_in->btSinkMetadata.tracks->source);
-           --track_count;
-           ++track;
-           ++astream_in->btSinkMetadata.tracks;
-       }
+            // copy all tracks info from sink_metadata_v7 to sink_metadata per stream basis
+            while (track_count && track) {
+                astream_in->btSinkMetadata.tracks->source = track->base.source;
+                AHAL_DBG("Sink metadata source:%d", astream_in->btSinkMetadata.tracks->source);
+                --track_count;
+                ++track;
+                ++astream_in->btSinkMetadata.tracks;
+            }
 
-       astream_in->btSinkMetadata.tracks = astream_in->tracks.data();
+            astream_in->btSinkMetadata.tracks = astream_in->tracks.data();
 
-       //Send aggregated metadata of all active stream i/ps
-       ret = astream_in->SetAggregateSinkMetadata(voice_active);
+            //Send aggregated metadata of all active stream i/ps
+            ret = astream_in->SetAggregateSinkMetadata(voice_active);
 
-       if (ret != 0) {
-           AHAL_ERR("Set PAL_PARAM_ID_SET_SINK_METADATA for %d failed", ret);
-       }
+            if (ret != 0) {
+                AHAL_ERR("Set PAL_PARAM_ID_SET_SINK_METADATA for %d failed", ret);
+            }
+        }
     }
-  }
 }
 
 static int astream_in_get_active_microphones(
@@ -2095,7 +2100,7 @@ int StreamOutPrimary::Start() {
 int StreamOutPrimary::Pause() {
     int ret = 0;
 
-    AHAL_DBG("Enter" );
+    AHAL_INFO("Enter: usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
 
     stream_mutex_.lock();
     if (!pal_stream_handle_ || !stream_started_) {
@@ -2130,7 +2135,7 @@ exit:
 int StreamOutPrimary::Resume() {
     int ret = 0;
 
-    AHAL_DBG("Enter" );
+    AHAL_INFO("Enter: usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
 
     stream_mutex_.lock();
     if (!pal_stream_handle_ || !stream_started_) {
@@ -2156,7 +2161,7 @@ exit:
 
 int StreamOutPrimary::Flush() {
     int ret = 0;
-    AHAL_DBG("Enter");
+    AHAL_INFO("Enter: usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
 
     stream_mutex_.lock();
     if (pal_stream_handle_) {
@@ -2187,6 +2192,7 @@ int StreamOutPrimary::Drain(audio_drain_type_t type) {
     int ret = 0;
     pal_drain_type_t palDrainType;
 
+    AHAL_INFO("Enter: usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
     switch (type) {
       case AUDIO_DRAIN_ALL:
            palDrainType = PAL_DRAIN;
@@ -2522,7 +2528,8 @@ error:
 
 int StreamOutPrimary::SetVolume(float left , float right) {
     int ret = 0;
-    AHAL_DBG("Enter: left %f, right %f", left, right);
+
+    AHAL_DBG("Enter: left %f, right %f for usecase(%d: %s)", left, right, GetUseCase(), use_case_table[GetUseCase()]);
 
     stream_mutex_.lock();
     /* free previously cached volume if any */
@@ -3589,7 +3596,7 @@ int StreamOutPrimary::SetAggregateSourceMetadata(bool voice_active) {
             while (track_count && track) {
                 btSourceMetadata.tracks->usage = track->usage;
                 btSourceMetadata.tracks->content_type = track->content_type;
-                AHAL_DBG("Agreegated Source metadata usage:%d content_type:%d",
+                AHAL_DBG("Aggregated Source metadata usage:%d content_type:%d",
                     btSourceMetadata.tracks->usage,
                     btSourceMetadata.tracks->content_type);
                 --track_count;
@@ -3619,7 +3626,8 @@ StreamOutPrimary::StreamOutPrimary(
                         visualizer_hal_stop_output visualizer_stop_output):
     StreamPrimary(handle, devices, config),
     mAndroidOutDevices(devices),
-    flags_(flags)
+    flags_(flags),
+    btSourceMetadata{0, nullptr}
 {
     stream_ = std::shared_ptr<audio_stream_out> (new audio_stream_out());
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
@@ -3677,12 +3685,15 @@ StreamOutPrimary::StreamOutPrimary(
             AHAL_ERR("Error usb device is not connected");
             free(dynamic_media_config);
             free(device_cap_query_);
-            goto error;
+            dynamic_media_config = NULL;
+            device_cap_query_ = NULL;
         }
         if (!config->sample_rate || !config->format || !config->channel_mask) {
-            config->sample_rate = dynamic_media_config->sample_rate[0];
-            config->channel_mask = (audio_channel_mask_t) dynamic_media_config->mask[0];
-            config->format = (audio_format_t)dynamic_media_config->format[0];
+            if (dynamic_media_config) {
+                config->sample_rate = dynamic_media_config->sample_rate[0];
+                config->channel_mask = (audio_channel_mask_t) dynamic_media_config->mask[0];
+                config->format = (audio_format_t)dynamic_media_config->format[0];
+            }
             if (config->sample_rate == 0)
                 config->sample_rate = DEFAULT_OUTPUT_SAMPLING_RATE;
             if (config->channel_mask == AUDIO_CHANNEL_NONE)
@@ -3799,13 +3810,13 @@ StreamOutPrimary::StreamOutPrimary(
         flags_ = AUDIO_OUTPUT_FLAG_FAST;
     }
 
-    (void)FillHalFnPtrs();
     mInitialized = true;
     for(auto dev : mAndroidOutDevices)
         audio_extn_gef_notify_device_config(dev, config_.channel_mask,
             config_.sample_rate, flags_);
 
 error:
+    (void)FillHalFnPtrs();
     AHAL_DBG("Exit");
     return;
 }
@@ -4211,7 +4222,7 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
         goto done;
     }
 
-    AHAL_DBG("mAndroidInDevices %d, mNoOfInDevices %zu, new_devices %d, num new_devices: %zu",
+    AHAL_DBG("mAndroidInDevices 0x%x, mNoOfInDevices %zu, new_devices 0x%x, num new_devices: %zu",
              AudioExtn::get_device_types(mAndroidInDevices),
              mAndroidInDevices.size(), AudioExtn::get_device_types(new_devices), new_devices.size());
 
@@ -4879,7 +4890,8 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
     audio_source_t source) :
     StreamPrimary(handle, devices, config),
     mAndroidInDevices(devices),
-    flags_(flags)
+    flags_(flags),
+    btSinkMetadata{0, nullptr}
 {
     stream_ = std::shared_ptr<audio_stream_in> (new audio_stream_in());
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
@@ -4928,16 +4940,19 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
             AHAL_ERR("Error usb device is not connected");
             free(dynamic_media_config);
             free(device_cap_query_);
-            goto error;
+            dynamic_media_config = NULL;
+            device_cap_query_ = NULL;
         }
-        AHAL_DBG("usb fs=%d format=%d mask=%x",
-            dynamic_media_config->sample_rate[0],
-            dynamic_media_config->format[0], dynamic_media_config->mask[0]);
-        if (!config->sample_rate) {
-            config->sample_rate = dynamic_media_config->sample_rate[0];
-            config->channel_mask = (audio_channel_mask_t) dynamic_media_config->mask[0];
-            config->format = (audio_format_t)dynamic_media_config->format[0];
-            memcpy(&config_, config, sizeof(struct audio_config));
+        if (dynamic_media_config) {
+            AHAL_DBG("usb fs=%d format=%d mask=%x",
+                dynamic_media_config->sample_rate[0],
+                dynamic_media_config->format[0], dynamic_media_config->mask[0]);
+            if (!config->sample_rate) {
+                config->sample_rate = dynamic_media_config->sample_rate[0];
+                config->channel_mask = (audio_channel_mask_t) dynamic_media_config->mask[0];
+                config->format = (audio_format_t)dynamic_media_config->format[0];
+                memcpy(&config_, config, sizeof(struct audio_config));
+            }
         }
     }
 
@@ -5076,9 +5091,9 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
         stream_.get()->create_mmap_buffer = astream_in_create_mmap_buffer;
         stream_.get()->get_mmap_position = astream_in_get_mmap_position;
     }
-    (void)FillHalFnPtrs();
     mInitialized = true;
 error:
+    (void)FillHalFnPtrs();
     AHAL_DBG("Exit");
     return;
 }

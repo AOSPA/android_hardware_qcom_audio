@@ -41,3 +41,7 @@ service vendor.audio-hal /vendor/bin/hw/android.hardware.audio.service
     writepid /dev/cpuset/foreground/tasks /dev/stune/foreground/tasks
     onrestart restart audioserver
 
+# SSR trigger for audio subsystem
+on property:vendor.audio.ssr.trigger=1
+    write /sys/kernel/boot_adsp/ssr 1
+
