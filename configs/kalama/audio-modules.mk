@@ -101,10 +101,14 @@ AUDIO_MODULES += mm-audio-ftm
 AUDIO_MODULES += libmcs
 AUDIO_MODULES += libquasar
 AUDIO_MODULES += sensors.dynamic_sensor_hal
+
+ifeq ($(PRODUCT_ENABLE_QESDK),true)
 AUDIO_MODULES += libvui_dmgr
 AUDIO_MODULES += libvui_dmgr_client
 AUDIO_MODULES += qsap_voiceui
+AUDIO_MODULES += qsap_voiceui.rc
 AUDIO_MODULES += qsap_voiceui.policy
+endif
 
 AUDIO_MODULES += $(AUDIO_AGM)
 AUDIO_MODULES += $(AUDIO_PAL)
