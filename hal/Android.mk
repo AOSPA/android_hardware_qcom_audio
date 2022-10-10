@@ -148,6 +148,10 @@ ifeq ($(strip $(AUDIO_FEATURE_ENABLED_DAEMON_SUPPORT)), true)
   LOCAL_CFLAGS += -DDAEMON_SUPPORT_AUTO
 endif
 
+ifeq ($(strip $(AUDIO_FEATURE_ENABLED_EC_REF_CAPTURE)),true)
+LOCAL_CFLAGS += -DEC_REF_CAPTURE_ENABLED
+endif
+
 LOCAL_CFLAGS += -Wno-macro-redefined
 
 LOCAL_HEADER_LIBRARIES := libhardware_headers
