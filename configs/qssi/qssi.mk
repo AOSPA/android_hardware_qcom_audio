@@ -81,10 +81,6 @@ vendor.audio.parser.ip.buffer.size=262144
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.flac.sw.decoder.24bit=true
 
-#split a2dp DSP supported encoder list
-PRODUCT_PROPERTY_OVERRIDES += \
-persist.vendor.bt.a2dp_offload_cap=sbc-aptx-aptxtws-aptxhd-aac-ldac
-
 #enable software decoders for ALAC and APE
 PRODUCT_PROPERTY_OVERRIDES += \
 vendor.audio.use.sw.alac.decoder=true
@@ -107,26 +103,6 @@ audio.offload.video=true
 #Enable music through deep buffer
 PRODUCT_PROPERTY_OVERRIDES += \
 audio.deep_buffer.media=true
-
-#audio becoming noisy intent broadcast delay
-PRODUCT_PRODUCT_PROPERTIES += \
-audio.sys.noisy.broadcast.delay=500
-
-#audio device switch mute latency factor for draining unmuted data
-PRODUCT_PRODUCT_PROPERTIES += \
-audio.sys.mute.latency.factor=2
-
-#audio device switch mute latency to absorb routing activities
-PRODUCT_PRODUCT_PROPERTIES += \
-audio.sys.routing.latency=0
-
-#offload minimum duration set to 30sec
-PRODUCT_PRODUCT_PROPERTIES += \
-audio.offload.min.duration.secs=30
-
-#offload pausetime out duration to 3 secs to inline with other outputs
-PRODUCT_PRODUCT_PROPERTIES += \
-audio.sys.offload.pstimeout.secs=3
 
 #Set AudioFlinger client heap size
 PRODUCT_PROPERTY_OVERRIDES += \
