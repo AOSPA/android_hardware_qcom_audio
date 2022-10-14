@@ -467,6 +467,9 @@ vendor.audio.feature.snd_mon.enable=true \
 vendor.audio.feature.dmabuf.cma.memory.enable=false \
 vendor.audio.hdr.record.enable=false
 
+# set dynamic sensor operation timeout in ms
+PRODUCT_PROPERTY_OVERRIDES += \
+vendor.dynamic_sensor.setup.timeout.ms=2000
 
 PRODUCT_PACKAGES_ENG += \
     VoicePrintTest \
