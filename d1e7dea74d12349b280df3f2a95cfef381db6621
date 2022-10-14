@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ddac3fd2_bb6fc85d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000012
+      },
+      "writtenOn": "2022-10-14T02:14:01Z",
+      "side": 1,
+      "message": "are you sure? https://git.codelinaro.org/clo/la/platform/vendor/qcom-opensource/audio/-/blob/445f39bcf180660c2e2a532cc7cae644336ae587/configs/qssi/qssi.mk",
+      "revId": "d1e7dea74d12349b280df3f2a95cfef381db6621",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    }
+  ]
+}
