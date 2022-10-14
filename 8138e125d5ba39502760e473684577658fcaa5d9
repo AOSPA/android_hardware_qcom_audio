@@ -16,6 +16,24 @@
       "message": "this isn\u0027t used is it?  I don\u0027t think Qualcomm would be inheriting it since it isn\u0027t synced on qssi tags.",
       "revId": "8138e125d5ba39502760e473684577658fcaa5d9",
       "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a9dd1eb7_648a7beb",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000737
+      },
+      "writtenOn": "2022-10-14T22:48:49Z",
+      "side": 1,
+      "message": "It is not used, but this commit exists in each platform-specific makefile, so I thought I would pick it here, to keep it aligned too too.",
+      "parentUuid": "32fcf93d_ff81405a",
+      "revId": "8138e125d5ba39502760e473684577658fcaa5d9",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
     }
   ]
 }
