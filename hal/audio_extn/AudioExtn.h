@@ -36,6 +36,7 @@
 #include <cutils/str_parms.h>
 #include <set>
 #include <atomic>
+#include <unordered_map>
 #include "PalDefs.h"
 #include "audio_defs.h"
 #include <log/log.h>
@@ -78,6 +79,48 @@ typedef enum {
     /** Decoding is done by HW an there is control only */
     LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH,
 }tSESSION_TYPE;
+
+
+// start of CompressCapture
+class CompressCapture {
+   public:
+    constexpr static const char *kAudioParameterDSPAacBitRate =
+        "dsp_aac_audio_bitrate";
+    static const uint32_t kAacPCMSamplesPerFrame = 1024;
+
+    // min and max bitrates supported for AAC mono and stereo
+    static const int32_t kAacMonoMinSupportedBitRate = 4000;
+    static const int32_t kAacStereoMinSupportedBitRate = 8000;
+
+    static const int32_t kAacMonoMaxSupportedBitRate = 192000;
+    static const int32_t kAacStereoMaxSupportedBitRate = 384000;
+
+    static std::vector<uint32_t> sAacSampleRates;
+    static std::unordered_map<uint32_t, int32_t> sSampleRateToDefaultBitRate;
+
+    static bool parseMetadata(str_parms *parms, struct audio_config *config,
+                              int32_t &compressStreamAdjBitRate);
+
+    static bool getAACMinBitrateValue(uint32_t sampleRate,
+                                      uint32_t channelCount, int32_t &minValue);
+
+    static bool getAACMaxBitrateValue(uint32_t sampleRate,
+                                      uint32_t channelCount, int32_t &maxValue);
+
+    static bool getAACMaxBufferSize(struct audio_config *config,
+                                    uint32_t &maxBufSize);
+
+    CompressCapture() = delete;
+    ~CompressCapture() = delete;
+
+    CompressCapture(const CompressCapture&) = delete;
+    CompressCapture(CompressCapture&&) = delete;
+
+    CompressCapture& operator=(const CompressCapture&) = delete;
+    CompressCapture& operator=(CompressCapture&&) = delete;
+};
+// end of CompressCapture
+
 
 class AudioExtn
 {
@@ -142,7 +185,6 @@ protected:
     struct pal_stream_attributes sattr;
 private:
     static std::atomic<bool> sServicesRegistered;
-
 };
 
 #endif /* AUDIOEXTN_H */
