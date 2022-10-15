@@ -52,6 +52,24 @@
       "parentUuid": "a9dd1eb7_648a7beb",
       "revId": "8138e125d5ba39502760e473684577658fcaa5d9",
       "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "31de6840_de2df0b6",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000737
+      },
+      "writtenOn": "2022-10-15T09:49:54Z",
+      "side": 1,
+      "message": "maybe it will be better, I\u0027ll do it",
+      "parentUuid": "c30070be_8aa9f709",
+      "revId": "8138e125d5ba39502760e473684577658fcaa5d9",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
     }
   ]
 }
