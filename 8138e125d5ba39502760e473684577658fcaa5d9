@@ -34,6 +34,24 @@
       "parentUuid": "32fcf93d_ff81405a",
       "revId": "8138e125d5ba39502760e473684577658fcaa5d9",
       "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c30070be_8aa9f709",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000012
+      },
+      "writtenOn": "2022-10-15T02:18:59Z",
+      "side": 1,
+      "message": "should we do it in device/qcom/common instead?",
+      "parentUuid": "a9dd1eb7_648a7beb",
+      "revId": "8138e125d5ba39502760e473684577658fcaa5d9",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
     }
   ]
 }
