@@ -16,6 +16,24 @@
       "message": "I think this was something stupid I did because one, there is no libvolumelistener on stock. I do not think this change is required, the desired functionality could be enabled without it. I could be wrong, since I haven\u0027t done bengal in a year. ",
       "revId": "56ed57c8935647e53a842960d882fb265a230620",
       "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2dbb866a_309be843",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000737
+      },
+      "writtenOn": "2022-10-17T23:18:57Z",
+      "side": 1,
+      "message": "Even so, the cane is still missing from the list.\nLAHAINA, LITO and BENGAL use the same audio as hal, and they are included.",
+      "parentUuid": "88f1cc03_edadb34f",
+      "revId": "56ed57c8935647e53a842960d882fb265a230620",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
     }
   ]
 }
