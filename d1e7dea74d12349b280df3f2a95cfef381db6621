@@ -16,6 +16,24 @@
       "message": "are you sure? https://git.codelinaro.org/clo/la/platform/vendor/qcom-opensource/audio/-/blob/445f39bcf180660c2e2a532cc7cae644336ae587/configs/qssi/qssi.mk",
       "revId": "d1e7dea74d12349b280df3f2a95cfef381db6621",
       "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fd963db2_06811f92",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000737
+      },
+      "writtenOn": "2022-10-17T23:22:26Z",
+      "side": 1,
+      "message": "Yes, I looked again and confirmed.",
+      "parentUuid": "ddac3fd2_bb6fc85d",
+      "revId": "d1e7dea74d12349b280df3f2a95cfef381db6621",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
     }
   ]
 }
