@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "58d99858_12eafc9d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000579
+      },
+      "writtenOn": "2022-10-18T05:44:10Z",
+      "side": 1,
+      "message": "Still unsure how oplus broke hw offload on vorbis decoder\nThis is a qti fwk add and I would not want people disabling it globally\nCR-1 to grab attention",
+      "revId": "b7550aa74232f85862f6f9dafa13edfd4d7e0db0",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    }
+  ]
+}
