@@ -52,6 +52,23 @@
       "parentUuid": "d73d2302_51553697",
       "revId": "b7550aa74232f85862f6f9dafa13edfd4d7e0db0",
       "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "b51568a8_0c31cc87",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000465
+      },
+      "writtenOn": "2022-10-18T15:56:26Z",
+      "side": 1,
+      "message": "I\u0027m not aware of how device specific this is. In case it\u0027s only needed for your device, you can add it to your device tree and install it to /odm/etc, else take this as a +1 CR",
+      "revId": "b7550aa74232f85862f6f9dafa13edfd4d7e0db0",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
     }
   ]
 }
