@@ -16,6 +16,24 @@
       "message": "Could you use ?\u003d instead?",
       "revId": "279009762abd4449726f67535dc46a4466482264",
       "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "15b9beeb_eee8e4c0",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000737
+      },
+      "writtenOn": "2022-10-21T18:19:47Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "206d5774_048ebc7d",
+      "revId": "279009762abd4449726f67535dc46a4466482264",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
     }
   ]
 }
