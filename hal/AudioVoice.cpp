@@ -464,18 +464,16 @@ int AudioVoice::RouteStream(const std::set<audio_devices_t>& rx_devices) {
     } else {
         // do device switch here
         for (int i = 0; i < max_voice_sessions_; i++) {
-             {
-                /* already in call, and now if BLE is connected send metadata
-                 * so that BLE can be configured for call and then switch to
-                 * BLE device
-                 */
-                updateVoiceMetadataForBT(true);
-                // dont start the call, until we get suspend from BLE
-                std::unique_lock<std::mutex> guard(reconfig_wait_mutex_);
-             }
-             ret = VoiceSetDevice(&voice_.session[i]);
-             if (ret)
-                 AHAL_ERR("Device switch failed for session[%d]", i);
+            /* already in call, and now if BLE is connected send metadata
+             * so that BLE can be configured for call and then switch to
+             * BLE device
+             */
+            updateVoiceMetadataForBT(true);
+            // dont start the call, if suspend is in progress for BLE
+            std::unique_lock<std::mutex> guard(reconfig_wait_mutex_);
+            ret = VoiceSetDevice(&voice_.session[i]);
+            if (ret)
+                AHAL_ERR("Device switch failed for session[%d]", i);
         }
     }
     voice_mutex_.unlock();
@@ -547,15 +545,16 @@ int AudioVoice::UpdateCalls(voice_session_t *pSession) {
                 AHAL_DBG("INACTIVE -> ACTIVE vsid:%x", session->vsid);
                 {
                     updateVoiceMetadataForBT(true);
-                    // dont start the call, until we get suspend from BLE
+                    // dont start the call, if suspend is in progress for BLE
                     std::unique_lock<std::mutex> guard(reconfig_wait_mutex_);
-                }
 
-                ret = VoiceStart(session);
-                if (ret < 0) {
-                    AHAL_ERR("VoiceStart() failed");
-                } else {
-                    session->state.current_ = session->state.new_;
+                    ret = VoiceStart(session);
+                    if (ret < 0) {
+                        AHAL_ERR("VoiceStart() failed");
+                    }
+                    else {
+                        session->state.current_ = session->state.new_;
+                    }
                 }
                 break;
             default:
