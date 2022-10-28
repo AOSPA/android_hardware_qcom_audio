@@ -4695,6 +4695,10 @@ uint32_t StreamInPrimary::GetBufferSize() {
     size_t size = 0;
     uint32_t bytes_per_period_sample = 0;
 
+    if (!streamAttributes_.type)
+        streamAttributes_.type = StreamInPrimary::GetPalStreamType(flags_,
+                                     config_.sample_rate);
+
     if (streamAttributes_.type == PAL_STREAM_VOIP_TX) {
         size = (DEFAULT_VOIP_BUF_DURATION_MS * config_.sample_rate / 1000) *
                audio_bytes_per_frame(
