@@ -4394,8 +4394,6 @@ int StreamInPrimary::SetParameters(const char* kvpairs) {
         if (CompressCapture::parseMetadata(parms, &config_,
                                            mCompressStreamAdjBitRate)) {
             mIsBitRateSet = true;
-        } else {
-            ret = -EINVAL;
         }
     }
 
