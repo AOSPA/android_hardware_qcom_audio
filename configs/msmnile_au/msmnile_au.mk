@@ -125,18 +125,19 @@ AUDIO_FEATURE_ENABLED_AUTO_AUDIOD := true
 
 ifneq ( ,$(filter msmnile_au msmnile_tb, $(TARGET_PRODUCT)))
 AUDIO_FEATURE_ENABLED_DAEMON_SUPPORT := true
-AUDIO_FEATURE_ENABLED_SILENT_BOOT := true
 else
 AUDIO_FEATURE_ENABLED_DAEMON_SUPPORT := false
-AUDIO_FEATURE_ENABLED_SILENT_BOOT := false
 endif
 AUDIO_FEATURE_ENABLED_SND_MONITOR := false
 else
 AUDIO_FEATURE_ENABLED_SND_MONITOR := true
 endif
+ifeq ($(ENABLE_AUDIO_LEGACY_TECHPACK),true)
+AUDIO_FEATURE_ENABLED_SILENT_BOOT := true
+endif
 AUDIO_FEATURE_ENABLED_FM_TUNER_EXT := true
 AUDIO_FEATURE_ENABLED_ICC := true
-ifneq ( ,$(filter S 12, $(PLATFORM_VERSION)))
+ifneq ( ,$(filter S 12 T 13, $(PLATFORM_VERSION)))
 AUDIO_FEATURE_ENABLED_POWER_POLICY := true
 endif
 ifneq ( ,$(filter msmnile_gvmq msmnile_au, $(TARGET_BOARD_PLATFORM)$(TARGET_BOARD_SUFFIX)))
@@ -365,9 +366,9 @@ vendor.audio.hal.output.suspend.supported=false
 #Enable AAudio MMAP/NOIRQ data path
 #1 is AAUDIO_POLICY_NEVER so it will not try MMAP
 #2 is AAUDIO_POLICY_AUTO so it will try MMAP then fallback to Legacy path
-PRODUCT_PROPERTY_OVERRIDES += aaudio.mmap_policy=1
+PRODUCT_PROPERTY_OVERRIDES += aaudio.mmap_policy=2
 #Allow EXCLUSIVE then fall back to SHARED.
-PRODUCT_PROPERTY_OVERRIDES += aaudio.mmap_exclusive_policy=1
+PRODUCT_PROPERTY_OVERRIDES += aaudio.mmap_exclusive_policy=2
 PRODUCT_PROPERTY_OVERRIDES += aaudio.hw_burst_min_usec=2000
 
 #enable mirror-link feature
