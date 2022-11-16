@@ -30,7 +30,7 @@
 /*
  *  Changes from Qualcomm Innovation Center are provided under the following license:
  *
- *  Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted (subject to the limitations in the
@@ -1066,9 +1066,18 @@ static void out_update_source_metadata_v7(
         astream_out->btSourceMetadata.tracks = astream_out->tracks.data();
         audio_mode_t mode;
         bool voice_active = false;
+        bool voice_mode_active = false;
 
         if (adevice && adevice->voice_) {
             voice_active = adevice->voice_->get_voice_call_state(&mode);
+            /* In case of concurrency of media/gaming stream with voice call,
+             * framework will send metadata update when ringtone stream ends.
+             * As only media/gaming stream is present at that point, it will
+             * trigger reconfiguration in BT stack. To avoid this, block all
+             * framework triggered metadata update if phone mode is in CALL.
+             */
+            if (mode == AUDIO_MODE_IN_CALL)
+                voice_mode_active = true;
         } else {
             AHAL_ERR("adevice voice is null");
         }
@@ -1103,7 +1112,7 @@ static void out_update_source_metadata_v7(
         astream_out->btSourceMetadata.tracks = astream_out->tracks.data();
 
         //Send aggregated metadata of all active stream o/ps
-        ret = astream_out->SetAggregateSourceMetadata(voice_active);
+        ret = astream_out->SetAggregateSourceMetadata(voice_mode_active);
         if (ret != 0) {
             AHAL_ERR("Set PAL_PARAM_ID_SET_SOURCE_METADATA for %d failed", ret);
         }
@@ -1475,6 +1484,7 @@ static void in_update_sink_metadata_v7(
             struct record_track_metadata_v7* track = sink_metadata->tracks;
             audio_mode_t mode;
             bool voice_active = false;
+            bool voice_mode_active = false;
             AHAL_DBG("track count is %d for usecase (%d: %s)", track_count,
                 astream_in->GetUseCase(), use_case_table[astream_in->GetUseCase()]);
 
@@ -1498,6 +1508,9 @@ static void in_update_sink_metadata_v7(
 
             if (adevice && adevice->voice_) {
                 voice_active = adevice->voice_->get_voice_call_state(&mode);
+                // Flag to block framework triggered metadata update to BT if phone mode IN_CALL
+                if (mode == AUDIO_MODE_IN_CALL)
+                    voice_mode_active = true;
             }
             else {
                 AHAL_ERR("adevice voice is null");
@@ -1515,7 +1528,7 @@ static void in_update_sink_metadata_v7(
             astream_in->btSinkMetadata.tracks = astream_in->tracks.data();
 
             //Send aggregated metadata of all active stream i/ps
-            ret = astream_in->SetAggregateSinkMetadata(voice_active);
+            ret = astream_in->SetAggregateSinkMetadata(voice_mode_active);
 
             if (ret != 0) {
                 AHAL_ERR("Set PAL_PARAM_ID_SET_SINK_METADATA for %d failed", ret);
