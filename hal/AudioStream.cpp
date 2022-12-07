@@ -30,7 +30,7 @@
 /*
  *  Changes from Qualcomm Innovation Center are provided under the following license:
  *
- *  Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted (subject to the limitations in the
@@ -3441,12 +3441,58 @@ ssize_t StreamOutPrimary::write(const void *buffer, size_t bytes)
     palBuffer.size = bytes;
     palBuffer.offset = 0;
 
+    pal_param_bta2dp_t *param_bt_a2dp = nullptr;
+    size_t bt_param_size = 0;
+    bool is_usage_ringtone = false;
+    uint32_t frameSize = 0;
+    uint32_t byteWidth = 0;
+    uint32_t sampleRate = 0;
+    uint32_t channelCount = 0;
+
     AHAL_VERBOSE("handle_ %x bytes:(%zu)", handle_, bytes);
 
     stream_mutex_.lock();
     ret = configurePalOutputStream();
     if (ret < 0)
         goto exit;
+
+    /* If reconfiguration has not finished before ringtone stream
+     * start on combo device with BLE, we are not sending write to PAL,
+     * instead we are sleeping here for pcm data duration and returning
+     * success. This will ensure that there will be no audio break on
+     * Speaker due to write delays during reconfiguration. Once reconfig
+     * has finished, writes go though to the PAL.
+     */
+    if (mAndroidOutDevices.size() > 1) {
+        for (int i = 0; i < btSourceMetadata.track_count; i++) {
+            if (btSourceMetadata.tracks[i].usage == AUDIO_USAGE_NOTIFICATION_TELEPHONY_RINGTONE) {
+                is_usage_ringtone = true;
+                break;
+            }
+        }
+
+        if (is_usage_ringtone && isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) {
+            param_bt_a2dp = nullptr;
+            bt_param_size = 0;
+            std::unique_lock<std::mutex> guard(reconfig_wait_mutex_);
+            ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void **)&param_bt_a2dp,
+                                &bt_param_size, nullptr);
+            if (!ret && param_bt_a2dp && param_bt_a2dp->a2dp_suspended) {
+                 byteWidth = streamAttributes_.out_media_config.bit_width / 8;
+                 sampleRate = streamAttributes_.out_media_config.sample_rate;
+                 channelCount = streamAttributes_.out_media_config.ch_info.channels;
+                 frameSize = byteWidth * channelCount;
+                 if ((frameSize == 0) || (sampleRate == 0)) {
+                     AHAL_ERR("frameSize=%d, sampleRate=%d", frameSize, sampleRate);
+                     stream_mutex_.unlock();
+                     return -EINVAL;
+                 }
+                 usleep((uint64_t)bytes * 1000000 / frameSize / sampleRate);
+                 AHAL_VERBOSE("BLE suspended; dropped ringtone buffer size - %d", bytes);
+                 goto exit;
+            }
+        }
+    }
     ATRACE_BEGIN("hal: pal_stream_write");
     if (halInputFormat != halOutputFormat && convertBuffer != NULL) {
         if (bytes > fragment_size_) {
