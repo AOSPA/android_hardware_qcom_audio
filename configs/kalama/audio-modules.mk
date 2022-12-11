@@ -106,7 +106,6 @@ ifeq ($(PRODUCT_ENABLE_QESDK),true)
 AUDIO_MODULES += libvui_dmgr
 AUDIO_MODULES += libvui_dmgr_client
 AUDIO_MODULES += qsap_voiceui
-AUDIO_MODULES += qsap_voiceui.rc
 AUDIO_MODULES += qsap_voiceui.policy
 endif
 
