@@ -1729,6 +1729,8 @@ int AudioDevice::SetParameters(const char *kvpairs) {
             if ((usb_card_id_ == param_device_connection.device_config.usb_addr.card_id) &&
                 (audio_is_usb_in_device(device)) && (usb_input_dev_enabled == true)) {
                    usb_input_dev_enabled = false;
+                   usb_out_headset = false;
+                   AHAL_DBG("usb_input_dev_enabled flag is cleared.");
             }
         } else if (val == AUDIO_DEVICE_OUT_AUX_DIGITAL) {
             int controller = -1, stream = -1;
@@ -1760,9 +1762,6 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                 }
                 AHAL_INFO("pal set param sucess for device disconnect");
             }
-            usb_out_headset = false;
-            usb_input_dev_enabled = false;
-            AHAL_DBG("usb_input_dev_enabled flag is cleared.");
         }
     }
 
