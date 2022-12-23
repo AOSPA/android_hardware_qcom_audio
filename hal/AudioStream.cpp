@@ -1924,8 +1924,6 @@ pal_stream_type_t StreamOutPrimary::GetPalStreamType(
         palStreamType = PAL_STREAM_ULTRA_LOW_LATENCY;
     } else if (halStreamFlags & AUDIO_OUTPUT_FLAG_MMAP_NOIRQ) {
         palStreamType = PAL_STREAM_ULTRA_LOW_LATENCY;
-    } else if (halStreamFlags & AUDIO_OUTPUT_FLAG_RAW) {
-        palStreamType = PAL_STREAM_ULTRA_LOW_LATENCY;
     } else if (halStreamFlags == (AUDIO_OUTPUT_FLAG_DIRECT|
                                       AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD|
                                   AUDIO_OUTPUT_FLAG_NON_BLOCKING)) {
@@ -1933,19 +1931,9 @@ pal_stream_type_t StreamOutPrimary::GetPalStreamType(
         palStreamType = PAL_STREAM_COMPRESSED;
     } else if (halStreamFlags == AUDIO_OUTPUT_FLAG_DIRECT) {
         palStreamType = PAL_STREAM_PCM_OFFLOAD;
-    } else if (halStreamFlags == (AUDIO_OUTPUT_FLAG_DIRECT|
-                                      AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD|
-                                  AUDIO_OUTPUT_FLAG_NON_BLOCKING)) {
-        palStreamType = PAL_STREAM_COMPRESSED;
     } else if (halStreamFlags & AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD) {
         // dsd_compress_passthrough
         palStreamType = PAL_STREAM_COMPRESSED;
-    } else if (halStreamFlags == (AUDIO_OUTPUT_FLAG_DIRECT|
-                                      AUDIO_OUTPUT_FLAG_VOIP_RX)) {
-        // voice rx
-        palStreamType = PAL_STREAM_VOIP_RX;
-    } else if (halStreamFlags == AUDIO_OUTPUT_FLAG_VOIP_RX) {
-        palStreamType = PAL_STREAM_VOIP_RX;
     } else if (halStreamFlags == AUDIO_OUTPUT_FLAG_INCALL_MUSIC) {
         // incall_music_uplink
         palStreamType = PAL_STREAM_VOICE_CALL_MUSIC;
