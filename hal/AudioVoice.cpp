@@ -1135,8 +1135,6 @@ void AudioVoice::updateVoiceMetadataForBT(bool call_active)
     Sinktracks.resize(track_count);
     int32_t ret = 0;
 
-    AHAL_INFO("track count is %d", track_count);
-
     source_metadata_t btSourceMetadata;
     sink_metadata_t btSinkMetadata;
 
@@ -1167,17 +1165,21 @@ void AudioVoice::updateVoiceMetadataForBT(bool call_active)
          * and sink metadata separately to BT.
          */
         if (stream_out_primary_) {
+            stream_out_primary_->sourceMetadata_mutex_.lock();
             ret = stream_out_primary_->SetAggregateSourceMetadata(false);
             if (ret != 0) {
                 AHAL_ERR("Set PAL_PARAM_ID_SET_SOURCE_METADATA for %d failed", ret);
             }
+            stream_out_primary_->sourceMetadata_mutex_.unlock();
         }
 
         if (stream_in_primary_) {
+            stream_in_primary_->sinkMetadata_mutex_.lock();
             ret = stream_in_primary_->SetAggregateSinkMetadata(false);
             if (ret != 0) {
                 AHAL_ERR("Set PAL_PARAM_ID_SET_SINK_METADATA for %d failed", ret);
             }
+            stream_in_primary_->sinkMetadata_mutex_.unlock();
         }
     }
 }
