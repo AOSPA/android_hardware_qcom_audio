@@ -185,6 +185,7 @@ protected:
     struct pal_stream_attributes sattr;
 private:
     static std::atomic<bool> sServicesRegistered;
+    static std::mutex sLock;
 };
 
 #endif /* AUDIOEXTN_H */

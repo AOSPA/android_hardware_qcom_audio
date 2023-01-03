@@ -81,6 +81,7 @@ static void *batt_listener_lib_handle;
 static bool audio_extn_kpi_optimize_feature_enabled = false;
 //TODO make this mutex part of class
 std::mutex reconfig_wait_mutex_;
+std::mutex AudioExtn::sLock;
 
 std::atomic<bool> AudioExtn::sServicesRegistered = false;
 
@@ -776,16 +777,15 @@ int AudioExtn::karaoke_close(){
 // START: PAL HIDL =================================================
 
 int AudioExtn::audio_extn_hidl_init() {
+    std::lock_guard<std::mutex> lock(AudioExtn::sLock);
+    if (sServicesRegistered) {
+        AHAL_DBG("HIDLs are already registered");
+        return 0;
+    }
 
-    int num_threads = 48;
 #ifdef PAL_HIDL_ENABLED
    /* register audio PAL HIDL */
     sp<IPAL> service = new PAL();
-    /*
-     *We request for more threads as the same number of threads would be divided
-     *between PAL and audio HAL HIDL
-     */
-    configureRpcThreadpool(num_threads, false /*callerWillJoin*/);
     if(android::OK !=  service->registerAsService()) {
         AHAL_ERR("Could not register PAL service");
         return -EINVAL;
@@ -798,7 +798,6 @@ int AudioExtn::audio_extn_hidl_init() {
    /* register AGM HIDL */
     sp<IAGM> agm_service = new AGM();
     AGM *temp = static_cast<AGM *>(agm_service.get());
-    configureRpcThreadpool(num_threads, false /*callerWillJoin*/);
     if (temp->is_agm_initialized()) {
         if(android::OK != agm_service->registerAsService()) {
             AHAL_ERR("Could not register AGM service");
