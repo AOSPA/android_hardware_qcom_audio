@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d81b8029_726e3cf9",
+        "filename": "configs/bengal/bengal.mk",
+        "patchSetId": 1
+      },
+      "lineNbr": 467,
+      "author": {
+        "id": 1000012
+      },
+      "writtenOn": "2023-01-03T06:02:19Z",
+      "side": 1,
+      "message": "whitespace",
+      "revId": "9dbae1622a463a0af1642830a904b24ac3386eb9",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    }
+  ]
+}
