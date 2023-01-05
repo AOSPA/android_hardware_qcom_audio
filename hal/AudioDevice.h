@@ -27,7 +27,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -180,8 +180,8 @@ public:
     int GetPalDeviceIds(
             const std::set<audio_devices_t>& hal_device_id,
             pal_device_id_t* pal_device_id);
-    int usb_card_id_;
-    int usb_dev_num_;
+    int usb_card_id_ = -1;
+    int usb_dev_num_ = -1;
     int dp_controller;
     int dp_stream;
     int num_va_sessions_ = 0;
