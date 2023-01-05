@@ -1270,7 +1270,7 @@ std::vector<std::shared_ptr<StreamOutPrimary>> AudioDevice::OutGetBLEStreamOutpu
 
 std::shared_ptr<StreamOutPrimary> AudioDevice::OutGetStream(audio_stream_t* stream_out) {
 
-    std::shared_ptr<StreamOutPrimary> astream_out;
+    std::shared_ptr<StreamOutPrimary> astream_out = NULL;
     AHAL_VERBOSE("stream_out(%p)", stream_out);
     out_list_mutex.lock();
     for (int i = 0; i < stream_out_list_.size(); i++) {
@@ -1278,12 +1278,11 @@ std::shared_ptr<StreamOutPrimary> AudioDevice::OutGetStream(audio_stream_t* stre
                                         (audio_stream_out*) stream_out) {
             AHAL_VERBOSE("Found stream associated with stream_out");
             astream_out = stream_out_list_[i];
+            AHAL_VERBOSE("astream_out(%p)", astream_out->stream_.get());
             break;
         }
     }
     out_list_mutex.unlock();
-    AHAL_VERBOSE("astream_out(%p)", astream_out->stream_.get());
-
     return astream_out;
 }
 
@@ -1303,7 +1302,7 @@ std::shared_ptr<StreamInPrimary> AudioDevice::InGetStream (audio_io_handle_t han
 }
 
 std::shared_ptr<StreamInPrimary> AudioDevice::InGetStream (audio_stream_t* stream_in) {
-    std::shared_ptr<StreamInPrimary> astream_in;
+    std::shared_ptr<StreamInPrimary> astream_in = NULL;
 
     AHAL_VERBOSE("stream_in(%p)", stream_in);
     in_list_mutex.lock();
@@ -1311,11 +1310,11 @@ std::shared_ptr<StreamInPrimary> AudioDevice::InGetStream (audio_stream_t* strea
         if (stream_in_list_[i]->stream_.get() == (audio_stream_in*) stream_in) {
             AHAL_VERBOSE("Found existing stream associated with astream_in");
             astream_in = stream_in_list_[i];
+            AHAL_VERBOSE("astream_in(%p)", astream_in->stream_.get());
             break;
         }
     }
     in_list_mutex.unlock();
-    AHAL_VERBOSE("astream_in(%p)", astream_in->stream_.get());
     return astream_in;
 }
 
