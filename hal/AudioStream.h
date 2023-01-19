@@ -599,7 +599,7 @@ protected:
     uint32_t fragments_ = 0;
     uint32_t fragment_size_ = 0;
     pal_snd_dec_t palSndDec;
-    struct pal_compr_gapless_mdata gaplessMeta;
+    struct pal_compr_gapless_mdata gaplessMeta = {0, 0};
     uint32_t msample_rate;
     uint16_t mchannels;
     std::shared_ptr<audio_stream_out>   stream_;
