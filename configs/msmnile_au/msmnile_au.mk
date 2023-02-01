@@ -123,7 +123,7 @@ endif
 ifneq ($(ENABLE_HYP),true)
 AUDIO_FEATURE_ENABLED_AUTO_AUDIOD := true
 
-ifneq ( ,$(filter msmnile_au msmnile_au_km4 msmnile_tb, $(TARGET_PRODUCT)))
+ifneq ( ,$(filter msmnile_au msmnile_au_km4 msmnile_au_ar msmnile_tb, $(TARGET_PRODUCT)))
 AUDIO_FEATURE_ENABLED_DAEMON_SUPPORT := true
 else
 AUDIO_FEATURE_ENABLED_DAEMON_SUPPORT := false
@@ -140,7 +140,7 @@ AUDIO_FEATURE_ENABLED_ICC := true
 ifneq ( ,$(filter S 12 T 13, $(PLATFORM_VERSION)))
 AUDIO_FEATURE_ENABLED_POWER_POLICY := true
 endif
-ifneq ( ,$(filter msmnile_gvmq msmnile_au msmnile_au_km4, $(TARGET_BOARD_PLATFORM)$(TARGET_BOARD_SUFFIX)$(TARGET_BOARD_DERIVATIVE_SUFFIX)))
+ifneq ( ,$(filter msmnile_gvmq msmnile_au msmnile_au_km4 msmnile_au_ar, $(TARGET_BOARD_PLATFORM)$(TARGET_BOARD_SUFFIX)$(TARGET_BOARD_DERIVATIVE_SUFFIX)))
 AUDIO_FEATURE_ENABLED_AUDIO_PARSERS := true
 endif
 ##AUTOMOTIVE_AUDIO_FEATURE_FLAGS
@@ -151,7 +151,7 @@ DEVICE_PACKAGE_OVERLAYS += vendor/qcom/opensource/audio-hal/primary-hal/configs/
 endif
 
 ifneq ( ,$(filter T 13, $(PLATFORM_VERSION)))
-ifneq ( ,$(filter msmnile_au msmnile_au_km4, $(TARGET_BOARD_PLATFORM)$(TARGET_BOARD_SUFFIX))$(TARGET_BOARD_DERIVATIVE_SUFFIX))
+ifneq ( ,$(filter msmnile_au msmnile_au_km4 msmnile_au_ar, $(TARGET_BOARD_PLATFORM)$(TARGET_BOARD_SUFFIX))$(TARGET_BOARD_DERIVATIVE_SUFFIX))
 AUDIO_FEATURE_MMAP_AAUDIO = true
 endif
 endif
@@ -380,10 +380,12 @@ vendor.audio.hal.output.suspend.supported=false
 #Enable AAudio MMAP/NOIRQ data path
 #1 is AAUDIO_POLICY_NEVER so it will not try MMAP
 #2 is AAUDIO_POLICY_AUTO so it will try MMAP then fallback to Legacy path
+ifneq ($(TARGET_BOARD_PLATFORM)$(TARGET_BOARD_SUFFIX), msmnile_gvmq)
 PRODUCT_PROPERTY_OVERRIDES += aaudio.mmap_policy=2
 #Allow EXCLUSIVE then fall back to SHARED.
 PRODUCT_PROPERTY_OVERRIDES += aaudio.mmap_exclusive_policy=2
 PRODUCT_PROPERTY_OVERRIDES += aaudio.hw_burst_min_usec=2000
+endif
 
 #enable mirror-link feature
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -561,7 +563,7 @@ PRODUCT_PACKAGES_DEBUG += \
     AudioSettings
 
 # for HIDL related audiocontrol packages
-ifeq ( ,$(filter 12 13,$(PLATFORM_VERSION)))
+ifeq ( ,$(filter 12 13 T,$(PLATFORM_VERSION)))
 PRODUCT_PACKAGES += \
     android.hardware.automotive.audiocontrol@2.0-service \
     android.hardware.automotive.audiocontrol@2.0

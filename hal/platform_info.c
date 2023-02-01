@@ -28,7 +28,7 @@
 
  * Changes from Qualcomm Innovation Center are provided under the following license:
 
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022, 2023 Qualcomm Innovation Center, Inc. All rights reserved.
 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted (subject to the limitations in the
@@ -1243,10 +1243,6 @@ static void process_custom_mtmx_param_in_ch_info(const XML_Char **attr)
               ENUM_TO_STRING(AUDIO_DEVICE_IN_LOOPBACK),
               sizeof(mtmx_in_params->in_ch_info[in_ch_idx].device)))
         mtmx_in_params->ec_ref_ch = mtmx_in_params->in_ch_info[in_ch_idx].ch_count;
-    else if (!strncmp(mtmx_in_params->in_ch_info[in_ch_idx].device,
-                 ENUM_TO_STRING(AUDIO_DEVICE_IN_SPEAKER_MIC2),
-                 sizeof(mtmx_in_params->in_ch_info[in_ch_idx].device)))
-        mtmx_in_params->i2s_ch = mtmx_in_params->in_ch_info[in_ch_idx].ch_count;
 
     mtmx_in_params->ip_channels += mtmx_in_params->in_ch_info[in_ch_idx].ch_count;
 }
@@ -1563,8 +1559,6 @@ static void start_tag(void *userdata __unused, const XML_Char *tag_name,
                 return;
             }
             section = CUSTOM_MTMX_PARAM_IN_CH_INFO;
-            section_process_fn fn = section_table[section];
-            fn(attr);
         } else if (strcmp(tag_name, "audio_input_source_delay") == 0) {
             section = AUDIO_SOURCE_DELAY;
         } else if (strcmp(tag_name, "audio_source_delay") == 0) {
@@ -1733,6 +1727,8 @@ done:
 
 void platform_info_deinit()
 {
-    if (my_data.kvpairs)
+    if (my_data.kvpairs) {
         str_parms_destroy(my_data.kvpairs);
+        my_data.kvpairs = NULL;
+    }
 }
