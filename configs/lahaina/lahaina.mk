@@ -8,6 +8,7 @@ endif
 endif
 
 #mixer xml generation
+ifeq ($(TARGET_COMBINES_MIXER_PATHS),true)
 BASE_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/common/base
 OVERLAY_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/shima_overlay
 TARGET_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina
@@ -22,6 +23,7 @@ OVERLAY_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/yup
 $(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/mixer_paths_base.xml --overlay $(OVERLAY_PATH)/mixer_paths_yupikidp_overlay.xml $(OVERLAY_PATH)/mixer_paths_yupikqrd_overlay.xml --out_dir $(TARGET_PATH) --out mixer_paths_yupikidp.xml mixer_paths_yupikqrd.xml )
 
 $(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/sound_trigger_mixer_paths_base.xml --overlay $(OVERLAY_PATH)/sound_trigger_mixer_paths_yupikidp_overlay.xml $(OVERLAY_PATH)/sound_trigger_mixer_paths_yupikqrd_overlay.xml --out_dir $(TARGET_PATH) --out sound_trigger_mixer_paths_yupikidp.xml sound_trigger_mixer_paths_yupikqrd.xml )
+endif
 #
 ifneq ($(AUDIO_USE_STUB_HAL), true)
 BOARD_USES_ALSA_AUDIO := true
