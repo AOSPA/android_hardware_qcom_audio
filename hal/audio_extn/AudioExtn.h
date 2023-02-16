@@ -89,8 +89,8 @@ class CompressCapture {
     static const uint32_t kAacPCMSamplesPerFrame = 1024;
 
     // min and max bitrates supported for AAC mono and stereo
-    static const int32_t kAacMonoMinSupportedBitRate = 4000;
-    static const int32_t kAacStereoMinSupportedBitRate = 8000;
+    static const int32_t kAacMonoMinSupportedBitRate = 16000;
+    static const int32_t kAacStereoMinSupportedBitRate = 16000;
 
     static const int32_t kAacMonoMaxSupportedBitRate = 192000;
     static const int32_t kAacStereoMaxSupportedBitRate = 384000;
