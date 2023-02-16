@@ -2514,16 +2514,12 @@ int StreamOutPrimary::SetParameters(struct str_parms *parms) {
         if (ret1 >= 0 ) {
             gaplessMeta.encoderDelay = atoi(value);
             AHAL_DBG("new encoder delay %u", gaplessMeta.encoderDelay);
-        } else {
-            gaplessMeta.encoderDelay = 0;
         }
 
         ret1 = str_parms_get_str(parms, AUDIO_OFFLOAD_CODEC_PADDING_SAMPLES, value, sizeof(value));
         if (ret1 >= 0) {
             gaplessMeta.encoderPadding = atoi(value);
             AHAL_DBG("padding %u", gaplessMeta.encoderPadding);
-        } else {
-            gaplessMeta.encoderPadding = 0;
         }
     }
 
