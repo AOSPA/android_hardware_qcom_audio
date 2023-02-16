@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2019-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -413,6 +413,13 @@ int AudioVoice::RouteStream(const std::set<audio_devices_t>& rx_devices) {
     pal_device_id_t* pal_device_ids = NULL;
     uint16_t device_count = 0;
 
+    pal_param_bta2dp_t *param_bt_a2dp = nullptr;
+    size_t bt_param_size = 0;
+    bool a2dp_suspended = false;
+    bool a2dp_capture_suspended = false;
+    int retry_cnt = 20;
+    const int retry_period_ms = 100;
+
     AHAL_DBG("Enter");
 
     if (AudioExtn::audio_devices_empty(rx_devices)){
@@ -469,6 +476,33 @@ int AudioVoice::RouteStream(const std::set<audio_devices_t>& rx_devices) {
              * BLE device
              */
             updateVoiceMetadataForBT(true);
+
+            if ((pal_voice_rx_device_id_ == PAL_DEVICE_OUT_BLUETOOTH_BLE) &&
+                (pal_voice_tx_device_id_ == PAL_DEVICE_IN_BLUETOOTH_BLE)) {
+                do {
+                    std::unique_lock<std::mutex> guard(reconfig_wait_mutex_);
+                    ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED,
+                                        (void **)&param_bt_a2dp, &bt_param_size, nullptr);
+                    if (!ret && param_bt_a2dp)
+                        a2dp_suspended = param_bt_a2dp->a2dp_suspended;
+                    else
+                        AHAL_ERR("getparam for PAL_PARAM_ID_BT_A2DP_SUSPENDED failed");
+                    param_bt_a2dp = nullptr;
+                    bt_param_size = 0;
+                    ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_CAPTURE_SUSPENDED,
+                                        (void **)&param_bt_a2dp, &bt_param_size, nullptr);
+                    if (!ret && param_bt_a2dp)
+                        a2dp_capture_suspended = param_bt_a2dp->a2dp_capture_suspended;
+                    else
+                        AHAL_ERR("getparam for BT_A2DP_CAPTURE_SUSPENDED failed");
+                    param_bt_a2dp = nullptr;
+                    bt_param_size = 0;
+                } while ((a2dp_suspended || a2dp_capture_suspended) && retry_cnt-- &&
+                         !usleep(retry_period_ms * 1000));
+                AHAL_INFO("a2dp_suspended status %d and a2dp_capture_suspended status %d",
+                       a2dp_suspended, a2dp_capture_suspended);
+            }
+
             // dont start the call, if suspend is in progress for BLE
             std::unique_lock<std::mutex> guard(reconfig_wait_mutex_);
             ret = VoiceSetDevice(&voice_.session[i]);
@@ -530,6 +564,12 @@ int AudioVoice::UpdateCalls(voice_session_t *pSession) {
     int i, ret = 0;
     voice_session_t *session = NULL;
 
+    pal_param_bta2dp_t *param_bt_a2dp = nullptr;
+    size_t bt_param_size = 0;
+    bool a2dp_suspended = false;
+    bool a2dp_capture_suspended = false;
+    int retry_cnt = 20;
+    const int retry_period_ms = 100;
 
     for (i = 0; i < max_voice_sessions_; i++) {
         session = &pSession[i];
@@ -545,6 +585,33 @@ int AudioVoice::UpdateCalls(voice_session_t *pSession) {
                 AHAL_DBG("INACTIVE -> ACTIVE vsid:%x", session->vsid);
                 {
                     updateVoiceMetadataForBT(true);
+
+                    if ((pal_voice_rx_device_id_ == PAL_DEVICE_OUT_BLUETOOTH_BLE) &&
+                        (pal_voice_tx_device_id_ == PAL_DEVICE_IN_BLUETOOTH_BLE)) {
+                        do {
+                            std::unique_lock<std::mutex> guard(reconfig_wait_mutex_);
+                            ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED,
+                                                (void **)&param_bt_a2dp, &bt_param_size, nullptr);
+                            if (!ret && param_bt_a2dp)
+                                a2dp_suspended = param_bt_a2dp->a2dp_suspended;
+                            else
+                                AHAL_ERR("getparam for PAL_PARAM_ID_BT_A2DP_SUSPENDED failed");
+                            param_bt_a2dp = nullptr;
+                            bt_param_size = 0;
+                            ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_CAPTURE_SUSPENDED,
+                                                (void **)&param_bt_a2dp, &bt_param_size, nullptr);
+                            if (!ret && param_bt_a2dp)
+                                a2dp_capture_suspended = param_bt_a2dp->a2dp_capture_suspended;
+                            else
+                                AHAL_ERR("getparam for BT_A2DP_CAPTURE_SUSPENDED failed");
+                            param_bt_a2dp = nullptr;
+                            bt_param_size = 0;
+                        } while ((a2dp_suspended || a2dp_capture_suspended) && retry_cnt-- &&
+                                 !usleep(retry_period_ms * 1000));
+                        AHAL_INFO("a2dp_suspended status %d and a2dp_capture_suspended status %d",
+                                  a2dp_suspended, a2dp_capture_suspended);
+                    }
+
                     // dont start the call, if suspend is in progress for BLE
                     std::unique_lock<std::mutex> guard(reconfig_wait_mutex_);
 
