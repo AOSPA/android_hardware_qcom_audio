@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3480ad58_26082bfc",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000760
+      },
+      "writtenOn": "2023-02-21T09:43:53Z",
+      "side": 1,
+      "message": "used by asus sdm660",
+      "revId": "f315887df37f0319dbbf7f51a04fc4f8334b2c64",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    }
+  ]
+}
