@@ -10328,7 +10328,7 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
             in->config.period_size = buffer_size / frame_size;
             in->af_period_multiplier = 1;
 
-            if (in->source == AUDIO_SOURCE_VOICE_COMMUNICATION) {
+            if (in->source == AUDIO_SOURCE_VOICE_COMMUNICATION && (!is_pcm_low_latency_record_usecase(in->usecase))) {
                 /* optionally use VOIP usecase depending on config(s) */
                 ret = adev_update_voice_comm_input_stream(in, config);
             }
