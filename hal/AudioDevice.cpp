@@ -1260,13 +1260,14 @@ std::vector<std::shared_ptr<StreamOutPrimary>> AudioDevice::OutGetBLEStreamOutpu
     * device but not the BLE until dev switch process completed. Thus get the all
     * active output streams.
     */
+   out_list_mutex.lock();
    for (int i = 0; i < stream_out_list_.size(); i++) {
        stream_out_list_[i]->GetStreamHandle(&stream_out);
-       astream_out = adev_->OutGetStream((audio_stream_t*)stream_out);
-       if (astream_out) {
-           astream_out_list.push_back(astream_out);
+       if (stream_out_list_[i]->stream_.get() == (audio_stream_out*) stream_out) {
+           astream_out_list.push_back(stream_out_list_[i]);
        }
    }
+   out_list_mutex.unlock();
    return astream_out_list;
 }
 
@@ -1330,13 +1331,14 @@ std::vector<std::shared_ptr<StreamInPrimary>> AudioDevice::InGetBLEStreamInputs(
     * device but not the BLE until dev switch process completed. Thus get the all
     * active input streams.
     */
+    in_list_mutex.lock();
     for (int i = 0; i < stream_in_list_.size(); i++) {
         stream_in_list_[i]->GetStreamHandle(&stream_in);
-        astream_in = adev_->InGetStream((audio_stream_t*)stream_in);
-        if (astream_in) {
-            astream_in_list.push_back(astream_in);
+        if (stream_in_list_[i]->stream_.get() == (audio_stream_in*)stream_in) {
+            astream_in_list.push_back(stream_in_list_[i]);
         }
     }
+    in_list_mutex.unlock();
     return astream_in_list;
 }
 
