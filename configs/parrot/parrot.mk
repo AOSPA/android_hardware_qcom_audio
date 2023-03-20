@@ -164,6 +164,8 @@ PRODUCT_PACKAGES += QRD_acdb_cal.acdb
 PRODUCT_PACKAGES += QRD_workspaceFileXml.qwsp
 PRODUCT_PACKAGES += IDP_ravelin_acdb_cal.acdb
 PRODUCT_PACKAGES += IDP_ravelin_workspaceFileXml.qwsp
+PRODUCT_PACKAGES += IDP_wsahac_ravelin_acdb_cal.acdb
+PRODUCT_PACKAGES += IDP_wsahac_ravelin_workspaceFileXml.qwsp
 PRODUCT_PACKAGES += QRD_ravelin_acdb_cal.acdb
 PRODUCT_PACKAGES += QRD_ravelin_workspaceFileXml.qwsp
 PRODUCT_PACKAGES += IDP_parrot_sku1_acdb_cal.acdb
@@ -245,8 +247,10 @@ PRODUCT_COPY_FILES += \
     $(CONFIG_HAL_SRC_DIR)/audio_effects.xml:$(CONFIG_SKU_OUT_DIR)/audio_effects.xml \
     $(CONFIG_HAL_SRC_DIR)/mixer_paths_ravelin_qrd.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_ravelin_qrd.xml \
     $(CONFIG_HAL_SRC_DIR)/mixer_paths_ravelin_idp.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_ravelin_idp.xml \
+    $(CONFIG_HAL_SRC_DIR)/mixer_paths_ravelin_idp_wsahac.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_ravelin_idp_wsahac.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_ravelin_qrd.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_ravelin_qrd.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_ravelin_idp.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_ravelin_idp.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_ravelin_idp_wsahac.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_ravelin_idp_wsahac.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_upd.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_upd.xml \
 
 #XML Audio configuration files
