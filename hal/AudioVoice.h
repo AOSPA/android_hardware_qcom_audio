@@ -83,11 +83,7 @@ public:
     };
     struct voice_t {
             voice_session_t session[MAX_VOICE_SESSIONS];
-            bool mic_mute;
-            bool use_device_mute;
-            float volume;
             bool in_call;
-            uint32_t volume_steps;
     };
     voice_t voice_;
     audio_mode_t mode_;
@@ -118,8 +114,8 @@ public:
     int StopCall();
     AudioVoice();
     ~AudioVoice();
-    pal_device_id_t pal_voice_tx_device_id_;
-    pal_device_id_t pal_voice_rx_device_id_;
+    pal_device_id_t pal_voice_tx_device_id_ = PAL_DEVICE_NONE;
+    pal_device_id_t pal_voice_rx_device_id_ = PAL_DEVICE_NONE;
     std::shared_ptr<StreamInPrimary> stream_in_primary_;
 };
 #endif  // ANDROID_HARDWARE_AHAL_VOICE_H_

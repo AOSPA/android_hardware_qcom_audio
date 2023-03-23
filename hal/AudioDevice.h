@@ -27,7 +27,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -180,8 +180,8 @@ public:
     int GetPalDeviceIds(
             const std::set<audio_devices_t>& hal_device_id,
             pal_device_id_t* pal_device_id);
-    int usb_card_id_;
-    int usb_dev_num_;
+    int usb_card_id_ = -1;
+    int usb_dev_num_ = -1;
     int dp_controller;
     int dp_stream;
     int num_va_sessions_ = 0;
@@ -249,7 +249,7 @@ protected:
     visualizer_hal_stop_output fnp_visualizer_stop_output_ = nullptr;
     std::map<audio_devices_t, pal_device_id_t> android_device_map_;
     std::map<audio_patch_handle_t, AudioPatch*> patch_map_;
-    int add_input_headset_if_usb_out_headset(int *device_count,  pal_device_id_t** pal_device_ids);
+    int add_input_headset_if_usb_out_headset(int *device_count,  pal_device_id_t** pal_device_ids, bool conn_state);
 };
 
 static inline uint32_t lcm(uint32_t num1, uint32_t num2)
