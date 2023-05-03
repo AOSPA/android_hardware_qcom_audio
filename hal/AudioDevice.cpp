@@ -72,6 +72,8 @@ bool AudioDevice::mic_characteristics_available = false;
 
 card_status_t AudioDevice::sndCardState = CARD_STATUS_ONLINE;
 
+btsco_lc3_cfg_t AudioDevice::btsco_lc3_cfg = {};
+
 struct audio_string_to_enum {
     const char* name;
     unsigned int value;
@@ -1258,13 +1260,14 @@ std::vector<std::shared_ptr<StreamOutPrimary>> AudioDevice::OutGetBLEStreamOutpu
     * device but not the BLE until dev switch process completed. Thus get the all
     * active output streams.
     */
+   out_list_mutex.lock();
    for (int i = 0; i < stream_out_list_.size(); i++) {
        stream_out_list_[i]->GetStreamHandle(&stream_out);
-       astream_out = adev_->OutGetStream((audio_stream_t*)stream_out);
-       if (astream_out) {
-           astream_out_list.push_back(astream_out);
+       if (stream_out_list_[i]->stream_.get() == (audio_stream_out*) stream_out) {
+           astream_out_list.push_back(stream_out_list_[i]);
        }
    }
+   out_list_mutex.unlock();
    return astream_out_list;
 }
 
@@ -1328,13 +1331,14 @@ std::vector<std::shared_ptr<StreamInPrimary>> AudioDevice::InGetBLEStreamInputs(
     * device but not the BLE until dev switch process completed. Thus get the all
     * active input streams.
     */
+    in_list_mutex.lock();
     for (int i = 0; i < stream_in_list_.size(); i++) {
         stream_in_list_[i]->GetStreamHandle(&stream_in);
-        astream_in = adev_->InGetStream((audio_stream_t*)stream_in);
-        if (astream_in) {
-            astream_in_list.push_back(astream_in);
+        if (stream_in_list_[i]->stream_.get() == (audio_stream_in*)stream_in) {
+            astream_in_list.push_back(stream_in_list_[i]);
         }
     }
+    in_list_mutex.unlock();
     return astream_in_list;
 }
 
@@ -1848,7 +1852,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
 
     ret = str_parms_get_str(parms, AUDIO_PARAMETER_KEY_BT_SCO_WB, value, sizeof(value));
     if (ret >= 0) {
-        pal_param_btsco_t param_bt_sco;
+        pal_param_btsco_t param_bt_sco = {};
         if (strcmp(value, AUDIO_PARAMETER_VALUE_ON) == 0)
             param_bt_sco.bt_wb_speech_enabled = true;
         else
@@ -1861,8 +1865,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
 
     ret = str_parms_get_str(parms, "bt_swb", value, sizeof(value));
     if (ret >= 0) {
-        pal_param_btsco_t param_bt_sco;
-
+        pal_param_btsco_t param_bt_sco = {};
         val = atoi(value);
         param_bt_sco.bt_swb_speech_mode = val;
         AHAL_INFO("BTSCO SWB mode = 0x%x", val);
@@ -1872,7 +1875,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
 
     ret = str_parms_get_str(parms, "bt_ble", value, sizeof(value));
     if (ret >= 0) {
-        pal_param_btsco_t param_bt_sco;
+        pal_param_btsco_t param_bt_sco = {};
         if (strcmp(value, AUDIO_PARAMETER_VALUE_ON) == 0) {
             bt_lc3_speech_enabled = true;
 
@@ -1898,7 +1901,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
 
     ret = str_parms_get_str(parms, AUDIO_PARAMETER_KEY_BT_NREC, value, sizeof(value));
     if (ret >= 0) {
-        pal_param_btsco_t param_bt_sco;
+        pal_param_btsco_t param_bt_sco = {};
         if (strcmp(value, AUDIO_PARAMETER_VALUE_ON) == 0) {
             AHAL_INFO("BTSCO NREC mode = ON");
             param_bt_sco.bt_sco_nrec = true;
@@ -1943,7 +1946,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
 
     if (((btsco_lc3_cfg.fields_map & LC3_BIT_MASK) == LC3_BIT_VALID) &&
            (bt_lc3_speech_enabled == true)) {
-        pal_param_btsco_t param_bt_sco;
+        pal_param_btsco_t param_bt_sco = {};
         param_bt_sco.bt_lc3_speech_enabled  = bt_lc3_speech_enabled;
         param_bt_sco.lc3_cfg.frame_duration = btsco_lc3_cfg.frame_duration;
         param_bt_sco.lc3_cfg.num_blocks     = btsco_lc3_cfg.num_blocks;

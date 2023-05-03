@@ -5035,6 +5035,10 @@ exit:
     }
     stream_mutex_.unlock();
     clock_gettime(CLOCK_MONOTONIC, &readAt);
+    if (usecase_ == USECASE_AUDIO_RECORD_COMPRESS && ret <= 0) {
+        AHAL_DBG("%s: read failure for compress capture: %d", ret);
+        return -ENODEV;
+    }
     AHAL_VERBOSE("Exit: returning size: %zu size ", size);
     return (ret < 0 ? onReadError(bytes, ret) : (size > 0 ? size : bytes));
 }
