@@ -2033,6 +2033,7 @@ int AudioDevice::SetVoiceVolume(float volume) {
 
 char* AudioDevice::GetParameters(const char *keys) {
     int32_t ret;
+    int32_t val = 0;
     char *str;
     char value[256]={0};
     size_t size = 0;
@@ -2056,7 +2057,6 @@ char* AudioDevice::GetParameters(const char *keys) {
                             value, sizeof(value));
     if (ret >= 0) {
         pal_param_bta2dp_t *param_bt_a2dp;
-        int32_t val = 0;
 
         ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_RECONFIG_SUPPORTED,
                             (void **)&param_bt_a2dp, &size, nullptr);
@@ -2071,7 +2071,25 @@ char* AudioDevice::GetParameters(const char *keys) {
         }
     }
 
+    ret = str_parms_get_str(query, "A2dpSuspended", value, sizeof(value));
+    if (ret >= 0) {
+        pal_param_bta2dp_t *param_bt_a2dp_suspended;
+
+        ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED,
+                      (void **)&param_bt_a2dp_suspended, &size, nullptr);
+        if (!ret) {
+            if (size < sizeof(pal_param_bta2dp_t)) {
+                AHAL_ERR("size returned is smaller for BT_A2DP_SUSPENDED");
+                goto exit;
+            }
+            val = param_bt_a2dp_suspended->a2dp_suspended;
+            str_parms_add_int(reply, "A2dpSuspended", val);
+            AHAL_VERBOSE("A2dpSuspended = %d", val);
+        }
+    }
+
     ret = str_parms_get_str(query, "get_ftm_param", value, sizeof(value));
+
     if (ret >= 0) {
         char ftm_value[255];
         ret = pal_get_param(PAL_PARAM_ID_SP_MODE, (void **)&ftm_value, &size, nullptr);
