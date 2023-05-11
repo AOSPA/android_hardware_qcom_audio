@@ -39,6 +39,10 @@ endif
 
 LOCAL_HEADER_LIBRARIES := libsystem_headers \
                           libhardware_headers
+ifeq ($(QCPATH),)
+LOCAL_HEADER_LIBRARIES += libarpal_headers
+endif
+
 LOCAL_SHARED_LIBRARIES := \
     libcutils \
     liblog \

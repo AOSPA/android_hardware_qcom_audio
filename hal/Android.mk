@@ -72,6 +72,9 @@ LOCAL_SRC_FILES := \
     audio_extn/AudioExtn.cpp
 
 LOCAL_HEADER_LIBRARIES := libhardware_headers qti_audio_kernel_uapi libagm_headers
+ifeq ($(QCPATH),)
+LOCAL_HEADER_LIBRARIES += libarpal_headers
+endif
 
 LOCAL_SHARED_LIBRARIES := \
     libbase \
