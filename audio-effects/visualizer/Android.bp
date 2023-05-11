@@ -35,6 +35,7 @@ cc_library_shared {
     ],
 
     header_libs: [
+        "libarpal_headers",
         "libhardware_headers",
         "libsystem_headers",
     ],

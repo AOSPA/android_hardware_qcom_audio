@@ -49,6 +49,7 @@ cc_library_shared {
     header_libs: [
         "audio_kernel_headers",
         "libacdb_headers",
+        "libarpal_headers",
         "libaudio_extn_headers",
         "libaudio_hal_headers",
         "libhardware_headers",
@@ -96,6 +97,7 @@ cc_library_shared {
 
     header_libs: [
         "audio_kernel_headers",
+        "libarpal_headers",
         "libaudio_extn_headers",
         "libaudio_hal_headers",
         "libhardware_headers",

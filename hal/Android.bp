@@ -93,6 +93,7 @@ target_board_platform_cc_library_shared {
 
     header_libs: [
         "libagm_headers",
+        "libarpal_headers",
         "libaudio_extn_headers",
         "libaudio_system_headers",
         "libhardware_headers",
