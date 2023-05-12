@@ -34,7 +34,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
  * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  */
 
 #define LOG_TAG "audio_hw_primary"
@@ -8459,7 +8462,8 @@ int adev_open_output_stream(struct audio_hw_device *dev,
         out->config.period_size = HDMI_MULTI_PERIOD_BYTES / (out->config.channels *
                                                          audio_bytes_per_sample(config->format));
         out->config.format = pcm_format_from_audio_format(out->format);
-    } else if (compare_device_type(&out->device_list, AUDIO_DEVICE_OUT_BUS)) {
+    } else if ((!(out->flags & AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD)) &&
+                compare_device_type(&out->device_list, AUDIO_DEVICE_OUT_BUS)) {
             ret = audio_extn_auto_hal_open_output_stream(out);
             if (ret) {
                 ALOGE("%s: Failed to open output stream for bus device", __func__);
@@ -11101,19 +11105,6 @@ int check_a2dp_restore_l(struct audio_device *adev, struct stream_out *out, bool
         pthread_mutex_lock(&out->latch_lock);
         // mute stream and switch to speaker if suspended
         if (!out->a2dp_muted && !out->standby) {
-            assign_devices(&devices, &out->device_list);
-            reassign_device_list(&out->device_list, AUDIO_DEVICE_OUT_SPEAKER, "");
-            list_for_each(node, &adev->usecase_list) {
-                usecase = node_to_item(node, struct audio_usecase, list);
-                if ((usecase->type != PCM_CAPTURE) && (usecase != uc_info) &&
-                    !is_a2dp_out_device_type(&usecase->stream.out->device_list) &&
-                    !is_sco_out_device_type(&usecase->stream.out->device_list) &&
-                    platform_check_backends_match(SND_DEVICE_OUT_SPEAKER,
-                                                  usecase->out_snd_device)) {
-                    assign_devices(&out->device_list, &usecase->stream.out->device_list);
-                    break;
-                }
-            }
             if ((is_a2dp_out_device_type(&devices) && list_length(&devices) == 1) ||
                 (uc_info->out_snd_device == SND_DEVICE_OUT_BT_A2DP)) {
                 out->a2dp_muted = true;
@@ -11132,6 +11123,19 @@ int check_a2dp_restore_l(struct audio_device *adev, struct stream_out *out, bool
                         (out->config.period_count * out->config.period_size * 1000) /
                         (out->config.rate);
                     usleep(latency * 1000);
+                }
+            }
+            assign_devices(&devices, &out->device_list);
+            reassign_device_list(&out->device_list, AUDIO_DEVICE_OUT_SPEAKER, "");
+            list_for_each(node, &adev->usecase_list) {
+                usecase = node_to_item(node, struct audio_usecase, list);
+                if ((usecase->type != PCM_CAPTURE) && (usecase != uc_info) &&
+                    !is_a2dp_out_device_type(&usecase->stream.out->device_list) &&
+                    !is_sco_out_device_type(&usecase->stream.out->device_list) &&
+                    platform_check_backends_match(SND_DEVICE_OUT_SPEAKER,
+                                                  usecase->out_snd_device)) {
+                    assign_devices(&out->device_list, &usecase->stream.out->device_list);
+                    break;
                 }
             }
             select_devices(adev, out->usecase);
