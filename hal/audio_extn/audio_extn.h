@@ -25,6 +25,9 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Copyright (c) 2023, Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #include "AudioDevice.h"
@@ -71,7 +74,7 @@ extern "C" bool audio_hw_send_gain_dep_calibration(int level);
 #ifndef AUDIO_GENERIC_EFFECT_FRAMEWORK_ENABLED
 #define audio_extn_gef_init(adev) (0)
 #define audio_extn_gef_deinit(adev) (0)
-#define audio_extn_gef_notify_device_config(devices, cmask, sample_rate) (0)
+#define audio_extn_gef_notify_device_config(devices, cmask, sample_rate, stream_type) (0)
 #define audio_extn_gef_send_audio_cal(data, length) (0)
 #define audio_extn_gef_get_audio_cal(data, length) (0)
 #define audio_extn_gef_store_audio_cal(data, length) (0)
