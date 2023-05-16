@@ -1,11 +1,11 @@
 ifeq ($(TARGET_USES_QMAA),true)
     ifneq ($(TARGET_USES_QMAA_OVERRIDE_AUDIO),true)
 	        #QMAA Mode is enabled
-        TARGET_IS_HEADLESS := true
+        TARGET_AUDIO_QMAA_ENABLED := true
     endif
 endif
 #Packages that should not be installed in QMAA are enabled here
-ifneq ($(TARGET_IS_HEADLESS),true)
+ifneq ($(TARGET_AUDIO_QMAA_ENABLED),true)
 #MM_AUDIO product packages
 MM_AUDIO := libcapiv2uvvendor
 MM_AUDIO += sound_trigger.primary.$(TARGET_BOARD_PLATFORM)
