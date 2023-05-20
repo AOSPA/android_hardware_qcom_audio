@@ -75,8 +75,11 @@ ifeq ($(call is-board-platform-in-list,kalama),true)
 endif
 ifeq ($(call is-board-platform-in-list,crow),true)
     AUDIO_MODULES += audio.primary.crow
-    AUDIO_MODULES += ftm_test_config
+    AUDIO_MODULES += ftm_test_config_crow-idp-snd-card
     AUDIO_MODULES += ftm_test_config_crow-qrd-snd-card
+    AUDIO_MODULES += ftm_test_config_crow-idp-wcd9395-dmic-snd-card
+    AUDIO_MODULES += ftm_test_config_crow-idp-wcd9395-wcd-dmic-snd-card
+    AUDIO_MODULES += ftm_test_config_crow-idp-wcd935-aatc-snd-card
 endif
 AUDIO_MODULES += audioadsprpcd
 AUDIO_MODULES += android.hardware.audio.service_64

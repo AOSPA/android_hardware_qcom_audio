@@ -119,7 +119,7 @@ PRODUCT_PACKAGES += fai__4.8.4_0.0__3.0.0_0.0__3.1.1_0.0__3.2.0_0.1__eai_2.10_en
 QCV_FAMILY_SKUS := crow
 DEVICE_SKU := crow
 
-CONFIG_PAL_SRC_DIR := vendor/qcom/opensource/pal/configs/kalama
+CONFIG_PAL_SRC_DIR := vendor/qcom/opensource/pal/configs/crow
 CONFIG_HAL_SRC_DIR := vendor/qcom/opensource/audio-hal/primary-hal/configs/crow
 CONFIG_SKU_OUT_DIR := $(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)
 
@@ -128,16 +128,17 @@ PRODUCT_COPY_FILES += \
     $(CONFIG_HAL_SRC_DIR)/audio_effects.xml:$(CONFIG_SKU_OUT_DIR)/audio_effects.xml \
     $(CONFIG_HAL_SRC_DIR)/microphone_characteristics.xml:$(TARGET_COPY_OUT_VENDOR)/etc/microphone_characteristics.xml \
     $(CONFIG_PAL_SRC_DIR)/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml \
-    $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_qrd.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_crow_qrd.xml \
-    $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_mtp.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_crow_mtp.xml \
-    $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_cdp.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_crow_cdp.xml \
-    $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_cdp_wsa883x.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_crow_cdp_wsa883x.xml \
-    $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_grd.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_crow_grd.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_kalama_qrd.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_crow_qrd.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_kalama_mtp.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_crow_mtp.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_kalama_cdp.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_crow_cdp.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_crow_qrd.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_crow_qrd.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_crow_idp.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_crow_idp.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_crow_idp_wcd9395_dmic.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_crow_idp_wcd9395_dmic.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_crow_idp_wcd9395_wcd_dmic.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_crow_idp_wcd9395_wcd_dmic.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_crow_idp_wcd9395_aatc.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_crow_idp_wcd9395_aatc.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_crow_qrd.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_crow_qrd.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_crow_idp.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_crow_idp.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_crow_idp_wcd9395_aatc.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_crow_idp_wcd9395_aatc.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_crow_idp_wcd9395_dmic.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_crow_idp_wcd9395_dmic.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_crow_idp_wcd9395_wcd_dmic.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_crow_idp_wcd9395_wcd_dmic.xml \
     $(CONFIG_PAL_SRC_DIR)/usecaseKvManager.xml:$(TARGET_COPY_OUT_VENDOR)/etc/usecaseKvManager.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_kalama_grd.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_crow_grd.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/common/media_codecs_vendor_audio.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_vendor_audio.xml \
     frameworks/native/data/etc/android.hardware.audio.pro.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.pro.xml \
     frameworks/native/data/etc/android.hardware.audio.low_latency.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.low_latency.xml
@@ -147,7 +148,7 @@ ifneq ($(TARGET_USES_AOSP_FOR_AUDIO), true)
 PRODUCT_COPY_FILES += \
     $(CONFIG_HAL_SRC_DIR)/audio_policy_configuration.xml:$(CONFIG_SKU_OUT_DIR)/audio_policy_configuration.xml
 
-#Audio configuration xml's common to Kalama family
+#Audio configuration xml's common to Crow family
 PRODUCT_COPY_FILES += \
 $(foreach DEVICE_SKU, $(QCV_FAMILY_SKUS), \
     $(CONFIG_HAL_SRC_DIR)/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)_qssi/audio_policy_configuration.xml)
