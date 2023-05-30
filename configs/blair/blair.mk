@@ -156,6 +156,7 @@ PRODUCT_PACKAGES += $(AUDIO_WRAPPER)
 PRODUCT_PACKAGES += $(AUDIO_HAL_TEST_APPS)
 PRODUCT_PACKAGES += ftm_test_config_blair-mtp-snd-card
 PRODUCT_PACKAGES += ftm_test_config_blair-mtp-usbc-snd-card
+PRODUCT_PACKAGES += ftm_test_config_blair-qrd-snd-card
 PRODUCT_PACKAGES += audioadsprpcd
 PRODUCT_PACKAGES += vendor.qti.audio-adsprpc-service.rc
 PRODUCT_PACKAGES += android.hardware.audio.service_64
@@ -164,6 +165,8 @@ PRODUCT_PACKAGES += MTP_acdb_cal.acdb
 PRODUCT_PACKAGES += MTP_workspaceFileXml.qwsp
 PRODUCT_PACKAGES += MTP_usbc_acdb_cal.acdb
 PRODUCT_PACKAGES += MTP_usbc_workspaceFileXml.qwsp
+PRODUCT_PACKAGES += QRD_acdb_cal.acdb
+PRODUCT_PACKAGES += QRD_workspaceFileXml.qwsp
 PRODUCT_PACKAGES += fai_3.0.0_0.0_eai_1.00.pmd
 PRODUCT_PACKAGES += fai__3.0.0_0.0__eai_1.36_enpu2.pmd
 PRODUCT_PACKAGES += fai__2.0.0_0.1__3.0.0_0.0__eai_1.00.pmd
@@ -198,8 +201,10 @@ PRODUCT_COPY_FILES += \
     $(CONFIG_HAL_SRC_DIR)/microphone_characteristics.xml:$(TARGET_COPY_OUT_VENDOR)/etc/microphone_characteristics.xml \
     $(CONFIG_HAL_SRC_DIR)/mixer_paths_blair_mtp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_blair_mtp.xml \
     $(CONFIG_HAL_SRC_DIR)/mixer_paths_blair_mtp_usbc.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_blair_mtp_usbc.xml \
+    $(CONFIG_HAL_SRC_DIR)/mixer_paths_blair_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_blair_qrd.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_blair_idp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_blair_mtp.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_blair_mtp_usbc.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_blair_mtp_usbc.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_blair_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_blair_qrd.xml \
     $(CONFIG_PAL_SRC_DIR)/usecaseKvManager.xml:$(TARGET_COPY_OUT_VENDOR)/etc/usecaseKvManager.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/common/media_codecs_vendor_audio.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_vendor_audio.xml \
     frameworks/native/data/etc/android.hardware.audio.pro.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.pro.xml \
