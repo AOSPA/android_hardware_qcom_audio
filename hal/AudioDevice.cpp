@@ -1344,7 +1344,9 @@ int AudioDevice::SetParameters(const char *kvpairs) {
     char *cfg_str = NULL;
     bool changes_done = false;
     audio_stream_in* stream_in = NULL;
+    audio_stream_out* stream_out = NULL;
     std::shared_ptr<StreamInPrimary> astream_in = NULL;
+    std::shared_ptr<StreamOutPrimary> astream_out = NULL;
     uint8_t channels = 0;
     std::set<audio_devices_t> new_devices;
 
@@ -1378,6 +1380,23 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                             astream_in->RouteStream(new_devices, true);
                         }
                     }
+                    break;
+                }
+            }
+        }
+    }
+
+    ret = str_parms_get_str(parms, AUDIO_PARAMETER_KEY_HAC, value, sizeof(value));
+    if (ret >= 0) {
+        adev_->hac_voip = false;
+        if (strcmp(value, AUDIO_PARAMETER_VALUE_HAC_ON) == 0) {
+            adev_->hac_voip = true;
+            for (int i = 0; i < stream_out_list_.size(); i++) {
+                stream_out_list_[i]->GetStreamHandle(&stream_out);
+                astream_out = adev_->OutGetStream((audio_stream_t*)stream_out);
+                if (astream_out->GetUseCase() == USECASE_AUDIO_PLAYBACK_VOIP) {
+                    new_devices = astream_out->mAndroidOutDevices;
+                    astream_out->RouteStream(new_devices, true);
                     break;
                 }
             }
