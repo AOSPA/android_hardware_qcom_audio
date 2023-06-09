@@ -1,12 +1,12 @@
 ifeq ($(TARGET_USES_QMAA),true)
     ifneq ($(TARGET_USES_QMAA_OVERRIDE_AUDIO),true)
     #QMAA Mode is enabled
-    TARGET_IS_HEADLESS := true
+    TARGET_AUDIO_QMAA_ENABLED := true
     endif
 endif
 
 #Packages that should not be installed in QMAA are enabled here
-ifneq ($(TARGET_IS_HEADLESS),true)
+ifneq ($(TARGET_AUDIO_QMAA_ENABLED),true)
 
 #AGM
 AUDIO_AGM := libagmclient
@@ -68,20 +68,23 @@ AUDIO_TEST += osal_in_test_example
 AUDIO_MODULES := audio.usb.default
 AUDIO_MODULES += audio.r_submix.default
 AUDIO_MODULES += audio.primary.crow
-AUDIO_MODULES += ftm_test_config
+AUDIO_MODULES += ftm_test_config_crow-idp-snd-card
 AUDIO_MODULES += ftm_test_config_crow-qrd-snd-card
+AUDIO_MODULES += ftm_test_config_crow-idp-wcd9395-dmic-snd-card
+AUDIO_MODULES += ftm_test_config_crow-idp-wcd9395-wcd-dmic-snd-card
+AUDIO_MODULES += ftm_test_config_crow-idp-wcd935-aatc-snd-card
 AUDIO_MODULES += audioadsprpcd
 AUDIO_MODULES += android.hardware.audio.service_64
-AUDIO_MODULES += MTP_acdb_cal.acdb
-AUDIO_MODULES += MTP_workspaceFileXml.qwsp
-AUDIO_MODULES += CDP_acdb_cal.acdb
-AUDIO_MODULES += CDP_workspaceFileXml.qwsp
 AUDIO_MODULES += QRD_acdb_cal.acdb
 AUDIO_MODULES += QRD_workspaceFileXml.qwsp
+AUDIO_MODULES += IDP_acdb_cal.acdb
+AUDIO_MODULES += IDP_workspaceFileXml.qwsp
+AUDIO_MODULES += QRD_crow_sku1_acdb_cal.acdb
+AUDIO_MODULES += QRD_crow_sku1_workspaceFileXml.qwsp
+AUDIO_MODULES += IDP_crow_sku1_acdb_cal.acdb
+AUDIO_MODULES += IDP_crow_sku1_workspaceFileXml.qwsp
 AUDIO_MODULES += IDP_UPD_acdb_cal.acdb
 AUDIO_MODULES += IDP_UPD_workspaceFileXml.qwsp
-AUDIO_MODULES += GRD_acdb_cal.acdb
-AUDIO_MODULES += GRD_workspaceFileXml.qwsp
 AUDIO_MODULES += fai__2.3.0_0.1__3.0.0_0.0__eai_1.10.pmd
 AUDIO_MODULES += fai__2.3.0_0.1__3.0.0_0.0__eai_1.36_enpu2_comp.pmd
 AUDIO_MODULES += fai__2.0.0_0.1__3.0.0_0.0__eai_1.36_enpu2.pmd
