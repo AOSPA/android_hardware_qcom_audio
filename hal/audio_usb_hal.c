@@ -50,8 +50,8 @@
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define min(a, b) ((a) < (b) ? (a) : (b))
-#define HAPTIC_DEVICE 1
-#define AUDIO_DEVICE  2
+int haptic_device = 1;
+int audio_device  = 2;
 
 struct audio_device {
     struct audio_hw_device hw_device;
@@ -226,6 +226,41 @@ static const audio_channel_mask_t CHANNEL_INDEX_MASKS_MAP[FCC_24 + 1] = {
     [24] = AUDIO_CHANNEL_INDEX_MASK_24,
 };
 static const int CHANNEL_INDEX_MASKS_SIZE = AUDIO_ARRAY_SIZE(CHANNEL_INDEX_MASKS_MAP);
+
+static void get_audio_haptic_card_id(int card) {
+    char path[256];
+    char *read_buf = NULL;
+    size_t len = 0;
+    FILE *fp = NULL;
+
+    snprintf(path, sizeof(path), "/proc/asound/card%u/stream0",card);
+    fp = fopen(path, "r");
+    if (!fp) {
+        ALOGE("%s: error failed to open config file %s error: %d",
+               __func__, path, errno);
+        fclose(fp);
+        return;
+     }
+
+    if(getline(&read_buf, &len, fp) == -1) {
+       goto exit;
+    }
+
+    //Read sound card id
+    if(strstr(read_buf, "USB Audio") != NULL) {
+       if(strstr(read_buf, "Sony Interactive Entertainment Wireless Controller") != NULL){
+          haptic_device = card;
+          ALOGD("%s Assign haptic device - card: %d name: %s", __func__, card, read_buf);
+       } else {
+          audio_device =  card;
+          ALOGD("%s Assign audio device - card: %d name: %s", __func__, card, read_buf);
+       }
+    }
+
+    exit:
+        free(read_buf);
+        fclose(fp);
+}
 
 /*
  * Locking Helpers
@@ -821,11 +856,11 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer, si
             size_t haptic_channel_count = audio_channel_count_from_out_mask(out->hal_channel_mask & AUDIO_CHANNEL_HAPTIC_ALL);
             size_t audio_channel_count = total_channel_count - haptic_channel_count;
 
-            if (device_info->profile.card == HAPTIC_DEVICE) {
+            if (device_info->profile.card == haptic_device) {
                 num_write_buff_bytes = out->haptic_buffer_size;
                 write_buff = out->haptic_buffer;
                 num_req_channels = haptic_channel_count;
-            } else if(device_info->profile.card == AUDIO_DEVICE) {
+            } else if(device_info->profile.card == audio_device) {
                 num_write_buff_bytes = contracted_audio_bytes;
                 num_req_channels = audio_channel_count;
             }
@@ -1750,6 +1785,8 @@ static int adev_create_audio_patch(struct audio_hw_device *dev,
                     __func__, port_configs[i].ext.device.address);
             return -EINVAL;
         }
+        if (!property_get_bool("vendor.audio.enable.multi_audio_usb", false))
+             get_audio_haptic_card_id(cards[i]);
     }
 
     stream_lock(lock);
@@ -1784,7 +1821,7 @@ static int adev_create_audio_patch(struct audio_hw_device *dev,
 
     if (ret != 0) {
         *handle = generatedPatchHandle ? AUDIO_PATCH_HANDLE_NONE : *handle;
-        stream_set_new_devices(
+        ret = stream_set_new_devices(
                 config, alsa_devices, num_saved_devices, saved_cards, saved_devices, direction);
     } else {
         *patch_handle = *handle;

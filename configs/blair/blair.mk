@@ -124,8 +124,8 @@ BOARD_SUPPORTS_OPENSOURCE_STHAL := true
 AUDIO_HARDWARE := audio.a2dp.default
 AUDIO_HARDWARE += audio.usb.default
 AUDIO_HARDWARE += audio.r_submix.default
-AUDIO_HARDWARE += audio.primary.bengal
-AUDIO_HARDWARE += audio.usb.bengal
+AUDIO_HARDWARE += audio.primary.blair
+AUDIO_HARDWARE += audio.usb.blair
 
 #HAL Wrapper
 AUDIO_WRAPPER := libqahw
@@ -154,38 +154,28 @@ AUDIO_HAL_TEST_APPS += hal_rec_test
 PRODUCT_PACKAGES += $(AUDIO_HARDWARE)
 PRODUCT_PACKAGES += $(AUDIO_WRAPPER)
 PRODUCT_PACKAGES += $(AUDIO_HAL_TEST_APPS)
-PRODUCT_PACKAGES += ftm_test_config
-PRODUCT_PACKAGES += ftm_test_config_bengal-qrd-snd-card
-PRODUCT_PACKAGES += ftm_test_config_bengal-idp-snd-card
-PRODUCT_PACKAGES += ftm_test_config_bengal-scubaidp-snd-card
-PRODUCT_PACKAGES += ftm_test_config_bengal-scubaqrd-snd-card
+PRODUCT_PACKAGES += ftm_test_config_blair-mtp-snd-card
+PRODUCT_PACKAGES += ftm_test_config_blair-mtp-usbc-snd-card
+PRODUCT_PACKAGES += ftm_test_config_blair-qrd-snd-card
 PRODUCT_PACKAGES += audioadsprpcd
 PRODUCT_PACKAGES += vendor.qti.audio-adsprpc-service.rc
 PRODUCT_PACKAGES += android.hardware.audio.service_64
 PRODUCT_PACKAGES += android.hardware.audio.service_64.rc
 PRODUCT_PACKAGES += MTP_acdb_cal.acdb
 PRODUCT_PACKAGES += MTP_workspaceFileXml.qwsp
-PRODUCT_PACKAGES += IDP_acdb_cal.acdb
-PRODUCT_PACKAGES += IDP_workspaceFileXml.qwsp
+PRODUCT_PACKAGES += MTP_usbc_acdb_cal.acdb
+PRODUCT_PACKAGES += MTP_usbc_workspaceFileXml.qwsp
 PRODUCT_PACKAGES += QRD_acdb_cal.acdb
 PRODUCT_PACKAGES += QRD_workspaceFileXml.qwsp
-PRODUCT_PACKAGES += IDP_scuba_acdb_cal.acdb
-PRODUCT_PACKAGES += IDP_scuba_workspaceFileXml.qwsp
-PRODUCT_PACKAGES += QRD_scuba_acdb_cal.acdb
-PRODUCT_PACKAGES += QRD_scuba_workspaceFileXml.qwsp
 PRODUCT_PACKAGES += fai_3.0.0_0.0_eai_1.00.pmd
+PRODUCT_PACKAGES += fai__3.0.0_0.0__eai_1.36_enpu2.pmd
 PRODUCT_PACKAGES += fai__2.0.0_0.1__3.0.0_0.0__eai_1.00.pmd
 PRODUCT_PACKAGES += fai__2.2.0_0.1__3.0.0_0.0__eai_1.00.pmd
 PRODUCT_PACKAGES += libhfp_pal
 PRODUCT_PACKAGES += libfmpal
 PRODUCT_PACKAGES += libqtigefar
-PRODUCT_PACKAGES += IDP_arrax_acdb_cal.acdb
-PRODUCT_PACKAGES += IDP_arrax_workspaceFileXml.qwsp
-PRODUCT_PACKAGES += QRD_arrax_acdb_cal.acdb
-PRODUCT_PACKAGES += QRD_arrax_workspaceFileXml.qwsp
 PRODUCT_PACKAGES += fai__2.0.0_0.1__3.0.0_0.0__eai_1.10.pmd
 PRODUCT_PACKAGES += fai__2.2.0_0.1__3.0.0_0.0__eai_1.10.pmd
-PRODUCT_PACKAGES += fai__4.6.1.5_0.0__3.0.0_0.0__3.1.1_0.0__3.2.0_0.0__eai_1.10_enpuv1.pmd
 
 ifeq ($(strip $(AUDIO_FEATURE_ENABLED_MCS)), true)
 PRODUCT_PACKAGES += libmcs
@@ -199,28 +189,23 @@ PRODUCT_PACKAGES += $(AUDIO_AGM)
 PRODUCT_PACKAGES += $(AUDIO_PAL)
 PRODUCT_PACKAGES += $(AUDIO_C2)
 
-# Audio configuration xml's related to Bengal
-CONFIG_PAL_SRC_DIR := vendor/qcom/opensource/pal/configs/bengal
-CONFIG_HAL_SRC_DIR := vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal
+# Audio configuration xml's related to Blair
+CONFIG_PAL_SRC_DIR := vendor/qcom/opensource/pal/configs/blair
+CONFIG_HAL_SRC_DIR := vendor/qcom/opensource/audio-hal/primary-hal/configs/blair
 
 
 PRODUCT_COPY_FILES += \
     $(CONFIG_HAL_SRC_DIR)/audio_effects.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.conf \
     $(CONFIG_HAL_SRC_DIR)/audio_effects.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.xml \
-    $(CONFIG_HAL_SRC_DIR)/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml \
+    $(CONFIG_PAL_SRC_DIR)/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml \
     $(CONFIG_HAL_SRC_DIR)/microphone_characteristics.xml:$(TARGET_COPY_OUT_VENDOR)/etc/microphone_characteristics.xml \
-    $(CONFIG_HAL_SRC_DIR)/mixer_paths_bengal_idp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_bengal_idp.xml \
-    $(CONFIG_HAL_SRC_DIR)/mixer_paths_scubaidp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_scubaidp.xml \
-    $(CONFIG_HAL_SRC_DIR)/mixer_paths_scubaqrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_scubaqrd.xml \
-    $(CONFIG_HAL_SRC_DIR)/mixer_paths_bengal_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_bengal_qrd.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_bengal_idp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_bengal_idp.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_bengal_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_bengal_qrd.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_scubaidp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_scubaidp.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_scubaqrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_scubaqrd.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_bengal_idp_arrax.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_bengal_idp_arrax.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_bengal_qrd_arrax.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_bengal_qrd_arrax.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_blair_mtp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_blair_mtp.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_blair_mtp_usbc.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_blair_mtp_usbc.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_blair_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_blair_qrd.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_blair_mtp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_blair_mtp.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_blair_mtp_usbc.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_blair_mtp_usbc.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_blair_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_blair_qrd.xml \
     $(CONFIG_PAL_SRC_DIR)/usecaseKvManager.xml:$(TARGET_COPY_OUT_VENDOR)/etc/usecaseKvManager.xml \
-    $(CONFIG_PAL_SRC_DIR)/usecaseKvManager_arrax.xml:$(TARGET_COPY_OUT_VENDOR)/etc/usecaseKvManager_arrax.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/common/media_codecs_vendor_audio.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_vendor_audio.xml \
     frameworks/native/data/etc/android.hardware.audio.pro.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.pro.xml \
     frameworks/native/data/etc/android.hardware.audio.low_latency.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.low_latency.xml
