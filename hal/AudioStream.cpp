@@ -3035,6 +3035,16 @@ int StreamOutPrimary::Open() {
         ret = -EINVAL;
         goto error_open;
     }
+
+    /* set cached volume if any, dont return failure back up */
+    if (volume_) {
+        AHAL_DBG("set cached volume (%f)", volume_->volume_pair[0].vol);
+        ret = pal_stream_set_volume(pal_stream_handle_, volume_);
+        if (ret) {
+            AHAL_ERR("Pal Stream volume Error (%x)", ret);
+        }
+    }
+
     if (usecase_ == USECASE_AUDIO_PLAYBACK_WITH_HAPTICS) {
         ch_info.channels = audio_channel_count_from_out_mask(config_.channel_mask & AUDIO_CHANNEL_HAPTIC_ALL);
         ch_info.ch_map[0] = PAL_CHMAP_CHANNEL_FL;
@@ -3367,13 +3377,6 @@ ssize_t StreamOutPrimary::configurePalOutputStream() {
 
     if (!stream_started_) {
         AutoPerfLock perfLock;
-        /* set cached volume if any, dont return failure back up */
-        if (volume_) {
-            ret = pal_stream_set_volume(pal_stream_handle_, volume_);
-            if (ret) {
-                AHAL_ERR("Pal Stream volume Error (%x)", ret);
-            }
-        }
 
         ATRACE_BEGIN("hal: pal_stream_start");
         ret = pal_stream_start(pal_stream_handle_);
