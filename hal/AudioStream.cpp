@@ -1074,9 +1074,10 @@ static void out_update_source_metadata_v7(
              * framework will send metadata update when ringtone stream ends.
              * As only media/gaming stream is present at that point, it will
              * trigger reconfiguration in BT stack. To avoid this, block all
-             * framework triggered metadata update if phone mode is in CALL.
+             * framework triggered metadata update if call is active or phone
+             * mode is IN_CALL.
              */
-            if (mode == AUDIO_MODE_IN_CALL)
+            if (voice_active || (mode == AUDIO_MODE_IN_CALL))
                 voice_mode_active = true;
         } else {
             AHAL_ERR("adevice voice is null");
@@ -1508,8 +1509,10 @@ static void in_update_sink_metadata_v7(
 
             if (adevice && adevice->voice_) {
                 voice_active = adevice->voice_->get_voice_call_state(&mode);
-                // Flag to block framework triggered metadata update to BT if phone mode IN_CALL
-                if (mode == AUDIO_MODE_IN_CALL)
+                /* Flag to block framework triggered metadata update to BT if call is active or
+                 * phone mode is IN_CALL.
+                 */
+                if (voice_active || (mode == AUDIO_MODE_IN_CALL))
                     voice_mode_active = true;
             }
             else {
