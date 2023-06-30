@@ -61,7 +61,9 @@ LOCAL_C_INCLUDES += \
     vendor/qcom/opensource/pal \
     $(call include-path-for, audio-effects) \
     $(LOCAL_PATH)/audio_extn \
-    $(TOP)/vendor/qcom/opensource/agm/ipc/HwBinders/agm_ipc_client/
+    $(TOP)/vendor/qcom/opensource/agm/ipc/HwBinders/agm_ipc_client/ \
+    $(TOP)/vendor/qcom/opensource/agm/ipc/HwBinders/agm_ipc_service/inc/ \
+    $(TOP)/vendor/qcom/opensource/pal/ipc/HwBinders/pal_ipc_server/inc/
 
 LOCAL_SRC_FILES := \
     AudioStream.cpp \
