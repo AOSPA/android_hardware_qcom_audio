@@ -92,7 +92,7 @@ ifeq ($(call is-board-platform-in-list,crow),true)
     AUDIO_MODULES += ftm_test_config_crow-idp-wsa883x-snd-card
     AUDIO_MODULES += ftm_test_config_crow-qrd-wsa883x-snd-card
     AUDIO_MODULES += ftm_test_config_crow-idp-wcd9395-dmic-snd-card
-    AUDIO_MODULES += ftm_test_config_crow-idp-wcd9395-wcd-dmic-snd-card
+    AUDIO_MODULES += ftm_test_config_crow-idp-wcd9395-wcd-dmic-snd-c
     AUDIO_MODULES += ftm_test_config_crow-idp-wcd9395-aatc-snd-card
     AUDIO_MODULES += QRD_acdb_cal.acdb
     AUDIO_MODULES += QRD_workspaceFileXml.qwsp
