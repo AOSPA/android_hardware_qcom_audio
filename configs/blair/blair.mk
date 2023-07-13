@@ -156,6 +156,7 @@ PRODUCT_PACKAGES += $(AUDIO_WRAPPER)
 PRODUCT_PACKAGES += $(AUDIO_HAL_TEST_APPS)
 PRODUCT_PACKAGES += ftm_test_config_blair-mtp-snd-card
 PRODUCT_PACKAGES += ftm_test_config_blair-mtp-usbc-snd-card
+PRODUCT_PACKAGES += ftm_test_config_blair-qrd-snd-card
 PRODUCT_PACKAGES += audioadsprpcd
 PRODUCT_PACKAGES += vendor.qti.audio-adsprpc-service.rc
 PRODUCT_PACKAGES += android.hardware.audio.service_64
@@ -164,6 +165,8 @@ PRODUCT_PACKAGES += MTP_acdb_cal.acdb
 PRODUCT_PACKAGES += MTP_workspaceFileXml.qwsp
 PRODUCT_PACKAGES += MTP_usbc_acdb_cal.acdb
 PRODUCT_PACKAGES += MTP_usbc_workspaceFileXml.qwsp
+PRODUCT_PACKAGES += QRD_acdb_cal.acdb
+PRODUCT_PACKAGES += QRD_workspaceFileXml.qwsp
 PRODUCT_PACKAGES += fai_3.0.0_0.0_eai_1.00.pmd
 PRODUCT_PACKAGES += fai__3.0.0_0.0__eai_1.36_enpu2.pmd
 PRODUCT_PACKAGES += fai__2.0.0_0.1__3.0.0_0.0__eai_1.00.pmd
@@ -186,20 +189,26 @@ PRODUCT_PACKAGES += $(AUDIO_AGM)
 PRODUCT_PACKAGES += $(AUDIO_PAL)
 PRODUCT_PACKAGES += $(AUDIO_C2)
 
+# Audio configuration xml's related to Strait
+QCV_FAMILY_SKUS := blair
+DEVICE_SKU := blair
+
 # Audio configuration xml's related to Blair
 CONFIG_PAL_SRC_DIR := vendor/qcom/opensource/pal/configs/blair
 CONFIG_HAL_SRC_DIR := vendor/qcom/opensource/audio-hal/primary-hal/configs/blair
-
+CONFIG_SKU_OUT_DIR := $(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)
 
 PRODUCT_COPY_FILES += \
-    $(CONFIG_HAL_SRC_DIR)/audio_effects.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.conf \
-    $(CONFIG_HAL_SRC_DIR)/audio_effects.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.xml \
-    $(CONFIG_HAL_SRC_DIR)/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml \
+    $(CONFIG_HAL_SRC_DIR)/audio_effects.conf:$(CONFIG_SKU_OUT_DIR)/audio_effects.conf \
+    $(CONFIG_HAL_SRC_DIR)/audio_effects.xml:$(CONFIG_SKU_OUT_DIR)/audio_effects.xml \
+    $(CONFIG_PAL_SRC_DIR)/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml \
     $(CONFIG_HAL_SRC_DIR)/microphone_characteristics.xml:$(TARGET_COPY_OUT_VENDOR)/etc/microphone_characteristics.xml \
-    $(CONFIG_HAL_SRC_DIR)/mixer_paths_blair_mtp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_blair_mtp.xml \
-    $(CONFIG_HAL_SRC_DIR)/mixer_paths_blair_mtp_usbc.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_blair_mtp_usbc.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_blair_idp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_blair_mtp.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_blair_mtp_usbc.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_blair_mtp_usbc.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_blair_mtp.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_blair_mtp.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_blair_mtp_usbc.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_blair_mtp_usbc.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_blair_qrd.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_blair_qrd.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_blair_mtp.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_blair_mtp.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_blair_mtp_usbc.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_blair_mtp_usbc.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_blair_qrd.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_blair_qrd.xml \
     $(CONFIG_PAL_SRC_DIR)/usecaseKvManager.xml:$(TARGET_COPY_OUT_VENDOR)/etc/usecaseKvManager.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/common/media_codecs_vendor_audio.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_vendor_audio.xml \
     frameworks/native/data/etc/android.hardware.audio.pro.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.pro.xml \
@@ -208,8 +217,12 @@ PRODUCT_COPY_FILES += \
 #XML Audio configuration files
 ifneq ($(TARGET_USES_AOSP_FOR_AUDIO), true)
 PRODUCT_COPY_FILES += \
-    $(CONFIG_HAL_SRC_DIR)/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/audio_policy_configuration.xml \
-    $(CONFIG_HAL_SRC_DIR)/audio_policy_configuration_gaming.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/audio_policy_configuration_gaming.xml
+    $(CONFIG_HAL_SRC_DIR)/audio_policy_configuration.xml:$(CONFIG_SKU_OUT_DIR)/audio_policy_configuration.xml
+
+#Audio configuration xml's common to Blair family
+PRODUCT_COPY_FILES += \
+$(foreach DEVICE_SKU, $(QCV_FAMILY_SKUS), \
+    $(CONFIG_HAL_SRC_DIR)/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)_qssi/audio_policy_configuration.xml)
 endif
 
 PRODUCT_COPY_FILES += \
@@ -516,6 +529,10 @@ PRODUCT_PACKAGES += \
     android.hardware.audio@7.0-impl \
     android.hardware.audio.effect@7.0 \
     android.hardware.audio.effect@7.0-impl
+
+# enable audio hidl hal 7.1
+PRODUCT_PACKAGES += android.hardware.audio@7.1-impl
+
 # enable sound trigger hidl hal 2.2
 PRODUCT_PACKAGES += \
     android.hardware.soundtrigger@2.2-impl \

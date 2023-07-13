@@ -194,11 +194,11 @@ CONFIG_HAL_SRC_DIR := vendor/qcom/opensource/audio-hal/primary-hal/configs/holi
 PRODUCT_COPY_FILES += \
     $(CONFIG_HAL_SRC_DIR)/audio_effects.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.conf \
     $(CONFIG_HAL_SRC_DIR)/audio_effects.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.xml \
-    $(CONFIG_HAL_SRC_DIR)/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml \
+    $(CONFIG_PAL_SRC_DIR)/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml \
     $(CONFIG_HAL_SRC_DIR)/microphone_characteristics.xml:$(TARGET_COPY_OUT_VENDOR)/etc/microphone_characteristics.xml \
-    $(CONFIG_HAL_SRC_DIR)/mixer_paths_holi_mtp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_holi_mtp.xml \
-    $(CONFIG_HAL_SRC_DIR)/mixer_paths_holi_mtp_usbc.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_holi_mtp_usbc.xml \
-    $(CONFIG_PAL_SRC_DIR)/resourcemanager_holi_idp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_holi_mtp.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_holi_mtp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_holi_mtp.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_holi_mtp_usbc.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_holi_mtp_usbc.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_holi_mtp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_holi_mtp.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_holi_mtp_usbc.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_holi_mtp_usbc.xml \
     $(CONFIG_PAL_SRC_DIR)/usecaseKvManager.xml:$(TARGET_COPY_OUT_VENDOR)/etc/usecaseKvManager.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/common/media_codecs_vendor_audio.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_vendor_audio.xml \
