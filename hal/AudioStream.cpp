@@ -3228,9 +3228,8 @@ int StreamOutPrimary::GetFrames(uint64_t *frames)
     AHAL_VERBOSE("session msw %u", tstamp.session_time.value_msw);
     AHAL_VERBOSE("session lsw %u", tstamp.session_time.value_lsw);
     AHAL_VERBOSE("session timespec %lld", ((long long) timestamp));
-    timestamp *= (streamAttributes_.out_media_config.sample_rate);
-    AHAL_VERBOSE("timestamp %lld", ((long long) timestamp));
-    dsp_frames = timestamp/1000000;
+    dsp_frames = timestamp / 1000
+                 * streamAttributes_.out_media_config.sample_rate / 1000;
 
     // Adjustment accounts for A2dp encoder latency with offload usecases
     // Note: Encoder latency is returned in ms.
