@@ -74,8 +74,12 @@ ifeq ($(call is-board-platform-in-list,kalama),true)
     AUDIO_MODULES += ftm_test_config_kalama-grd-snd-card
     AUDIO_MODULES += MTP_acdb_cal.acdb
     AUDIO_MODULES += MTP_workspaceFileXml.qwsp
+    AUDIO_MODULES += MTP_APQ_acdb_cal.acdb
+    AUDIO_MODULES += MTP_APQ_workspaceFileXml.qwsp
     AUDIO_MODULES += CDP_acdb_cal.acdb
     AUDIO_MODULES += CDP_workspaceFileXml.qwsp
+    AUDIO_MODULES += CDP_APQ_acdb_cal.acdb
+    AUDIO_MODULES += CDP_APQ_workspaceFileXml.qwsp
     AUDIO_MODULES += QRD_acdb_cal.acdb
     AUDIO_MODULES += QRD_workspaceFileXml.qwsp
     AUDIO_MODULES += IDP_UPD_acdb_cal.acdb
