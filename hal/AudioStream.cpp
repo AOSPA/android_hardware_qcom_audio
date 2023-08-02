@@ -2932,6 +2932,10 @@ int StreamOutPrimary::Open() {
                     streamAttributes_.out_media_config.bit_width = 16;
                 streamAttributes_.type = PAL_STREAM_PCM_OFFLOAD;
             } else {
+                if (getFormatId.find(config_.format & AUDIO_FORMAT_MAIN_MASK) == getFormatId.end()) {
+                    AHAL_ERR("Invalid format: %d", config_.format);
+                    goto error_open;
+                }
                 streamAttributes_.out_media_config.aud_fmt_id = getFormatId.at(config_.format & AUDIO_FORMAT_MAIN_MASK);
             }
             break;
@@ -2942,6 +2946,10 @@ int StreamOutPrimary::Open() {
         case PAL_STREAM_GENERIC:
         case PAL_STREAM_PCM_OFFLOAD:
             halInputFormat = config_.format;
+            if (getAlsaSupportedFmt.find(halInputFormat) == getAlsaSupportedFmt.end()) {
+                AHAL_ERR("Invalid format: %d", config_.format);
+                goto error_open;
+            }
             halOutputFormat = (audio_format_t)(getAlsaSupportedFmt.at(halInputFormat));
             streamAttributes_.out_media_config.aud_fmt_id = getFormatId.at(halOutputFormat);
             streamAttributes_.out_media_config.bit_width = format_to_bitwidth_table[halOutputFormat];
@@ -4624,7 +4632,18 @@ int StreamInPrimary::Open() {
        streamAttributes_.in_media_config.aud_fmt_id = getFormatId.at(config_.format);
        streamAttributes_.in_media_config.bit_width = format_to_bitwidth_table[config_.format];
     } else if (!is_pcm_format(config_.format) && usecase_ == USECASE_AUDIO_RECORD_COMPRESS) {
+        if (getFormatId.find(config_.format) == getFormatId.end()) {
+            AHAL_ERR("Invalid format: %d", config_.format);
+            ret = -EINVAL;
+            goto exit;
+        }
         streamAttributes_.in_media_config.aud_fmt_id = getFormatId.at(config_.format);
+        if (compressRecordBitWidthTable.find(config_.format) ==
+            compressRecordBitWidthTable.end()){
+            AHAL_ERR("Invalid format: %d", config_.format);
+            ret = -EINVAL;
+            goto exit;
+        }
         streamAttributes_.in_media_config.bit_width =
                                                 compressRecordBitWidthTable.at(config_.format);
     } else {
