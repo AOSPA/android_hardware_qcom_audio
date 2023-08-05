@@ -15,6 +15,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #ifndef QCOM_AUDIO_PLATFORM_H
@@ -43,6 +47,8 @@ enum {
     SOURCE_THREE_MIC = 0x4,            /* Target contains 3 mics */
     SOURCE_QUAD_MIC  = 0x8,            /* Target contains 4 mics */
     SOURCE_HEX_MIC   = 0x10,           /* Target contains 6 mics */
+    SOURCE_OCT_MIC   = 0x20,           /* Target contains 8 mics */
+    SOURCE_DEC_MIC   = 0x40,
 };
 
 enum {
@@ -366,6 +372,18 @@ enum {
     SND_DEVICE_IN_ICC,
     SND_DEVICE_IN_SYNTH_MIC,
     SND_DEVICE_IN_ECHO_REFERENCE,
+    SND_DEVICE_IN_HANDSET_GENERIC_DMIC,
+    SND_DEVICE_IN_HANDSET_GENERIC_6MIC,
+    SND_DEVICE_IN_HANDSET_GENERIC_8MIC,
+    SND_DEVICE_IN_HANDSET_GENERIC_DMIC_AND_EC_REF_LOOPBACK,
+    SND_DEVICE_IN_HANDSET_GENERIC_QMIC_AND_EC_REF_LOOPBACK,
+    SND_DEVICE_IN_HANDSET_GENERIC_6MIC_AND_EC_REF_LOOPBACK,
+    SND_DEVICE_IN_HANDSET_GENERIC_8MIC_AND_EC_REF_LOOPBACK,
+    SND_DEVICE_IN_HDMI_MIC_DSD,
+    SND_DEVICE_IN_ECALL,
+    SND_DEVICE_IN_SPEAKER_MIC2,
+    SND_DEVICE_IN_SPEAKER_MIC3,
+    SND_DEVICE_IN_HANDSET_GENERIC_6MIC_AND_SPEAKER_MIC2,
     SND_DEVICE_IN_END,
 
     SND_DEVICE_MAX = SND_DEVICE_IN_END,
@@ -405,6 +423,12 @@ enum {
     HDMI_ARC_TX_BACKEND,
     HEADSET_TX_BACKEND,
     CALL_PROXY_TX_BACKEND,
+    SEC_MI2S_RX_BACKEND,
+    TERT_MI2S_RX_BACKEND,
+    TERT_MI2S_TX_BACKEND,
+    QUAT_MI2S_RX_BACKEND,
+    QUAT_TDM_TX_BACKEND,
+    SEN_TDM_TX_BACKEND,
     MAX_CODEC_BACKENDS
 };
 
@@ -879,6 +903,8 @@ enum {
     MSM_FRONTEND_DAI_MULTIMEDIA32,
     MSM_FRONTEND_DAI_MULTIMEDIA33,
     MSM_FRONTEND_DAI_MULTIMEDIA34,
+    MSM_FRONTEND_DAI_MULTIMEDIA35,
+    MSM_FRONTEND_DAI_MULTIMEDIA36,
     MSM_FRONTEND_DAI_VOIP,
     MSM_FRONTEND_DAI_AFE_RX,
     MSM_FRONTEND_DAI_AFE_TX,

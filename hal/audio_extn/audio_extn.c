@@ -240,6 +240,7 @@ static bool audio_extn_maxx_audio_enabled = false;
 static bool audio_extn_audiozoom_enabled = false;
 static bool audio_extn_hifi_filter_enabled = false;
 static bool audio_extn_concurrent_pcm_record_enabled = false;
+static bool audio_extn_concurrent_low_latency_pcm_record_enabled = false;
 
 #define AUDIO_PARAMETER_KEY_AANC_NOISE_LEVEL "aanc_noise_level"
 #define AUDIO_PARAMETER_KEY_ANC        "anc_enabled"
@@ -480,7 +481,7 @@ static int update_custom_mtmx_coefficients_v2(struct audio_device *adev,
         cust_ch_mixer_cfg[len++] = pinfo->ip_channels;
         cust_ch_mixer_cfg[len++] = pinfo->op_channels;
         for (i = 0; i < (int) (pinfo->op_channels * pinfo->ip_channels); i++) {
-            ALOGV("%s: coeff[%d] %d", __func__, i, params->coeffs[i]);
+            ALOGV("%s: coeff[%d] %lu", __func__, i, (unsigned long )params->coeffs[i]);
             cust_ch_mixer_cfg[len++] = params->coeffs[i];
         }
         err = mixer_ctl_set_array(ctl, cust_ch_mixer_cfg, len);
@@ -3791,6 +3792,7 @@ static int audio_extn_set_multichannel_mask(struct audio_device *adev,
 
     int max_mic_count = platform_get_max_mic_count(adev->platform);
     /* validate input params. Avoid updated channel mask if loopback device */
+    /* validate input params. Avoid updated channel mask if HDMI or loopback device */
     if ((channel_count == 6) &&
         (in->format == AUDIO_FORMAT_PCM_16_BIT) &&
         (!is_loopback_input_device(get_device_types(&in->device_list)))) {
@@ -5711,6 +5713,19 @@ void concurrent_pcm_record_feature_init(bool is_feature_enabled)
 }
 // END: CONCURRENT_PCM_RECORD =================================================
 
+// START: CONCURRENT_LOW_LATENCY_PCM_RECORD ===============================================
+bool audio_extn_is_concurrent_low_latency_pcm_record_enabled()
+{
+    return audio_extn_concurrent_low_latency_pcm_record_enabled;
+}
+
+void concurrent_low_latency_pcm_record_feature_init(bool is_feature_enabled)
+{
+    audio_extn_concurrent_low_latency_pcm_record_enabled = is_feature_enabled;
+    ALOGD("%s: ---- Feature CONCURRENT_LOW_LATENCY_PCM_RECORD is %s----", __func__, is_feature_enabled? "ENABLED": "NOT ENABLED");
+}
+// END: CONCURRENT_LOW_LATENCY_PCM_RECORD =================================================
+
 // START: COMPRESS_IN ==================================================
 void compress_in_feature_init(bool is_feature_enabled)
 {
@@ -6790,6 +6805,9 @@ void audio_extn_feature_init()
                        false));
     concurrent_pcm_record_feature_init(
         property_get_bool("vendor.audio.feature.concurrent_pcm_record.enable",
+                           false));
+    concurrent_low_latency_pcm_record_feature_init(
+        property_get_bool("vendor.audio.feature.concurrent_low_latency_pcm_record.enable",
                            false));
 }
 
