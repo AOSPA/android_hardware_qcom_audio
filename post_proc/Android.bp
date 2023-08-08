@@ -65,9 +65,11 @@ cc_library_shared {
     ] + select(soong_config_variable("ANDROID", "target_board_platform"), {
         any @ flag_val: [
             "-DLIB_AUDIO_HAL=/vendor/lib/hw/audio.primary." + flag_val + ".so",
+            "-DLIB64_AUDIO_HAL=/vendor/lib64/hw/audio.primary." + flag_val + ".so",
         ],
         default: [
             "-DLIB_AUDIO_HAL=/vendor/lib/hw/audio.primary.qcom.so",
+            "-DLIB64_AUDIO_HAL=/vendor/lib64/hw/audio.primary.qcom.so",
         ],
     }),
 
