@@ -413,7 +413,7 @@ int AudioVoice::RouteStream(const std::set<audio_devices_t>& rx_devices) {
     pal_device_id_t* pal_device_ids = NULL;
     uint16_t device_count = 0;
 
-    pal_param_bta2dp_t *param_bt_a2dp = nullptr;
+    pal_param_bta2dp_t *param_bt_a2dp_ptr = nullptr;
     size_t bt_param_size = 0;
     bool a2dp_suspended = false;
     bool a2dp_capture_suspended = false;
@@ -479,23 +479,29 @@ int AudioVoice::RouteStream(const std::set<audio_devices_t>& rx_devices) {
 
             if ((pal_voice_rx_device_id_ == PAL_DEVICE_OUT_BLUETOOTH_BLE) &&
                 (pal_voice_tx_device_id_ == PAL_DEVICE_IN_BLUETOOTH_BLE)) {
+                pal_param_bta2dp_t param_bt_a2dp;
                 do {
                     std::unique_lock<std::mutex> guard(reconfig_wait_mutex_);
+                    param_bt_a2dp_ptr = &param_bt_a2dp;
+                    param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_BLE;
+
                     ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED,
-                                        (void **)&param_bt_a2dp, &bt_param_size, nullptr);
-                    if (!ret && param_bt_a2dp)
-                        a2dp_suspended = param_bt_a2dp->a2dp_suspended;
-                    else
+                                        (void **)&param_bt_a2dp_ptr, &bt_param_size, nullptr);
+                    if (!ret && bt_param_size && param_bt_a2dp_ptr) {
+                        a2dp_suspended = param_bt_a2dp_ptr->a2dp_suspended;
+                    } else {
                         AHAL_ERR("getparam for PAL_PARAM_ID_BT_A2DP_SUSPENDED failed");
-                    param_bt_a2dp = nullptr;
+                    }
+                    param_bt_a2dp_ptr = &param_bt_a2dp;
+                    param_bt_a2dp_ptr->dev_id = PAL_DEVICE_IN_BLUETOOTH_BLE;
                     bt_param_size = 0;
                     ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_CAPTURE_SUSPENDED,
-                                        (void **)&param_bt_a2dp, &bt_param_size, nullptr);
-                    if (!ret && param_bt_a2dp)
-                        a2dp_capture_suspended = param_bt_a2dp->a2dp_capture_suspended;
+                                        (void **)&param_bt_a2dp_ptr, &bt_param_size, nullptr);
+                    if (!ret && bt_param_size && param_bt_a2dp_ptr)
+                        a2dp_capture_suspended = param_bt_a2dp_ptr->a2dp_capture_suspended;
                     else
                         AHAL_ERR("getparam for BT_A2DP_CAPTURE_SUSPENDED failed");
-                    param_bt_a2dp = nullptr;
+                    param_bt_a2dp_ptr = nullptr;
                     bt_param_size = 0;
                 } while ((a2dp_suspended || a2dp_capture_suspended) && retry_cnt-- &&
                          !usleep(retry_period_ms * 1000));
@@ -564,7 +570,7 @@ int AudioVoice::UpdateCalls(voice_session_t *pSession) {
     int i, ret = 0;
     voice_session_t *session = NULL;
 
-    pal_param_bta2dp_t *param_bt_a2dp = nullptr;
+    pal_param_bta2dp_t *param_bt_a2dp_ptr = nullptr;
     size_t bt_param_size = 0;
     bool a2dp_suspended = false;
     bool a2dp_capture_suspended = false;
@@ -588,23 +594,30 @@ int AudioVoice::UpdateCalls(voice_session_t *pSession) {
 
                     if ((pal_voice_rx_device_id_ == PAL_DEVICE_OUT_BLUETOOTH_BLE) &&
                         (pal_voice_tx_device_id_ == PAL_DEVICE_IN_BLUETOOTH_BLE)) {
+                        pal_param_bta2dp_t param_bt_a2dp;
                         do {
                             std::unique_lock<std::mutex> guard(reconfig_wait_mutex_);
+                            param_bt_a2dp_ptr = &param_bt_a2dp;
+                            param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_BLE;
+
                             ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED,
-                                                (void **)&param_bt_a2dp, &bt_param_size, nullptr);
-                            if (!ret && param_bt_a2dp)
-                                a2dp_suspended = param_bt_a2dp->a2dp_suspended;
-                            else
+                                                (void **)&param_bt_a2dp_ptr, &bt_param_size, nullptr);
+                            if (!ret && bt_param_size && param_bt_a2dp_ptr) {
+                                a2dp_suspended = param_bt_a2dp_ptr->a2dp_suspended;
+                            } else {
                                 AHAL_ERR("getparam for PAL_PARAM_ID_BT_A2DP_SUSPENDED failed");
-                            param_bt_a2dp = nullptr;
+                            }
+                            param_bt_a2dp_ptr = &param_bt_a2dp;
+                            param_bt_a2dp_ptr->dev_id = PAL_DEVICE_IN_BLUETOOTH_BLE;
                             bt_param_size = 0;
                             ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_CAPTURE_SUSPENDED,
-                                                (void **)&param_bt_a2dp, &bt_param_size, nullptr);
-                            if (!ret && param_bt_a2dp)
-                                a2dp_capture_suspended = param_bt_a2dp->a2dp_capture_suspended;
-                            else
+                                                (void **)&param_bt_a2dp_ptr, &bt_param_size, nullptr);
+                            if (!ret && bt_param_size && param_bt_a2dp_ptr) {
+                                a2dp_capture_suspended = param_bt_a2dp_ptr->a2dp_capture_suspended;
+                            } else {
                                 AHAL_ERR("getparam for BT_A2DP_CAPTURE_SUSPENDED failed");
-                            param_bt_a2dp = nullptr;
+                            }
+                            param_bt_a2dp_ptr = nullptr;
                             bt_param_size = 0;
                         } while ((a2dp_suspended || a2dp_capture_suspended) && retry_cnt-- &&
                                  !usleep(retry_period_ms * 1000));

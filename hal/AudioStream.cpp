@@ -794,19 +794,26 @@ static uint32_t astream_get_latency(const struct audio_stream_out *stream) {
     }
 
     // accounts for A2DP encoding and sink latency
-    pal_param_bta2dp_t *param_bt_a2dp = NULL;
+    pal_param_bta2dp_t *param_bt_a2dp_ptr, param_bt_a2dp;
+    param_bt_a2dp_ptr = &param_bt_a2dp;
     size_t size = 0;
     int32_t ret;
-    //TODO : check on PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY for BLE
-    if ((astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP)) ||
-            (astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) ||
-            (astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST))) {
-        ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY,
-                            (void **)&param_bt_a2dp, &size, nullptr);
-        if (!ret && param_bt_a2dp)
-            latency += param_bt_a2dp->latency;
-    }
 
+    if (astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP)) {
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_A2DP;
+    } else if (astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) {
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_BLE;
+    } else if (astream_out->isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST)) {
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST;
+    } else {
+        goto exit;
+    }
+    ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY,
+        (void**)&param_bt_a2dp_ptr, &size, nullptr);
+    if (!ret && size && param_bt_a2dp_ptr && param_bt_a2dp_ptr->latency) {
+        latency += param_bt_a2dp_ptr->latency;
+    }
+exit:
     AHAL_VERBOSE("Latency %d", latency);
     return latency;
 }
@@ -1400,18 +1407,25 @@ uint64_t StreamInPrimary::GetFramesRead(int64_t* time)
 
     // Adjustment accounts for A2dp decoder latency
     // Note: Decoder latency is returned in ms, while platform_source_latency in us.
-    pal_param_bta2dp_t* param_bt_a2dp = NULL;
+    pal_param_bta2dp_t* param_bt_a2dp_ptr, param_bt_a2dp;
+    param_bt_a2dp_ptr = &param_bt_a2dp;
     size_t size = 0;
     int32_t ret;
 
-    if (isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_A2DP) ||
-        isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_BLE)) {
-        ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_DECODER_LATENCY,
-            (void**)&param_bt_a2dp, &size, nullptr);
-        if (!ret && param_bt_a2dp) {
-            *time -= param_bt_a2dp->latency * 1000000LL;
-        }
+    if (isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_A2DP)) {
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_IN_BLUETOOTH_A2DP;
+    } else if(isDeviceAvailable(PAL_DEVICE_IN_BLUETOOTH_BLE)) {
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_IN_BLUETOOTH_BLE;
+    } else {
+        goto exit;
     }
+    ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_DECODER_LATENCY,
+        (void**)&param_bt_a2dp_ptr, &size, nullptr);
+    if (!ret && size && param_bt_a2dp_ptr && param_bt_a2dp_ptr->latency) {
+        *time -= param_bt_a2dp_ptr->latency * 1000000LL;
+    }
+
+exit:
     stream_mutex_.unlock();
 
     AHAL_VERBOSE("signed frames %lld", (long long)signed_frames);
@@ -2345,7 +2359,7 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
     bool *payload_hifiFilter = &isHifiFilterEnabled;
     size_t param_size = 0;
 
-    pal_param_bta2dp_t *param_bt_a2dp = nullptr;
+    pal_param_bta2dp_t *param_bt_a2dp_ptr = nullptr;
     size_t bt_param_size = 0;
 
     stream_mutex_.lock();
@@ -2481,9 +2495,14 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
                                          (audio_devices_t)AUDIO_DEVICE_OUT_BLUETOOTH_SCO_HEADSET) ||
             AudioExtn::audio_devices_cmp(mAndroidOutDevices,
                                          (audio_devices_t)AUDIO_DEVICE_OUT_BLUETOOTH_SCO_CARKIT)) {
-            ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void **)&param_bt_a2dp,
+            pal_param_bta2dp_t param_bt_a2dp;
+            param_bt_a2dp_ptr = &param_bt_a2dp;
+            param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_A2DP;
+
+            ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void **)&param_bt_a2dp_ptr,
                                 &bt_param_size, nullptr);
-            if (!ret && param_bt_a2dp && !param_bt_a2dp->a2dp_suspended ) {
+            if (!ret && bt_param_size && param_bt_a2dp_ptr &&
+                !param_bt_a2dp_ptr->a2dp_suspended ) {
                 AHAL_ERR("Cannot route stream to SCO if A2dp is not suspended");
                 ret = -EINVAL;
                 goto done;
@@ -2646,7 +2665,6 @@ uint64_t StreamOutPrimary::GetFramesWritten(struct timespec *timestamp)
     uint64_t kernel_frames = 0;
     uint64_t dsp_frames = 0;
     uint64_t bt_extra_frames = 0;
-    pal_param_bta2dp_t *param_bt_a2dp = NULL;
     size_t size = 0, kernel_buffer_size = 0;
     int32_t ret;
 
@@ -2678,20 +2696,29 @@ uint64_t StreamOutPrimary::GetFramesWritten(struct timespec *timestamp)
 
     // Adjustment accounts for A2dp encoder latency with non offload usecases
     // Note: Encoder latency is returned in ms, while platform_render_latency in us.
-    if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP) ||
-           isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE) ||
-           isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST)) {
-        ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY,
-                            (void **)&param_bt_a2dp, &size, nullptr);
-        if (!ret && param_bt_a2dp) {
-            bt_extra_frames = param_bt_a2dp->latency *
-                (streamAttributes_.out_media_config.sample_rate) / 1000;
-            if (signed_frames >= bt_extra_frames)
-                signed_frames -= bt_extra_frames;
+    pal_param_bta2dp_t *param_bt_a2dp_ptr, param_bt_a2dp;
+    param_bt_a2dp_ptr = &param_bt_a2dp;
 
-        }
+    if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP)) {
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_A2DP;
+    } else if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) {
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_BLE;
+    } else if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST)) {
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST;
+    } else {
+        goto exit;
+    }
+    ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY,
+        (void**)&param_bt_a2dp_ptr, &size, nullptr);
+    if (!ret && size && param_bt_a2dp_ptr && param_bt_a2dp_ptr->latency) {
+        bt_extra_frames = param_bt_a2dp_ptr->latency *
+            (streamAttributes_.out_media_config.sample_rate) / 1000;
+        if (signed_frames >= bt_extra_frames)
+            signed_frames -= bt_extra_frames;
+
     }
 
+exit:
     struct audio_mmap_position position;
     if (this->GetUseCase() == USECASE_AUDIO_PLAYBACK_MMAP) {
         signed_frames = 0;
@@ -2881,7 +2908,7 @@ int StreamOutPrimary::Open() {
     bool *payload_hifiFilter = &isHifiFilterEnabled;
     size_t param_size = 0;
 
-    pal_param_bta2dp_t *param_bt_a2dp = nullptr;
+    pal_param_bta2dp_t *param_bt_a2dp_ptr = nullptr;
     size_t bt_param_size = 0;
 
     AHAL_INFO("Enter: OutPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
@@ -3023,9 +3050,14 @@ int StreamOutPrimary::Open() {
                                      (audio_devices_t)AUDIO_DEVICE_OUT_BLUETOOTH_SCO_HEADSET) ||
         AudioExtn::audio_devices_cmp(mAndroidOutDevices,
                                      (audio_devices_t)AUDIO_DEVICE_OUT_BLUETOOTH_SCO_CARKIT)) {
-        ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void **)&param_bt_a2dp,
+        pal_param_bta2dp_t param_bt_a2dp;
+        param_bt_a2dp_ptr = &param_bt_a2dp;
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_A2DP;
+
+        ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void **)&param_bt_a2dp_ptr,
                             &bt_param_size, nullptr);
-        if (!ret && param_bt_a2dp && !param_bt_a2dp->a2dp_suspended) {
+        if (!ret && bt_param_size && param_bt_a2dp_ptr &&
+            !param_bt_a2dp_ptr->a2dp_suspended) {
             AHAL_ERR("Cannot open stream on SCO if A2dp is not suspended");
             ret = -EINVAL;
             goto error_open;
@@ -3213,7 +3245,6 @@ int StreamOutPrimary::GetFrames(uint64_t *frames)
     uint64_t dsp_frames = 0;
     uint64_t offset = 0;
     size_t size = 0;
-    pal_param_bta2dp_t *param_bt_a2dp = NULL;
 
     if (!pal_stream_handle_) {
         AHAL_VERBOSE("pal_stream_handle_ NULL");
@@ -3241,17 +3272,26 @@ int StreamOutPrimary::GetFrames(uint64_t *frames)
 
     // Adjustment accounts for A2dp encoder latency with offload usecases
     // Note: Encoder latency is returned in ms.
-    if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP) ||
-           isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST) ||
-           isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) {
-        ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY,
-                            (void **)&param_bt_a2dp, &size, nullptr);
-        if (!ret && param_bt_a2dp) {
-            offset = param_bt_a2dp->latency *
-                (streamAttributes_.out_media_config.sample_rate) / 1000;
-            dsp_frames = (dsp_frames > offset) ? (dsp_frames - offset) : 0;
-        }
+    pal_param_bta2dp_t* param_bt_a2dp_ptr, param_bt_a2dp;
+    param_bt_a2dp_ptr = &param_bt_a2dp;
+
+    if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_A2DP)) {
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_A2DP;
+    } else if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) {
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_BLE;
+    } else if (isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST)) {
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_BLE_BROADCAST;
+    } else {
+        goto done;
     }
+    ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_ENCODER_LATENCY,
+        (void**)&param_bt_a2dp_ptr, &size, nullptr);
+    if (!ret && size && param_bt_a2dp_ptr && param_bt_a2dp_ptr->latency) {
+        offset = param_bt_a2dp_ptr->latency *
+            (streamAttributes_.out_media_config.sample_rate) / 1000;
+        dsp_frames = (dsp_frames > offset) ? (dsp_frames - offset) : 0;
+    }
+done:
     *frames = dsp_frames + mCachedPosition;
 exit:
     return ret;
@@ -3500,7 +3540,7 @@ ssize_t StreamOutPrimary::write(const void *buffer, size_t bytes)
     palBuffer.size = bytes;
     palBuffer.offset = 0;
 
-    pal_param_bta2dp_t *param_bt_a2dp = nullptr;
+    pal_param_bta2dp_t *param_bt_a2dp_ptr = nullptr;
     size_t bt_param_size = 0;
     bool is_usage_ringtone = false;
     uint32_t frameSize = 0;
@@ -3531,12 +3571,17 @@ ssize_t StreamOutPrimary::write(const void *buffer, size_t bytes)
         }
 
         if (is_usage_ringtone && isDeviceAvailable(PAL_DEVICE_OUT_BLUETOOTH_BLE)) {
-            param_bt_a2dp = nullptr;
             bt_param_size = 0;
             std::unique_lock<std::mutex> guard(reconfig_wait_mutex_);
-            ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void **)&param_bt_a2dp,
+
+            pal_param_bta2dp_t param_bt_a2dp;
+            param_bt_a2dp_ptr = &param_bt_a2dp;
+            param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_BLE;
+
+            ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void **)&param_bt_a2dp_ptr,
                                 &bt_param_size, nullptr);
-            if (!ret && param_bt_a2dp && param_bt_a2dp->a2dp_suspended) {
+            if (!ret && bt_param_size && param_bt_a2dp_ptr &&
+                param_bt_a2dp_ptr->a2dp_suspended) {
                  byteWidth = streamAttributes_.out_media_config.bit_width / 8;
                  sampleRate = streamAttributes_.out_media_config.sample_rate;
                  channelCount = streamAttributes_.out_media_config.ch_info.channels;
@@ -4324,7 +4369,7 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
     struct pal_channel_info ch_info = {0, {0}};
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
 
-    pal_param_bta2dp_t *param_bt_a2dp = nullptr;
+    pal_param_bta2dp_t *param_bt_a2dp_ptr = nullptr;
     size_t bt_param_size = 0;
 
     AHAL_INFO("Enter: InPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
@@ -4445,9 +4490,14 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
 
         if (AudioExtn::audio_devices_cmp(mAndroidInDevices,
                                          (audio_devices_t)AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET)) {
-            ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void **)&param_bt_a2dp,
+            pal_param_bta2dp_t param_bt_a2dp;
+            param_bt_a2dp_ptr = &param_bt_a2dp;
+            param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_A2DP;
+
+            ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void **)&param_bt_a2dp_ptr,
                                 &bt_param_size, nullptr);
-            if (!ret && param_bt_a2dp && !param_bt_a2dp->a2dp_suspended) {
+            if (!ret && bt_param_size && param_bt_a2dp_ptr &&
+                !param_bt_a2dp_ptr->a2dp_suspended) {
                 AHAL_ERR("Cannot route stream from SCO if A2dp is not suspended");
                 ret = -EINVAL;
                 goto done;
@@ -4535,7 +4585,7 @@ int StreamInPrimary::Open() {
     dynamic_media_config_t dynamic_media_config;
     std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
 
-    pal_param_bta2dp_t *param_bt_a2dp = nullptr;
+    pal_param_bta2dp_t *param_bt_a2dp_ptr = nullptr;
     size_t bt_param_size = 0;
 
     AHAL_INFO("Enter: InPrimary usecase(%d: %s)", GetUseCase(), use_case_table[GetUseCase()]);
@@ -4691,9 +4741,14 @@ int StreamInPrimary::Open() {
 
     if (AudioExtn::audio_devices_cmp(mAndroidInDevices,
                                      (audio_devices_t)AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET)) {
-        ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void **)&param_bt_a2dp,
+        pal_param_bta2dp_t param_bt_a2dp;
+        param_bt_a2dp_ptr = &param_bt_a2dp;
+        param_bt_a2dp_ptr->dev_id = PAL_DEVICE_OUT_BLUETOOTH_A2DP;
+
+        ret = pal_get_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void **)&param_bt_a2dp_ptr,
                             &bt_param_size, nullptr);
-        if (!ret && param_bt_a2dp && !param_bt_a2dp->a2dp_suspended) {
+        if (!ret && bt_param_size && param_bt_a2dp_ptr
+            && !param_bt_a2dp_ptr->a2dp_suspended) {
             AHAL_ERR("Cannot open stream on SCO if A2dp is not suspended");
             ret = -EINVAL;
             goto exit;
