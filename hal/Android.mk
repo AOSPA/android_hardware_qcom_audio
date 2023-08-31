@@ -24,6 +24,10 @@ LOCAL_VENDOR_MODULE := true
 LOCAL_ARM_MODE := arm
 
 LOCAL_VINTF_FRAGMENTS := ../configs/common/manifest_non_qmaa.xml
+ifeq ($(TARGET_BOARD_PLATFORM), anorak)
+$(warning "Update manifest fragement for anorak")
+LOCAL_VINTF_FRAGMENTS += ../configs/anorak/android.hardware.audio@7.1.xml
+endif
 
 ifeq ($(strip $(AUDIO_FEATURE_ENABLED_LSM_HIDL)),true)
 LOCAL_VINTF_FRAGMENTS += ../configs/common/manifest_non_qmaa_extn.xml
