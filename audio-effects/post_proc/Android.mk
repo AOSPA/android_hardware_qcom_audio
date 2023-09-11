@@ -82,14 +82,18 @@ LOCAL_MODULE:= libqcompostprocbundle
 LOCAL_VENDOR_MODULE := true
 LOCAL_MODULE_OWNER := qti
 
+ifeq ($(TARGET_PREBUILT_KERNEL),)
 LOCAL_ADDITIONAL_DEPENDENCIES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
 
-LOCAL_C_INCLUDES := \
-        vendor/qcom/opensource/audio-hal/primary-hal/hal \
+LOCAL_C_INCLUDES += \
         $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include \
-        vendor/qcom/opensource/pal \
         $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include/audio \
-        $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/techpack/audio/include \
+        $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/techpack/audio/include
+endif
+
+LOCAL_C_INCLUDES += \
+        vendor/qcom/opensource/audio-hal/primary-hal/hal \
+        vendor/qcom/opensource/pal \
         $(call include-path-for, audio-effects) \
         vendor/qcom/opensource/audio-hal/primary-hal/hal/audio_extn/
 
@@ -191,14 +195,18 @@ LOCAL_MODULE:= libvolumelistener
 LOCAL_VENDOR_MODULE := true
 LOCAL_MODULE_OWNER := qti
 
+ifeq ($(TARGET_PREBUILT_KERNEL),)
 LOCAL_ADDITIONAL_DEPENDENCIES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
 
-LOCAL_C_INCLUDES := \
-        vendor/qcom/opensource/audio-hal/primary-hal/hal \
-        vendor/qcom/opensource/pal \
+LOCAL_C_INCLUDES += \
         $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include \
         $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include/audio \
-        $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/techpack/audio/include \
+        $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/techpack/audio/include
+endif
+
+LOCAL_C_INCLUDES += \
+        vendor/qcom/opensource/audio-hal/primary-hal/hal \
+        vendor/qcom/opensource/pal \
         $(call include-path-for, audio-effects) \
         $(call include-path-for, audio-route) \
         vendor/qcom/opensource/audio-hal/primary-hal/hal/audio_extn \
