@@ -96,7 +96,10 @@ ifeq ($(strip $(AUDIO_FEATURE_ENABLED_AGM_HIDL)),true)
 
   LOCAL_CFLAGS += -DAGM_HIDL_ENABLED
   LOCAL_C_INCLUDES += \
-    $(TOP)/vendor/qcom/opensource/agm/ipc/HwBinders/agm_ipc_client/
+    $(TOP)/vendor/qcom/opensource/agm/ipc/HwBinders/agm_ipc_client/ \
+    $(TOP)/vendor/qcom/opensource/agm/ipc/HwBinders/agm_ipc_client/inc \
+    $(TOP)/vendor/qcom/opensource/agm/ipc/HwBinders/agm_ipc_service/inc/ \
+    $(TOP)/vendor/qcom/opensource/pal/ipc/HwBinders/pal_ipc_server/inc/
 
   LOCAL_HEADER_LIBRARIES += \
     libagm_headers
