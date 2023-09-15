@@ -2333,9 +2333,9 @@ int StreamOutPrimary::SetVolume(float left , float right) {
         volume_ = NULL;
     }
 
-    if (left == right) {
-        volume_ = (struct pal_volume_data *)malloc(sizeof(struct pal_volume_data)
-                    +sizeof(struct pal_channel_vol_kv));
+    if (audio_channel_count_from_out_mask(config_.channel_mask) == 1) {
+        volume_ = (struct pal_volume_data *)calloc(1, sizeof(struct pal_volume_data)
+                +sizeof(struct pal_channel_vol_kv));
         if (!volume_) {
             AHAL_ERR("Failed to allocate mem for volume_");
             ret = -ENOMEM;
@@ -2343,9 +2343,15 @@ int StreamOutPrimary::SetVolume(float left , float right) {
         }
         volume_->no_of_volpair = 1;
         volume_->volume_pair[0].channel_mask = 0x03;
-        volume_->volume_pair[0].vol = left;
+
+        if (config_.channel_mask == 0x1)
+            volume_->volume_pair[0].vol = left;
+        else if (config_.channel_mask == 0x2)
+            volume_->volume_pair[0].vol = right;
+        else
+            volume_->volume_pair[0].vol = (left + right)/2.0;
     } else {
-        volume_ = (struct pal_volume_data *)malloc(sizeof(struct pal_volume_data)
+        volume_ = (struct pal_volume_data *)calloc(1, sizeof(struct pal_volume_data)
                     +sizeof(struct pal_channel_vol_kv) * 2);
         if (!volume_) {
             AHAL_ERR("Failed to allocate mem for volume_");
