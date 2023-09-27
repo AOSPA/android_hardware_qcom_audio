@@ -807,6 +807,9 @@ int AudioExtn::audio_extn_hidl_init() {
         } else {
             AHAL_DBG("successfully registered AGM service");
         }
+    } else {
+        AHAL_ERR("Failed to initialize AGM service");
+        return -EINVAL;
     }
 #endif
     /* to register other hidls */
