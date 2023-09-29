@@ -78,7 +78,10 @@ LOCAL_SHARED_LIBRARIES := \
     libhidlbase \
     libprocessgroup \
     libutils \
-    libar-pal
+    libar-pal \
+    android.hidl.allocator@1.0 \
+    android.hidl.memory@1.0 \
+    libhidlmemory
 
 ifeq ($(strip $(AUDIO_FEATURE_ENABLED_PAL_HIDL)),true)
   LOCAL_SHARED_LIBRARIES += \
