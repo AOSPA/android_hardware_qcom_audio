@@ -3207,8 +3207,15 @@ int StreamOutPrimary::Open() {
     } else
         outBufSize = StreamOutPrimary::GetBufferSize();
 
-    if (usecase_ == USECASE_AUDIO_PLAYBACK_LOW_LATENCY)
-        outBufCount = LOW_LATENCY_PLAYBACK_PERIOD_COUNT;
+    if (usecase_ == USECASE_AUDIO_PLAYBACK_LOW_LATENCY) {
+        if (streamAttributes_.type == PAL_STREAM_VOICE_CALL_MUSIC) {
+            outBufCount = LOW_LATENCY_ICMD_PLAYBACK_PERIOD_COUNT;
+            AHAL_DBG("LOW_LATENCY_ICMD - Buffer Count : %d", outBufCount);
+        }
+        else {
+            outBufCount = LOW_LATENCY_PLAYBACK_PERIOD_COUNT;
+        }
+    }
     else if (usecase_ == USECASE_AUDIO_PLAYBACK_OFFLOAD2)
         outBufCount = PCM_OFFLOAD_PLAYBACK_PERIOD_COUNT;
     else if (usecase_ == USECASE_AUDIO_PLAYBACK_DEEP_BUFFER)
