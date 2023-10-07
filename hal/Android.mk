@@ -122,6 +122,8 @@ ifeq ($(TARGET_BOARD_AUTO),true)
 endif
 
 LOCAL_CFLAGS += -Wno-macro-redefined
+LOCAL_CFLAGS += -Wno-enum-conversion
+LOCAL_CFLAGS += -Wno-deprecated-non-prototype
 
 LOCAL_HEADER_LIBRARIES := libhardware_headers
 
