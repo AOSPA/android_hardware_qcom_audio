@@ -623,12 +623,16 @@ void AudioDevice::CloseStreamIn(std::shared_ptr<StreamInPrimary> stream) {
     auto iter =
         std::find(stream_in_list_.begin(), stream_in_list_.end(), stream);
     if (iter == stream_in_list_.end()) {
-        AHAL_ERR("invalid output stream");
+        AHAL_ERR("invalid input stream");
     } else {
-        if (voice_) {
-            voice_->stream_in_primary_ = nullptr;
-        }
         stream_in_list_.erase(iter);
+        if (voice_) {
+            if (stream_in_list_.size() == 0) {
+                voice_->stream_in_primary_ = nullptr;
+            } else {
+                voice_->stream_in_primary_ = stream_in_list_[0];
+            }
+        }
     }
     in_list_mutex.unlock();
 }
