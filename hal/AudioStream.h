@@ -598,6 +598,7 @@ protected:
     uint32_t convertBufSize;
     uint32_t fragments_ = 0;
     uint32_t fragment_size_ = 0;
+    bool noHandsetSupport = false;
     pal_snd_dec_t palSndDec;
     struct pal_compr_gapless_mdata gaplessMeta = {0, 0};
     uint32_t msample_rate;
@@ -674,6 +675,7 @@ protected:
     uint32_t fragments_ = 0;
     uint32_t fragment_size_ = 0;
     int FillHalFnPtrs();
+    bool noHandsetSupport = false;
     std::shared_ptr<audio_stream_in>    stream_;
     audio_source_t                      source_;
     friend class AudioDevice;

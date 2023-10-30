@@ -264,9 +264,9 @@ get_sound_trigger_info(int capture_handle)
     return NULL;
 }
 
-extern "C" void check_init_audio_extension()
+extern "C" int check_init_audio_extension()
 {
-    AudioExtn::audio_extn_hidl_init();
+    return AudioExtn::audio_extn_hidl_init();
 }
 
 extern "C" void audio_hw_call_back(sound_trigger_event_type_t event,

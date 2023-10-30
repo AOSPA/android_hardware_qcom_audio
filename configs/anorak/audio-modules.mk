@@ -96,6 +96,8 @@ AUDIO_MODULES += libqtigefar
 AUDIO_MODULES += audiodsd2pcmtest
 AUDIO_MODULES += mm-audio-ftm
 AUDIO_MODULES += libmcs
+AUDIO_MODULES += libquasar
+AUDIO_MODULES += sensors.dynamic_sensor_hal
 
 AUDIO_MODULES += $(AUDIO_AGM)
 AUDIO_MODULES += $(AUDIO_PAL)
