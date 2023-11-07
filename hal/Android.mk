@@ -55,8 +55,7 @@ LOCAL_C_INCLUDES += \
     vendor/qcom/opensource/core-utils/fwk-detect \
     vendor/qcom/opensource/pal \
     $(call include-path-for, audio-effects) \
-    $(LOCAL_PATH)/audio_extn \
-    $(TOP)/vendor/qcom/opensource/agm/ipc/HwBinders/agm_ipc_client/
+    $(LOCAL_PATH)/audio_extn
 
 LOCAL_SRC_FILES := \
     AudioStream.cpp \
@@ -66,7 +65,7 @@ LOCAL_SRC_FILES := \
     audio_extn/Gain.cpp \
     audio_extn/AudioExtn.cpp
 
-LOCAL_HEADER_LIBRARIES := libhardware_headers qti_audio_kernel_uapi libagm_headers
+LOCAL_HEADER_LIBRARIES := libhardware_headers qti_audio_kernel_uapi
 
 LOCAL_SHARED_LIBRARIES := \
     libbase \
