@@ -2610,9 +2610,9 @@ int StreamOutPrimary::SetVolume(float left , float right) {
         volume_ = NULL;
     }
 
-    if (left == right) {
-        volume_ = (struct pal_volume_data *)malloc(sizeof(struct pal_volume_data)
-                    +sizeof(struct pal_channel_vol_kv));
+    if (audio_channel_count_from_out_mask(config_.channel_mask) == 1) {
+        volume_ = (struct pal_volume_data *)calloc(1, sizeof(struct pal_volume_data)
+                +sizeof(struct pal_channel_vol_kv));
         if (!volume_) {
             AHAL_ERR("Failed to allocate mem for volume_");
             ret = -ENOMEM;
@@ -2620,9 +2620,15 @@ int StreamOutPrimary::SetVolume(float left , float right) {
         }
         volume_->no_of_volpair = 1;
         volume_->volume_pair[0].channel_mask = 0x03;
-        volume_->volume_pair[0].vol = left;
+
+        if (config_.channel_mask == 0x1)
+            volume_->volume_pair[0].vol = left;
+        else if (config_.channel_mask == 0x2)
+            volume_->volume_pair[0].vol = right;
+        else
+            volume_->volume_pair[0].vol = (left + right)/2.0;
     } else {
-        volume_ = (struct pal_volume_data *)malloc(sizeof(struct pal_volume_data)
+        volume_ = (struct pal_volume_data *)calloc(1, sizeof(struct pal_volume_data)
                     +sizeof(struct pal_channel_vol_kv) * 2);
         if (!volume_) {
             AHAL_ERR("Failed to allocate mem for volume_");
@@ -2632,7 +2638,7 @@ int StreamOutPrimary::SetVolume(float left , float right) {
         volume_->no_of_volpair = 2;
         volume_->volume_pair[0].channel_mask = 0x01;
         volume_->volume_pair[0].vol = left;
-        volume_->volume_pair[1].channel_mask = 0x10;
+        volume_->volume_pair[1].channel_mask = 0x02;
         volume_->volume_pair[1].vol = right;
     }
 
@@ -3201,8 +3207,15 @@ int StreamOutPrimary::Open() {
     } else
         outBufSize = StreamOutPrimary::GetBufferSize();
 
-    if (usecase_ == USECASE_AUDIO_PLAYBACK_LOW_LATENCY)
-        outBufCount = LOW_LATENCY_PLAYBACK_PERIOD_COUNT;
+    if (usecase_ == USECASE_AUDIO_PLAYBACK_LOW_LATENCY) {
+        if (streamAttributes_.type == PAL_STREAM_VOICE_CALL_MUSIC) {
+            outBufCount = LOW_LATENCY_ICMD_PLAYBACK_PERIOD_COUNT;
+            AHAL_DBG("LOW_LATENCY_ICMD - Buffer Count : %d", outBufCount);
+        }
+        else {
+            outBufCount = LOW_LATENCY_PLAYBACK_PERIOD_COUNT;
+        }
+    }
     else if (usecase_ == USECASE_AUDIO_PLAYBACK_OFFLOAD2)
         outBufCount = PCM_OFFLOAD_PLAYBACK_PERIOD_COUNT;
     else if (usecase_ == USECASE_AUDIO_PLAYBACK_DEEP_BUFFER)
