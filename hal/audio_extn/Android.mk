@@ -94,6 +94,12 @@ LOCAL_CFLAGS := \
     -Wno-unused-function \
     -Wno-unused-variable
 
+# Define HEALTH_AIDL for targets other than anorak.
+ifneq ($(TARGET_BOARD_PLATFORM), anorak)
+    LOCAL_CFLAGS += -DHEALTH_AIDL
+    $(warning "Using AIDL HEALTH")
+endif
+
 LOCAL_SHARED_LIBRARIES := \
     android.hardware.health@1.0 \
     android.hardware.health@2.0 \
@@ -108,6 +114,12 @@ LOCAL_SHARED_LIBRARIES := \
     libhidlbase \
     liblog \
     libutils \
+
+ifneq ($(TARGET_BOARD_PLATFORM), anorak)
+    LOCAL_SHARED_LIBRARIES += \
+        android.hardware.health-V1-ndk \
+        libbinder_ndk
+endif
 
 LOCAL_STATIC_LIBRARIES := libhealthhalutils
 
