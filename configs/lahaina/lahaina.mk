@@ -20,9 +20,9 @@ $(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/sound_trigger_mi
 
 OVERLAY_PATH := vendor/qcom/opensource/audio-hal/primary-hal/configs/lahaina/yupik_overlay
 
-$(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/mixer_paths_base.xml --overlay $(OVERLAY_PATH)/mixer_paths_yupikidp_overlay.xml $(OVERLAY_PATH)/mixer_paths_yupikqrd_overlay.xml --out_dir $(TARGET_PATH) --out mixer_paths_yupikidp.xml mixer_paths_yupikqrd.xml )
+$(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/mixer_paths_base.xml --overlay $(OVERLAY_PATH)/mixer_paths_yupikidp_overlay.xml $(OVERLAY_PATH)/mixer_paths_yupikqrd_overlay.xml $(OVERLAY_PATH)/mixer_paths_yupikidprb3_overlay.xml --out_dir $(TARGET_PATH) --out mixer_paths_yupikidp.xml mixer_paths_yupikqrd.xml mixer_paths_yupikidprb3.xml)
 
-$(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/sound_trigger_mixer_paths_base.xml --overlay $(OVERLAY_PATH)/sound_trigger_mixer_paths_yupikidp_overlay.xml $(OVERLAY_PATH)/sound_trigger_mixer_paths_yupikqrd_overlay.xml --out_dir $(TARGET_PATH) --out sound_trigger_mixer_paths_yupikidp.xml sound_trigger_mixer_paths_yupikqrd.xml )
+$(shell python $(SCRIPT) --generate combine --base $(BASE_PATH)/sound_trigger_mixer_paths_base.xml --overlay $(OVERLAY_PATH)/sound_trigger_mixer_paths_yupikidp_overlay.xml $(OVERLAY_PATH)/sound_trigger_mixer_paths_yupikqrd_overlay.xml $(OVERLAY_PATH)/sound_trigger_mixer_paths_yupikidprb3_overlay.xml --out_dir $(TARGET_PATH) --out sound_trigger_mixer_paths_yupikidp.xml sound_trigger_mixer_paths_yupikqrd.xml sound_trigger_mixer_paths_yupikidprb3.xml)
 endif
 #
 ifneq ($(AUDIO_USE_STUB_HAL), true)
@@ -116,9 +116,13 @@ AUDIO_WRAPPER += libqahwwrapper
 AUDIO_HAL_TEST_APPS := hal_play_test
 AUDIO_HAL_TEST_APPS += hal_rec_test
 
+#STT META Test App
+AUDIO_STT_META := stt_meta_extract
+
 PRODUCT_PACKAGES += $(AUDIO_HARDWARE)
 PRODUCT_PACKAGES += $(AUDIO_WRAPPER)
 PRODUCT_PACKAGES += $(AUDIO_HAL_TEST_APPS)
+PRODUCT_PACKAGES += $(AUDIO_STT_META)
 PRODUCT_PACKAGES += ftm_test_config_lahaina-qrd-snd-card
 PRODUCT_PACKAGES += ftm_test_config_lahaina-hdk-snd-card
 PRODUCT_PACKAGES += ftm_test_config_lahaina-hhg-snd-card
@@ -550,3 +554,6 @@ PRODUCT_PACKAGES_DEBUG += \
 endif
 
 AUDIO_FEATURE_ENABLED_GKI := true
+
+#enable STT support
+AUDIO_FEATURE_ENABLED_STT_SUPPORT := true

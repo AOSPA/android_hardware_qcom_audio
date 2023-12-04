@@ -2369,7 +2369,7 @@ static void reset_hdmi_sink_caps(struct stream_out *out) {
 /* must be called with hw device mutex locked */
 static int read_hdmi_sink_caps(struct stream_out *out)
 {
-    int ret = 0, i = 0, j = 0;
+    int ret = 0, i = 0, j = 0, rc = 0;
     int channels = platform_edid_get_max_channels_v2(out->dev->platform,
                                                      out->extconn.cs.controller,
                                                      out->extconn.cs.stream);
@@ -2377,11 +2377,11 @@ static int read_hdmi_sink_caps(struct stream_out *out)
     reset_hdmi_sink_caps(out);
 
     /* Cache ext disp type */
-    ret = platform_get_ext_disp_type_v2(adev->platform,
+    rc = platform_get_ext_disp_type_v2(adev->platform,
                                       out->extconn.cs.controller,
                                       out->extconn.cs.stream);
-    if(ret < 0) {
-        ALOGE("%s: Failed to query disp type, ret:%d", __func__, ret);
+    if(rc < 0) {
+        ALOGE("%s: Failed to query disp type, rc:%d", __func__, rc);
         return -EINVAL;
     }
 
@@ -2397,6 +2397,10 @@ static int read_hdmi_sink_caps(struct stream_out *out)
         out->supported_channel_masks[i++] = AUDIO_CHANNEL_OUT_QUAD;
         out->supported_channel_masks[i++] = AUDIO_CHANNEL_OUT_SURROUND;
         out->supported_channel_masks[i++] = AUDIO_CHANNEL_OUT_2POINT1;
+    case 2:
+        ALOGV("%s: HDMI supports 2 channels", __func__);
+        out->supported_channel_masks[i++] = AUDIO_CHANNEL_OUT_STEREO;
+        out->supported_channel_masks[i++] = AUDIO_CHANNEL_OUT_MONO;
         break;
     default:
         ALOGE("invalid/nonstandard channal count[%d]",channels);
@@ -4196,7 +4200,7 @@ static int stop_output_stream(struct stream_out *out)
         struct audio_usecase *usecase;
         list_for_each(node, &adev->usecase_list) {
             usecase = node_to_item(node, struct audio_usecase, list);
-            if (usecase->type == PCM_PLAYBACK || usecase == uc_info ||
+            if (usecase == uc_info ||
                 (usecase->type == PCM_CAPTURE &&
                      usecase->id != USECASE_AUDIO_RECORD_VOIP &&
                           usecase->id != USECASE_AUDIO_RECORD_VOIP_LOW_LATENCY))
@@ -4437,12 +4441,13 @@ int start_output_stream(struct stream_out *out)
             ALOGE("%s: pcm stream not ready", __func__);
             goto error_open;
         }
+
+        out_set_mmap_volume(&out->stream, out->volume_l, out->volume_r);
         ret = pcm_start(out->pcm);
         if (ret < 0) {
             ALOGE("%s: MMAP pcm_start failed ret %d", __func__, ret);
             goto error_open;
         }
-        out_set_mmap_volume(&out->stream, out->volume_l, out->volume_r);
     } else if (!is_offload_usecase(out->usecase)) {
         unsigned int flags = PCM_OUT;
         unsigned int pcm_open_retry_count = 0;
@@ -4936,7 +4941,7 @@ static uint64_t get_actual_pcm_frames_rendered(struct stream_out *out, struct ti
     pthread_mutex_unlock(&out->position_query_lock);
 
     ALOGVV("%s signed frames %lld written frames %lld kernel frames %lld dsp frames %lld",
-            __func__, signed_frames, written_frames, kernel_frames, dsp_frames);
+            __func__, (long long)signed_frames, (long long)written_frames, (long long)kernel_frames, (long long)dsp_frames);
 
     return actual_frames_rendered;
 }
@@ -5520,6 +5525,8 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
     if (err == 0) {
         out->extconn.cs.controller = ext_controller;
         out->extconn.cs.stream = ext_stream;
+        adev->ext_controller = out->extconn.cs.controller;
+        adev->ext_stream = out->extconn.cs.stream;
         ALOGD("%s: usecase(%s) new controller/stream (%d/%d)", __func__,
               use_case_table[out->usecase], out->extconn.cs.controller,
               out->extconn.cs.stream);
@@ -8336,6 +8343,8 @@ int adev_open_output_stream(struct audio_hw_device *dev,
     out->prev_card_status_offline = false;
     out->pspd_coeff_sent = false;
     out->mmap_shared_memory_fd = -1; // not open
+    out->extconn.cs.controller = adev->ext_controller;
+    out->extconn.cs.stream = adev->ext_stream;
 
     if ((flags & AUDIO_OUTPUT_FLAG_BD) &&
         (property_get_bool("vendor.audio.matrix.limiter.enable", false)))
@@ -8343,8 +8352,7 @@ int adev_open_output_stream(struct audio_hw_device *dev,
 
     if (direct_dev &&
         (audio_is_linear_pcm(out->format) ||
-         config->format == AUDIO_FORMAT_DEFAULT) &&
-        out->flags == AUDIO_OUTPUT_FLAG_NONE) {
+         config->format == AUDIO_FORMAT_DEFAULT)) {
         audio_format_t req_format = config->format;
         audio_channel_mask_t req_channel_mask = config->channel_mask;
         uint32_t req_sample_rate = config->sample_rate;
@@ -8930,6 +8938,14 @@ int adev_open_output_stream(struct audio_hw_device *dev,
                         out->pm_qos_mixer_path);
             }
             out->config = pcm_config_low_latency;
+            if (compare_device_type(&out->device_list, AUDIO_DEVICE_OUT_BUS)) {
+                ret = audio_extn_auto_hal_open_output_stream(out);
+                if (ret) {
+                    ALOGE("%s: Failed to open output stream for bus device", __func__);
+                    ret = -EINVAL;
+                    goto error_open;
+                }
+            }
         } else if (out->flags & AUDIO_OUTPUT_FLAG_DEEP_BUFFER) {
             out->usecase = USECASE_AUDIO_PLAYBACK_DEEP_BUFFER;
             out->config = pcm_config_deep_buffer;
@@ -9441,6 +9457,16 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
             if (ret < 0) {
                 ALOGE("%s: Failed to query disp type, ret:%d", __func__, ret);
             } else {
+                // Update ctl and stream values for all the existing streams during HDMI connection,
+                // as adev_open_output_stream() doesn't get called for existing streams and values
+                // remain unupdated for those streams.
+                list_for_each(node, &adev->active_outputs_list) {
+                    streams_output_ctxt_t *out_ctxt = node_to_item(node,
+                            streams_output_ctxt_t,
+                            list);
+                    out_ctxt->output->extconn.cs.controller = controller;
+                    out_ctxt->output->extconn.cs.stream = stream;
+                }
                 platform_cache_edid_v2(adev->platform, controller, stream);
             }
         } else if (audio_is_usb_out_device(device) || audio_is_usb_in_device(device)) {
@@ -10956,6 +10982,16 @@ done:
     return ret;
 }
 
+#ifdef ANDROID_U_HAL7
+int adev_get_audio_port_v7(struct audio_hw_device *dev, struct audio_port_v7 *config)
+{
+    int ret = 0;
+
+    ret = audio_extn_hw_loopback_get_audio_port_v7(dev, config);
+    ret |= audio_extn_auto_hal_get_audio_port_v7(dev, config);
+    return ret;
+}
+#else
 int adev_get_audio_port(struct audio_hw_device *dev, struct audio_port *config)
 {
     int ret = 0;
@@ -10964,6 +11000,7 @@ int adev_get_audio_port(struct audio_hw_device *dev, struct audio_port *config)
     ret |= audio_extn_auto_hal_get_audio_port(dev, config);
     return ret;
 }
+#endif
 
 int adev_set_audio_port_config(struct audio_hw_device *dev,
                         const struct audio_port_config *config)
@@ -11238,9 +11275,13 @@ static int adev_open(const hw_module_t *module, const char *name,
         maj_version = atoi(value);
 
     adev->device.common.tag = HARDWARE_DEVICE_TAG;
-    adev->device.common.version = HARDWARE_DEVICE_API_VERSION(maj_version, 0);
     adev->device.common.module = (struct hw_module_t *)module;
     adev->device.common.close = adev_close;
+#ifdef ANDROID_U_HAL7
+   adev->device.common.version = HARDWARE_DEVICE_API_VERSION(maj_version, 2);
+#else
+   adev->device.common.version = HARDWARE_DEVICE_API_VERSION(maj_version, 0);
+#endif
 
     adev->device.init_check = adev_init_check;
     adev->device.set_voice_volume = adev_set_voice_volume;
@@ -11260,10 +11301,15 @@ static int adev_open(const hw_module_t *module, const char *name,
     adev->device.close_input_stream = adev_close_input_stream;
     adev->device.create_audio_patch = adev_create_audio_patch;
     adev->device.release_audio_patch = adev_release_audio_patch;
-    adev->device.get_audio_port = adev_get_audio_port;
     adev->device.set_audio_port_config = adev_set_audio_port_config;
     adev->device.dump = adev_dump;
     adev->device.get_microphones = adev_get_microphones;
+
+#ifdef ANDROID_U_HAL7
+    adev->device.get_audio_port_v7 = adev_get_audio_port_v7;
+#else
+    adev->device.get_audio_port = adev_get_audio_port;
+#endif
 
     /* Set the default route before the PCM stream is opened */
     adev->mode = AUDIO_MODE_NORMAL;

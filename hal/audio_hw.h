@@ -121,9 +121,15 @@ typedef struct {
 #define ADM_LIBRARY_PATH "/usr/lib/libadm.so"
 #endif
 #else
+#if defined(__LP64__)
+#define VISUALIZER_LIBRARY_PATH "/vendor/lib64/soundfx/libqcomvisualizer.so"
+#define OFFLOAD_EFFECTS_BUNDLE_LIBRARY_PATH "/vendor/lib64/soundfx/libqcompostprocbundle.so"
+#define ADM_LIBRARY_PATH "/vendor/lib64/libadm.so"
+#else
 #define VISUALIZER_LIBRARY_PATH "/vendor/lib/soundfx/libqcomvisualizer.so"
 #define OFFLOAD_EFFECTS_BUNDLE_LIBRARY_PATH "/vendor/lib/soundfx/libqcompostprocbundle.so"
 #define ADM_LIBRARY_PATH "/vendor/lib/libadm.so"
+#endif
 #endif
 
 /* Flags used to initialize acdb_settings variable that goes to ACDB library */
@@ -843,6 +849,8 @@ struct audio_device {
     Hashmap *io_streams_map;
     bool a2dp_started;
     bool ha_proxy_enable;
+    int ext_controller;
+    int ext_stream;
 
     amplifier_device_t *amp;
 };
