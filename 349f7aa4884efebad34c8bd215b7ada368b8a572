@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "924b1af4_d4ae4524",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000911
+      },
+      "writtenOn": "2023-12-11T08:33:00Z",
+      "side": 1,
+      "message": "This should be applied to uvite-865 too. I\u0027ll upload it",
+      "revId": "349f7aa4884efebad34c8bd215b7ada368b8a572",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    }
+  ]
+}
