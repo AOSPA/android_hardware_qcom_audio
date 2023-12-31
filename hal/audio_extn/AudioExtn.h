@@ -29,8 +29,11 @@
 
 #ifndef AUDIOEXTN_H
 #define AUDIOEXTN_H
+#include <atomic>
 #include <cutils/str_parms.h>
 #include <set>
+#include <atomic>
+#include <unordered_map>
 #include "PalDefs.h"
 #include "audio_defs.h"
 #include <log/log.h>
@@ -54,6 +57,63 @@ typedef int(*hfp_set_mic_mute2_t)(std::shared_ptr<AudioDevice> adev, bool state)
 typedef void (*set_parameters_t) (std::shared_ptr<AudioDevice>, struct str_parms*);
 typedef void (*get_parameters_t) (std::shared_ptr<AudioDevice>, struct str_parms*, struct str_parms*);
 
+typedef enum {
+    SESSION_UNKNOWN,
+    /** A2DP legacy that AVDTP media is encoded by Bluetooth Stack */
+    A2DP_SOFTWARE_ENCODING_DATAPATH,
+    /** The encoding of AVDTP media is done by HW and there is control only */
+    A2DP_HARDWARE_OFFLOAD_DATAPATH,
+    /** Used when encoded by Bluetooth Stack and streaming to Hearing Aid */
+    HEARING_AID_SOFTWARE_ENCODING_DATAPATH,
+    /** Used when encoded by Bluetooth Stack and streaming to LE Audio device */
+    LE_AUDIO_SOFTWARE_ENCODING_DATAPATH,
+    /** Used when decoded by Bluetooth Stack and streaming to audio framework */
+    LE_AUDIO_SOFTWARE_DECODED_DATAPATH,
+    /** Encoding is done by HW an there is control only */
+    LE_AUDIO_HARDWARE_OFFLOAD_ENCODING_DATAPATH,
+    /** Decoding is done by HW an there is control only */
+    LE_AUDIO_HARDWARE_OFFLOAD_DECODING_DATAPATH,
+}tSESSION_TYPE;
+
+// start of CompressCapture
+class CompressCapture {
+   public:
+    constexpr static const char *kAudioParameterDSPAacBitRate =
+        "dsp_aac_audio_bitrate";
+    static const uint32_t kAacPCMSamplesPerFrame = 1024;
+
+    // min and max bitrates supported for AAC mono and stereo
+    static const int32_t kAacMonoMinSupportedBitRate = 4000;
+    static const int32_t kAacStereoMinSupportedBitRate = 8000;
+
+    static const int32_t kAacMonoMaxSupportedBitRate = 192000;
+    static const int32_t kAacStereoMaxSupportedBitRate = 384000;
+
+    static std::vector<uint32_t> sAacSampleRates;
+    static std::unordered_map<uint32_t, int32_t> sSampleRateToDefaultBitRate;
+
+    static bool parseMetadata(str_parms *parms, struct audio_config *config,
+                              int32_t &compressStreamAdjBitRate);
+
+    static bool getAACMinBitrateValue(uint32_t sampleRate,
+                                      uint32_t channelCount, int32_t &minValue);
+
+    static bool getAACMaxBitrateValue(uint32_t sampleRate,
+                                      uint32_t channelCount, int32_t &maxValue);
+
+    static bool getAACMaxBufferSize(struct audio_config *config,
+                                    uint32_t &maxBufSize);
+
+    CompressCapture() = delete;
+    ~CompressCapture() = delete;
+
+    CompressCapture(const CompressCapture&) = delete;
+    CompressCapture(CompressCapture&&) = delete;
+
+    CompressCapture& operator=(const CompressCapture&) = delete;
+    CompressCapture& operator=(CompressCapture&&) = delete;
+};
+// end of CompressCapture
 class AudioExtn
 {
 private:
@@ -110,9 +170,12 @@ public:
             int *perf_lock_opts, int size);
     static void audio_extn_perf_lock_release(int *handle);
     /* end kpi optimize perf apis */
+    static bool isServiceRegistered() { return sServicesRegistered; }
 protected:
     pal_stream_handle_t *karaoke_stream_handle;
     struct pal_stream_attributes sattr;
+private:
+    static std::atomic<bool> sServicesRegistered;
 
 };
 

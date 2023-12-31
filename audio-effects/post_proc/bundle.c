@@ -2,6 +2,8 @@
  * Copyright (c) 2013-2017, 2019-2020, The Linux Foundation. All rights reserved.
  * Not a Contribution.
  *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
  * Copyright (C) 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,7 +50,9 @@
 #include <unistd.h>
 
 #include "bundle.h"
+#ifdef HW_ACCELERATED_EFFECTS
 #include "hw_accelerator.h"
+#endif
 #include "equalizer.h"
 #include "bass_boost.h"
 #include "virtualizer.h"
@@ -650,7 +654,8 @@ int effect_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
             pReplyData == NULL ||
             *replySize < (int)(sizeof(effect_param_t) + sizeof(uint32_t) + sizeof(uint16_t)) ||
             // constrain memcpy below
-            ((effect_param_t *)pCmdData)->psize > *replySize - sizeof(effect_param_t)) {
+            ((effect_param_t *)pCmdData)->psize > *replySize - sizeof(effect_param_t) ||
+            ((effect_param_t *)pCmdData)->psize > cmdSize - sizeof(effect_param_t)) {
             status = -EINVAL;
             ALOGW("EFFECT_CMD_GET_PARAM invalid command cmdSize %d *replySize %d",
                   cmdSize, *replySize);
@@ -702,7 +707,8 @@ int effect_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
         }
         if (pCmdData == NULL || cmdSize != 2 * sizeof(uint32_t) ||
                 replySize == NULL || *replySize < 2*sizeof(int32_t)) {
-            return -EINVAL;
+            status = -EINVAL;
+            goto exit;
         }
         memcpy(pReplyData, pCmdData, sizeof(int32_t)*2);
         } break;
@@ -746,7 +752,8 @@ int effect_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
               cmdSize, pCmdData, *replySize, pReplyData);
         if (cmdSize != sizeof(uint32_t) || pCmdData == NULL
                 || pReplyData == NULL || *replySize != sizeof(int)) {
-            return -EINVAL;
+            status = -EINVAL;
+            goto exit;
         }
         uint32_t value = *(uint32_t *)pCmdData;
         if (context->ops.set_hw_acc_mode)

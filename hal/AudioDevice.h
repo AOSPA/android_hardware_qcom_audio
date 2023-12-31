@@ -26,6 +26,11 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
 
 #ifndef ANDROID_HARDWARE_AHAL_ADEVICE_H_
 #define ANDROID_HARDWARE_AHAL_ADEVICE_H_
@@ -64,6 +69,9 @@
 #define MIC_INFO_MAP_INDEX(X) (X - (PAL_DEVICE_IN_MIN + 1))
 #define XML_READ_BUFFER_SIZE 1024
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+
+#define COMPRESS_CAPTURE_AAC_MAX_OUTPUT_BUFFER_SIZE 2048
+#define COMPRESS_CAPTURE_AAC_PCM_SAMPLES_IN_FRAME 1024
 
 typedef enum {
     TAG_MICROPHONE_CHARACTERISTIC,
@@ -187,7 +195,9 @@ public:
     int  hdr_channel_count = 0;
     int  hdr_sample_rate = 0;
     int cameraOrientation = CAMERA_DEFAULT;
+    bool hac_voip = false;
     bool usb_input_dev_enabled = false;
+    bool usb_out_headset = false;
     static bool mic_characteristics_available;
     static microphone_characteristics_t microphones;
     static snd_device_to_mic_map_t microphone_maps[PAL_MAX_INPUT_DEVICES];
@@ -230,7 +240,7 @@ protected:
     visualizer_hal_stop_output fnp_visualizer_stop_output_ = nullptr;
     std::map<audio_devices_t, pal_device_id_t> android_device_map_;
     std::map<audio_patch_handle_t, AudioPatch*> patch_map_;
-    int add_input_headset_if_usb_out_headset(int *device_count,  pal_device_id_t** pal_device_ids);
+    int add_input_headset_if_usb_out_headset(int *device_count,  pal_device_id_t** pal_device_ids, bool conn_state);
 };
 
 static inline uint32_t lcm(uint32_t num1, uint32_t num2)

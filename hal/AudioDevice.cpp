@@ -126,6 +126,7 @@ static const struct audio_string_to_enum device_in_types[] = {
     AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_USB_HEADSET),
     AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_BLUETOOTH_BLE),
     AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_DEFAULT),
+    AUDIO_MAKE_STRING_FROM_ENUM(AUDIO_DEVICE_IN_ECHO_REFERENCE),
 };
 
 enum {
@@ -340,6 +341,7 @@ static void hdr_get_parameters(std::shared_ptr<AudioDevice> adev,
 AudioDevice::~AudioDevice() {
     audio_extn_gef_deinit(adev_);
     audio_extn_sound_trigger_deinit(adev_);
+    AudioExtn::battery_properties_listener_deinit();
     pal_deinit();
 }
 
@@ -935,6 +937,14 @@ static size_t adev_get_input_buffer_size(
 
     size_t size = 0;
     uint32_t bytes_per_period_sample = 0;
+    /* input for compress formats */
+    if (config && !audio_is_linear_pcm(config->format)) {
+        if (config->format == AUDIO_FORMAT_AAC_LC) {
+            return COMPRESS_CAPTURE_AAC_MAX_OUTPUT_BUFFER_SIZE;
+        }
+        return 0;
+    }
+
     if (config != NULL) {
         int channel_count = audio_channel_count_from_in_mask(config->channel_mask);
 
@@ -1038,6 +1048,19 @@ int AudioDevice::Init(hw_device_t **device, const hw_module_t *module) {
     int ret = 0;
     bool is_charging = false;
 
+#ifdef AGM_HIDL_ENABLED
+    /*
+     * register HIDL services for PAL & AGM
+     * pal_init() depends on AGM, so need to initialize
+     * hidl interface before calling to pal_init()
+     */
+    ret = AudioExtn::audio_extn_hidl_init();
+    if (ret) {
+        AHAL_ERR("audio_extn_hidl_init failed ret=(%d)", ret);
+        return ret;
+    }
+#endif
+
     ret = pal_init();
     if (ret) {
         AHAL_ERR("pal_init failed ret=(%d)", ret);
@@ -1048,11 +1071,18 @@ int AudioDevice::Init(hw_device_t **device, const hw_module_t *module) {
     if (ret) {
         AHAL_ERR("pal register callback failed ret=(%d)", ret);
     }
+
+#ifndef AGM_HIDL_ENABLED
     /*
      *Once PAL init is sucessfull, register the PAL service
      *from HAL process context
      */
-    AudioExtn::audio_extn_hidl_init();
+    ret = AudioExtn::audio_extn_hidl_init();
+    if (ret) {
+        AHAL_ERR("audio_extn_hidl_init failed ret=(%d)", ret);
+        return ret;
+    }
+#endif
 
     adev_->device_.get()->common.tag = HARDWARE_DEVICE_TAG;
     adev_->device_.get()->common.version = AUDIO_DEVICE_API_VERSION_3_2;
@@ -1272,7 +1302,7 @@ int AudioDevice::SetMode(const audio_mode_t mode) {
 }
 
 int AudioDevice::add_input_headset_if_usb_out_headset(int *device_count,
-                                                      pal_device_id_t** pal_device_ids)
+                              pal_device_id_t** pal_device_ids, bool conn_state)
 {
     bool is_usb_headset = false;
     int count = *device_count;
@@ -1281,6 +1311,7 @@ int AudioDevice::add_input_headset_if_usb_out_headset(int *device_count,
     for (int i = 0; i < count; i++) {
          if (*pal_device_ids[i] == PAL_DEVICE_OUT_USB_HEADSET) {
              is_usb_headset = true;
+             usb_out_headset = true;
              break;
          }
     }
@@ -1293,7 +1324,12 @@ int AudioDevice::add_input_headset_if_usb_out_headset(int *device_count,
         *pal_device_ids = temp;
         temp[count] = PAL_DEVICE_IN_USB_HEADSET;
         *device_count = count + 1;
-        usb_input_dev_enabled = true;
+        if (conn_state)
+           usb_input_dev_enabled = true;
+        else {
+           usb_input_dev_enabled = false;
+           usb_out_headset = false;
+        }
     }
     return 0;
 }
@@ -1308,7 +1344,9 @@ int AudioDevice::SetParameters(const char *kvpairs) {
     char *cfg_str = NULL;
     bool changes_done = false;
     audio_stream_in* stream_in = NULL;
+    audio_stream_out* stream_out = NULL;
     std::shared_ptr<StreamInPrimary> astream_in = NULL;
+    std::shared_ptr<StreamOutPrimary> astream_out = NULL;
     uint8_t channels = 0;
     std::set<audio_devices_t> new_devices;
 
@@ -1342,6 +1380,23 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                             astream_in->RouteStream(new_devices, true);
                         }
                     }
+                    break;
+                }
+            }
+        }
+    }
+
+    ret = str_parms_get_str(parms, AUDIO_PARAMETER_KEY_HAC, value, sizeof(value));
+    if (ret >= 0) {
+        adev_->hac_voip = false;
+        if (strcmp(value, AUDIO_PARAMETER_VALUE_HAC_ON) == 0) {
+            adev_->hac_voip = true;
+            for (int i = 0; i < stream_out_list_.size(); i++) {
+                stream_out_list_[i]->GetStreamHandle(&stream_out);
+                astream_out = adev_->OutGetStream((audio_stream_t*)stream_out);
+                if (astream_out->GetUseCase() == USECASE_AUDIO_PLAYBACK_VOIP) {
+                    new_devices = astream_out->mAndroidOutDevices;
+                    astream_out->RouteStream(new_devices, true);
                     break;
                 }
             }
@@ -1421,7 +1476,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
         if (device) {
             pal_device_ids = (pal_device_id_t *) calloc(1, sizeof(pal_device_id_t));
             pal_device_count = GetPalDeviceIds({device}, pal_device_ids);
-            ret = add_input_headset_if_usb_out_headset(&pal_device_count, &pal_device_ids);
+            ret = add_input_headset_if_usb_out_headset(&pal_device_count, &pal_device_ids, true);
             if (ret) {
                 if (pal_device_ids)
                     free(pal_device_ids);
@@ -1455,8 +1510,8 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                     ret = pal_get_param(PAL_PARAM_ID_DEVICE_CAPABILITY,
                             (void **)&device_cap_query,
                             &payload_size, nullptr);
-                    if ((dynamic_media_config.sample_rate == 0 && dynamic_media_config.format == 0 &&
-                            dynamic_media_config.mask == 0) || (dynamic_media_config.jack_status == false))
+                    if ((dynamic_media_config.sample_rate[0] == 0 && dynamic_media_config.format[0] == 0 &&
+                            dynamic_media_config.mask[0] == 0) || (dynamic_media_config.jack_status == false))
                         usb_input_dev_enabled = false;
                     else
                         usb_input_dev_enabled = true;
@@ -1602,6 +1657,8 @@ int AudioDevice::SetParameters(const char *kvpairs) {
             if ((usb_card_id_ == param_device_connection.device_config.usb_addr.card_id) &&
                 (audio_is_usb_in_device(device)) && (usb_input_dev_enabled == true)) {
                    usb_input_dev_enabled = false;
+                   usb_out_headset = false;
+                   AHAL_DBG("usb_input_dev_enabled flag is cleared.");
             }
         } else if (val == AUDIO_DEVICE_OUT_AUX_DIGITAL) {
             int controller = -1, stream = -1;
@@ -1615,7 +1672,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
         if (device) {
             pal_device_ids = (pal_device_id_t *) calloc(1, sizeof(pal_device_id_t));
             pal_device_count = GetPalDeviceIds({device}, pal_device_ids);
-            ret = add_input_headset_if_usb_out_headset(&pal_device_count, &pal_device_ids);
+            ret = add_input_headset_if_usb_out_headset(&pal_device_count, &pal_device_ids, false);
             if (ret) {
                 if (pal_device_ids)
                     free(pal_device_ids);
@@ -1633,8 +1690,6 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                 }
                 AHAL_INFO("pal set param sucess for device disconnect");
             }
-            usb_input_dev_enabled = false;
-            AHAL_DBG("usb_input_dev_enabled flag is cleared.");
         }
     }
 
@@ -2040,6 +2095,9 @@ void AudioDevice::FillAndroidDeviceMap() {
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_HDMI_ARC, PAL_DEVICE_IN_HDMI_ARC);
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_BLUETOOTH_BLE, PAL_DEVICE_IN_BLUETOOTH_BLE);
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_DEFAULT, PAL_DEVICE_IN_DEFAULT));
+#ifdef EC_REF_CAPTURE_ENABLED
+    android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_ECHO_REFERENCE, PAL_DEVICE_IN_ECHO_REF));
+#endif
 }
 
 int AudioDevice::GetPalDeviceIds(const std::set<audio_devices_t>& hal_device_ids,

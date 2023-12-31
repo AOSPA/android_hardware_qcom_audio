@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2019-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -24,6 +25,40 @@
  * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted (subject to the limitations in the
+ * disclaimer below) provided that the following conditions are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *
+ *   * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+ * GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+ * HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -62,6 +97,7 @@
 #define DEFAULT_OUTPUT_SAMPLING_RATE    48000
 #define LOW_LATENCY_PLAYBACK_PERIOD_SIZE 240 /** 5ms; frames */
 #define LOW_LATENCY_PLAYBACK_PERIOD_COUNT 2
+#define LOW_LATENCY_ICMD_PLAYBACK_PERIOD_COUNT 4 /** In Call Music **/
 
 #define PCM_OFFLOAD_PLAYBACK_PERIOD_COUNT 2 /** Direct PCM */
 #define DEEP_BUFFER_PLAYBACK_PERIOD_COUNT 2 /** Deep Buffer*/
@@ -196,6 +232,8 @@ enum {
 
     USECASE_AUDIO_PLAYBACK_SILENCE,
 
+    USECASE_AUDIO_RECORD_ECHO_REF,
+
     USECASE_AUDIO_TRANSCODE_LOOPBACK_RX,
     USECASE_AUDIO_TRANSCODE_LOOPBACK_TX,
 
@@ -289,6 +327,10 @@ const std::map<uint32_t, pal_audio_fmt_t> getFormatId {
     {AUDIO_FORMAT_PCM_32_BIT,          PAL_AUDIO_FMT_PCM_S32_LE},
     {AUDIO_FORMAT_MP3,                 PAL_AUDIO_FMT_MP3},
     {AUDIO_FORMAT_AAC,                 PAL_AUDIO_FMT_AAC},
+    {AUDIO_FORMAT_AAC_LC,              PAL_AUDIO_FMT_AAC},
+    {AUDIO_FORMAT_AAC_ADTS_LC ,        PAL_AUDIO_FMT_AAC},
+    {AUDIO_FORMAT_AAC_ADTS_HE_V1,      PAL_AUDIO_FMT_AAC},
+    {AUDIO_FORMAT_AAC_ADTS_HE_V2,      PAL_AUDIO_FMT_AAC},
     {AUDIO_FORMAT_AAC_ADTS,            PAL_AUDIO_FMT_AAC_ADTS},
     {AUDIO_FORMAT_AAC_ADIF,            PAL_AUDIO_FMT_AAC_ADIF},
     {AUDIO_FORMAT_AAC_LATM,            PAL_AUDIO_FMT_AAC_LATM},
@@ -308,6 +350,13 @@ const uint32_t format_to_bitwidth_table[] = {
     [AUDIO_FORMAT_PCM_8_24_BIT] = 32,
     [AUDIO_FORMAT_PCM_FLOAT] = sizeof(float) * 8,
     [AUDIO_FORMAT_PCM_24_BIT_PACKED] = 24,
+};
+
+const std::unordered_map<uint32_t, uint32_t> compressRecordBitWidthTable{
+    {AUDIO_FORMAT_AAC_LC, 16},
+    {AUDIO_FORMAT_AAC_ADTS_LC, 16},
+    {AUDIO_FORMAT_AAC_ADTS_HE_V1, 16},
+    {AUDIO_FORMAT_AAC_ADTS_HE_V2, 16},
 };
 
 const std::map<uint32_t, uint32_t> getAlsaSupportedFmt {
@@ -378,6 +427,9 @@ const char * const use_case_table[AUDIO_USECASE_MAX] = {
     [USECASE_AUDIO_PLAYBACK_AFE_PROXY] = "afe-proxy-playback",
     [USECASE_AUDIO_RECORD_AFE_PROXY] = "afe-proxy-record",
     [USECASE_AUDIO_PLAYBACK_SILENCE] = "silence-playback",
+
+    [USECASE_AUDIO_RECORD_ECHO_REF] = "echo-ref-record",
+
 
     /* Transcode loopback cases */
     [USECASE_AUDIO_TRANSCODE_LOOPBACK_RX] = "audio-transcode-loopback-rx",
@@ -463,6 +515,7 @@ protected:
     struct pal_volume_data *volume_; /* used to cache volume */
     std::map <audio_devices_t, pal_device_id_t> mAndroidDeviceMap;
     int mmap_shared_memory_fd;
+    pal_param_device_capability_t *device_cap_query_;
 };
 
 class StreamOutPrimary : public StreamPrimary {
@@ -475,6 +528,7 @@ private:
     pal_device_id_t* mPalOutDeviceIds;
     std::set<audio_devices_t> mAndroidOutDevices;
     bool mInitialized;
+    bool mBypassHaptic;
 
 public:
     StreamOutPrimary(audio_io_handle_t handle,
@@ -490,6 +544,7 @@ public:
     ~StreamOutPrimary();
     bool sendGaplessMetadata = true;
     bool isCompressMetadataAvail = false;
+    void UpdatemCachedPosition(uint64_t val);
     int Standby();
     int SetVolume(float left, float right);
     uint64_t GetFramesWritten(struct timespec *timestamp);
@@ -520,6 +575,7 @@ public:
     bool isDeviceAvailable(pal_device_id_t deviceId);
     int RouteStream(const std::set<audio_devices_t>&, bool force_device_switch = false);
     ssize_t splitAndWriteAudioHapticsStream(const void *buffer, size_t bytes);
+    ssize_t BypassHapticAndWriteAudioStream(const void *buffer, size_t bytes);
     bool period_size_is_plausible_for_low_latency(int period_size);
 protected:
     struct timespec writeAt;
@@ -587,6 +643,7 @@ public:
     int GetInputUseCase(audio_input_flags_t halStreamFlags, audio_source_t source);
     int addRemoveAudioEffect(const struct audio_stream *stream, effect_handle_t effect,bool enable);
     int SetParameters(const char *kvpairs);
+    bool getParameters(struct str_parms *query, struct str_parms *reply);
     bool is_st_session;
     audio_input_flags_t                 flags_;
     int CreateMmapBuffer(int32_t min_size_frames, struct audio_mmap_buffer_info *info);
@@ -605,8 +662,18 @@ protected:
     audio_source_t                      source_;
     friend class AudioDevice;
     uint64_t mBytesRead = 0; /* total bytes read, not cleared when entering standby */
+    /**
+     * number of successful compress read calls
+     * correlate to number of PCM frames read in
+     * compress record usecase
+     * */
+    uint64_t mCompressReadCalls = 0;
+    int32_t mCompressStreamAdjBitRate;
+    bool mIsBitRateSet =false;
+    bool mIsBitRateGet = false;
     bool isECEnabled = false;
     bool isNSEnabled = false;
     bool effects_applied_ = true;
+    pal_snd_enc_t palSndEnc{};
 };
 #endif  // ANDROID_HARDWARE_AHAL_ASTREAM_H_

@@ -25,6 +25,40 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted (subject to the limitations in the
+ * disclaimer below) provided that the following conditions are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *
+ *   * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+ * GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+ * HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #define LOG_TAG "AHAL: AudioExtn"
@@ -46,6 +80,12 @@
 #include <vendor/qti/hardware/pal/1.0/IPAL.h>
 using vendor::qti::hardware::pal::V1_0::IPAL;
 using vendor::qti::hardware::pal::V1_0::implementation::PAL;
+#ifdef AGM_HIDL_ENABLED
+#include <agm_server_wrapper.h>
+#include <vendor/qti/hardware/AGMIPC/1.0/IAGM.h>
+using vendor::qti::hardware::AGMIPC::V1_0::IAGM;
+using vendor::qti::hardware::AGMIPC::V1_0::implementation::AGM;
+#endif
 using android::hardware::defaultPassthroughServiceImplementation;
 using android::sp;
 using namespace android::hardware;
@@ -70,6 +110,8 @@ static batt_prop_is_charging_t batt_prop_is_charging;
 static bool battery_listener_enabled;
 static void *batt_listener_lib_handle;
 static bool audio_extn_kpi_optimize_feature_enabled = false;
+
+std::atomic<bool> AudioExtn::sServicesRegistered = false;
 
 int AudioExtn::audio_extn_parse_compress_metadata(struct audio_config *config_, pal_snd_dec_t *pal_snd_dec,
                                str_parms *parms, uint32_t *sr, uint16_t *ch, bool *isCompressMetadataAvail) {
@@ -662,9 +704,9 @@ int AudioExtn::karaoke_open(pal_device_id_t device_out, pal_stream_callback pal_
                                  &payload_size, nullptr);
             pal_devs[i].address.card_id = adevice->usb_card_id_;
             pal_devs[i].address.device_num = adevice->usb_dev_num_;
-            pal_devs[i].config.sample_rate = dynamic_media_config.sample_rate;
+            pal_devs[i].config.sample_rate = dynamic_media_config.sample_rate[0];
             pal_devs[i].config.ch_info = ch_info;
-            pal_devs[i].config.aud_fmt_id = (pal_audio_fmt_t)dynamic_media_config.format;
+            pal_devs[i].config.aud_fmt_id = (pal_audio_fmt_t)dynamic_media_config.format[0];
             free(device_cap_query);
         } else {
             pal_devs[i].config.sample_rate = DEFAULT_OUTPUT_SAMPLING_RATE;
@@ -699,6 +741,7 @@ int AudioExtn::karaoke_close(){
 
 int AudioExtn::audio_extn_hidl_init() {
 
+    int num_threads = 32;
 #ifdef PAL_HIDL_ENABLED
    /* register audio PAL HIDL */
     sp<IPAL> service = new PAL();
@@ -706,14 +749,31 @@ int AudioExtn::audio_extn_hidl_init() {
      *We request for more threads as the same number of threads would be divided
      *between PAL and audio HAL HIDL
      */
-    configureRpcThreadpool(32, false /*callerWillJoin*/);
+    configureRpcThreadpool(num_threads, false /*callerWillJoin*/);
     if(android::OK !=  service->registerAsService()) {
         AHAL_ERR("Could not register PAL service");
+        return -EINVAL;
     } else {
         AHAL_DBG("successfully registered PAL service");
     }
 #endif
+
+#ifdef AGM_HIDL_ENABLED
+    /* register AGM HIDL */
+    sp<IAGM> agm_service = new AGM();
+    AGM *temp = static_cast<AGM *>(agm_service.get());
+    configureRpcThreadpool(num_threads, false /*callerWillJoin*/);
+    if (temp->is_agm_initialized()) {
+        if(android::OK != agm_service->registerAsService()) {
+            AHAL_ERR("Could not register AGM service");
+            return -EINVAL;
+        } else {
+            AHAL_DBG("successfully registered AGM service");
+        }
+    }
+#endif
     /* to register other hidls */
+    sServicesRegistered = true;
     return 0;
 }
 
@@ -851,3 +911,111 @@ void AudioExtn::audio_extn_perf_lock_release(int *handle)
 
 //END: KPI_OPTIMIZE =============================================================================
 
+// START: compress_capture =====================================================
+
+std::vector<uint32_t> CompressCapture::sAacSampleRates = {
+    8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000};
+
+std::unordered_map<uint32_t, int32_t>
+    CompressCapture::sSampleRateToDefaultBitRate = {
+        {8000, 36000},   {11025, 48000},  {12000, 56000},
+        {16000, 64000},  {22050, 82500},  {24000, 96000},
+        {32000, 110000}, {44100, 128000}, {48000, 156000}};
+
+bool CompressCapture::parseMetadata(str_parms *parms,
+                                    struct audio_config *config,
+                                    int32_t &compressStreamAdjBitRate) {
+    bool ret = false;
+    int32_t value = 0;
+
+    if (config->format == AUDIO_FORMAT_AAC_LC ||
+        config->format == AUDIO_FORMAT_AAC_ADTS_LC ||
+        config->format == AUDIO_FORMAT_AAC_ADTS_HE_V1 ||
+        config->format == AUDIO_FORMAT_AAC_ADTS_HE_V2) {
+        /* query for AAC bitrate */
+        if (!str_parms_get_int(parms, kAudioParameterDSPAacBitRate,
+                               &value)) {
+            uint32_t channelCount =
+                audio_channel_count_from_in_mask(config->channel_mask);
+            int32_t minValue = 0;
+            int32_t maxValue = UINT32_MAX;
+            auto it = std::find(sAacSampleRates.cbegin(),
+                                sAacSampleRates.cend(), config->sample_rate);
+            if (it != sAacSampleRates.cend() &&
+                getAACMinBitrateValue(config->sample_rate, channelCount,
+                                      minValue) &&
+                getAACMaxBitrateValue(config->sample_rate, channelCount,
+                                      maxValue)) {
+                AHAL_INFO("client requested AAC bitrate: %d", value);
+                if (value < minValue) {
+                    value = minValue;
+                    AHAL_WARN("Adjusting AAC bitrate to minimum: %d", value);
+                } else if (value > maxValue) {
+                    value = maxValue;
+                    AHAL_WARN("Adjusting AAC bitrate to maximum: %d", value);
+                }
+                compressStreamAdjBitRate = value;
+                ret = true;
+            }
+        }
+    }
+
+    return ret;
+}
+
+bool CompressCapture::getAACMinBitrateValue(uint32_t sampleRate,
+                                            uint32_t channelCount,
+                                            int32_t &minValue) {
+    if (channelCount == 1) {
+        minValue = kAacMonoMinSupportedBitRate;
+    } else if (channelCount == 2) {
+        minValue = kAacStereoMinSupportedBitRate;
+    } else {
+        return false;
+    }
+    return true;
+}
+
+bool CompressCapture::getAACMaxBitrateValue(uint32_t sampleRate,
+                                            uint32_t channelCount,
+                                            int32_t &maxValue) {
+    if (channelCount == 1) {
+        maxValue = (int32_t)std::min((uint32_t)kAacMonoMaxSupportedBitRate,
+                                     6 * sampleRate);
+    } else if (channelCount == 2) {
+        maxValue = (int32_t)std::min((uint32_t)kAacStereoMaxSupportedBitRate,
+                                     12 * sampleRate);
+    } else {
+        return false;
+    }
+    return true;
+}
+
+bool CompressCapture::getAACMaxBufferSize(struct audio_config *config,
+                                          uint32_t &maxBufSize) {
+    int32_t maxBitRate = 0;
+    if (getAACMaxBitrateValue(
+            config->sample_rate,
+            audio_channel_count_from_in_mask(config->channel_mask),
+            maxBitRate)) {
+        /**
+         * AAC Encoder 1024 PCM samples => 1 compress AAC frame;
+         * 1 compress AAC frame => max possible length => max-bitrate bits;
+         * let's take example of 48K HZ;
+         * 1 second ==> 384000 bits ; 1 second ==> 48000 PCM samples;
+         * 1 AAC frame ==> 1024 PCM samples;
+         * Max buffer size possible;
+         * 48000/1024 = (8/375) seconds ==> ( 8/375 ) * 384000 bits
+         *     ==> ( (8/375) * 384000 / 8 ) bytes;
+         **/
+        maxBufSize = (uint32_t)((((((double)kAacPCMSamplesPerFrame) /
+                                   config->sample_rate) *
+                                  ((uint32_t)(maxBitRate))) /
+                                 8) +
+                                /* Just in case; not to miss precision */ 1);
+        return true;
+    }
+
+    return false;
+}
+// END: compress_capture =======================================================
