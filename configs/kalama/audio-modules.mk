@@ -86,6 +86,7 @@ ifeq ($(call is-board-platform-in-list,kalama),true)
     AUDIO_MODULES += IDP_UPD_workspaceFileXml.qwsp
     AUDIO_MODULES += GRD_acdb_cal.acdb
     AUDIO_MODULES += GRD_workspaceFileXml.qwsp
+    AUDIO_MODULES += ffv__5.0.2_0.1__eai_2.10_enpu.pmd
 endif
 ifeq ($(call is-board-platform-in-list,crow),true)
     AUDIO_MODULES += audio.primary.crow
@@ -115,7 +116,6 @@ AUDIO_MODULES += fai__2.7.20_0.0__3.0.0_0.0__eai_1.36_enpu2.pmd
 AUDIO_MODULES += fai__3.0.0_0.0__eai_1.36_enpu2.pmd
 AUDIO_MODULES += ffv__5.0.1_0.1__3.0.0_0.0__eai_2.10_enpu3.pmd
 AUDIO_MODULES += ffv__5.0.1_0.1__eai_2.10_enpu3.pmd
-AUDIO_MODULES += ffv__5.0.2_0.1__eai_2.10_enpu.pmd
 AUDIO_MODULES += libfmpal
 AUDIO_MODULES += event.eai
 AUDIO_MODULES += music.eai
