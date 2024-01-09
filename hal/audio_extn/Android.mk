@@ -99,7 +99,6 @@ LOCAL_CFLAGS := \
 # Define HEALTH_AIDL for targets other than anorak.
 ifneq ($(TARGET_BOARD_PLATFORM), anorak)
     LOCAL_CFLAGS += -DHEALTH_AIDL
-    $(warning "Using AIDL HEALTH")
 endif
 
 LOCAL_SHARED_LIBRARIES := \
