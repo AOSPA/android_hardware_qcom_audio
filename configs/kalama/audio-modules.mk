@@ -87,6 +87,8 @@ ifeq ($(call is-board-platform-in-list,kalama),true)
     AUDIO_MODULES += GRD_acdb_cal.acdb
     AUDIO_MODULES += GRD_workspaceFileXml.qwsp
     AUDIO_MODULES += ffv__5.0.2_0.1__eai_2.10_enpu.pmd
+    AUDIO_MODULES += AIM_acdb_cal.acdb
+    AUDIO_MODULES += AIM_workspaceFileXml.qwsp
 endif
 ifeq ($(call is-board-platform-in-list,crow),true)
     AUDIO_MODULES += audio.primary.crow
