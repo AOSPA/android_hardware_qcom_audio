@@ -161,4 +161,8 @@ AUDIO_MODULES += \
     vendor.qti.hardware.ListenSoundModel@1.0 \
     vendor.qti.hardware.ListenSoundModel@1.0-impl
 
+#usb recorder
+AUDIO_MODULES += \
+    vendor.qti.hardware.umd@1.0-service \
+    libumd-adaptor
 endif
