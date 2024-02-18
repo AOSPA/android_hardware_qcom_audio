@@ -250,6 +250,8 @@ else ifeq ($(TARGET_BOARD_PLATFORM)$(TARGET_BOARD_SUFFIX),sm6150_au)
 endif
 endif # AUDIO_USE_STUB_HAL
 
+include $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/$(TARGET_BOARD_PLATFORM)/$(TARGET_BOARD_PLATFORM).mk
+
 ifeq ($(TARGET_BOARD_AUTO),true)
 ifeq ($(TARGET_USES_RRO),true)
 PRODUCT_PACKAGES += CarServiceResAutoTarget_Vendor
