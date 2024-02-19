@@ -86,6 +86,9 @@ AUDIO_HARDWARE := audio.a2dp.default
 AUDIO_HARDWARE += audio.usb.default
 AUDIO_HARDWARE += audio.r_submix.default
 AUDIO_HARDWARE += audio.primary.msmnile
+ifeq ($(BOARD_SUPPORTS_OPENSOURCE_STHAL),true)
+AUDIO_HARDWARE += sound_trigger.primary.msmnile
+endif
 
 #HAL Wrapper
 AUDIO_WRAPPER := libqahw
