@@ -73,6 +73,13 @@ AUDIO_FEATURE_ENABLED_BATTERY_LISTENER := true
 AUDIO_FEATURE_ENABLED_USB_BURST_MODE := true
 ##AUDIO_FEATURE_FLAGS
 
+AUDIO_HARDWARE := audio.a2dp.default
+AUDIO_HARDWARE += audio.usb.default
+AUDIO_HARDWARE += audio.r_submix.default
+AUDIO_HARDWARE += audio.primary.$(TRINKET)
+
+PRODUCT_PACKAGES += $(AUDIO_HARDWARE)
+
 #Audio Specific device overlays
 DEVICE_PACKAGE_OVERLAYS += vendor/qcom/opensource/audio-hal/primary-hal/configs/common/overlay
 
