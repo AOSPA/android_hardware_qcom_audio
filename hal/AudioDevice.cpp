@@ -1798,6 +1798,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
 
     ret = str_parms_get_str(parms, "A2dpSuspended" , value, sizeof(value));
     if (ret >= 0) {
+        audio_mode_t mode = AUDIO_MODE_NORMAL;
         pal_param_bta2dp_t param_bt_a2dp;
 
         if (strncmp(value, "true", 4) == 0)
@@ -1806,6 +1807,10 @@ int AudioDevice::SetParameters(const char *kvpairs) {
             param_bt_a2dp.a2dp_suspended = false;
 
         param_bt_a2dp.dev_id = PAL_DEVICE_OUT_BLUETOOTH_A2DP;
+
+        if (voice_)
+            voice_->get_voice_call_state(&mode);
+        param_bt_a2dp.is_in_call = (mode != AUDIO_MODE_NORMAL);
 
         AHAL_INFO("BT A2DP Suspended = %s, command received", value);
         ret = pal_set_param(PAL_PARAM_ID_BT_A2DP_SUSPENDED, (void *)&param_bt_a2dp,
@@ -2007,6 +2012,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
 
     ret = str_parms_get_str(parms, "A2dpCaptureSuspend", value, sizeof(value));
     if (ret >= 0) {
+        audio_mode_t mode = AUDIO_MODE_NORMAL;
         pal_param_bta2dp_t param_bt_a2dp;
 
         if (strncmp(value, "true", 4) == 0)
@@ -2015,6 +2021,10 @@ int AudioDevice::SetParameters(const char *kvpairs) {
             param_bt_a2dp.a2dp_capture_suspended = false;
 
         param_bt_a2dp.dev_id = PAL_DEVICE_IN_BLUETOOTH_A2DP;
+
+        if (voice_)
+            voice_->get_voice_call_state(&mode);
+        param_bt_a2dp.is_in_call = (mode != AUDIO_MODE_NORMAL);
 
         AHAL_INFO("BT A2DP Capture Suspended = %s, command received", value);
         ret = pal_set_param(PAL_PARAM_ID_BT_A2DP_CAPTURE_SUSPENDED, (void*)&param_bt_a2dp,
