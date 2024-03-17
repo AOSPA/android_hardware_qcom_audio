@@ -129,6 +129,7 @@ PRODUCT_COPY_FILES += \
     $(CONFIG_HAL_SRC_DIR)/microphone_characteristics.xml:$(TARGET_COPY_OUT_VENDOR)/etc/microphone_characteristics.xml \
     $(CONFIG_PAL_SRC_DIR)/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_qrd.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_kalama_qrd.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_aim.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_kalama_aim.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_mtp.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_kalama_mtp.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_mtp_apq.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_kalama_mtp_apq.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_cdp.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_kalama_cdp.xml \
@@ -137,6 +138,7 @@ PRODUCT_COPY_FILES += \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_grd.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_kalama_grd.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_kalama_rb5_gen2_dvt.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_kalama_rb5_gen2_dvt.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_kalama_qrd.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_kalama_qrd.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_kalama_aim.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_kalama_aim.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_kalama_mtp.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_kalama_mtp.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_kalama_mtp_apq.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_kalama_mtp_apq.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_kalama_cdp.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_kalama_cdp.xml \
