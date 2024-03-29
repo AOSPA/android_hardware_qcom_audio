@@ -2456,6 +2456,7 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
 
                 if (ret<0){
                     AHAL_ERR("Error usb device is not connected");
+                    mAndroidOutDevices.clear();
                     ret = -ENOSYS;
                     goto done;
                 }
@@ -4503,6 +4504,7 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
 
                 if (ret<0) {
                     AHAL_ERR("Error usb device is not connected");
+                    mAndroidInDevices.clear();
                     ret = -ENOSYS;
                     goto done;
                 }
