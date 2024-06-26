@@ -5372,8 +5372,12 @@ int route_output_stream(struct stream_out *out,
     if (is_usb_out_device_type(&new_devices)) {
         struct str_parms *parms =
             str_parms_create_str(get_usb_device_address(&new_devices));
-        if (!parms)
+        if (!parms) {
+            pthread_mutex_unlock(&adev->lock);
+            pthread_mutex_unlock(&out->lock);
+            ret = -ENOSYS;
             goto error;
+        }
         if (!audio_extn_usb_connected(NULL)) {
             ALOGW("%s: ignoring rerouting to non existing USB card", __func__);
             pthread_mutex_unlock(&adev->lock);
@@ -7058,8 +7062,7 @@ static int out_stop(const struct audio_stream_out* stream)
     if (out->usecase == USECASE_AUDIO_PLAYBACK_MMAP && !out->standby &&
             out->playback_started && out->pcm != NULL) {
         pcm_stop(out->pcm);
-        ret = stop_output_stream(out);
-        out->playback_started = false;
+        ret = 0;
     }
     pthread_mutex_unlock(&adev->lock);
     return ret;
@@ -7074,8 +7077,18 @@ static int out_start(const struct audio_stream_out* stream)
     ALOGV("%s", __func__);
     pthread_mutex_lock(&adev->lock);
     if (out->usecase == USECASE_AUDIO_PLAYBACK_MMAP && !out->standby &&
-            !out->playback_started && out->pcm != NULL) {
-        ret = start_output_stream(out);
+             out->pcm != NULL) {
+        /* start of playback after stanby */
+        if (!out->playback_started) {
+            ret = start_output_stream(out);
+        } else {
+            /* When  mmap playback is started within 3 sec after stop. stop -> start */
+            ret = pcm_start(out->pcm);
+            if (ret < 0) {
+                ALOGE("%s: MMAP pcm_start failed ret %d", __func__, ret);
+                stop_output_stream(out);
+            }
+        }
         if (ret == 0) {
             out->playback_started = true;
         }
