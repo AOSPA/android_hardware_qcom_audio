@@ -10229,7 +10229,7 @@ static void platform_check_hdmi_backend_cfg(struct audio_device* adev,
     controller = usecase->stream.out->extconn.cs.controller;
     stream = usecase->stream.out->extconn.cs.stream;
 
-    if (controller < 0 || controller > MAX_CONTROLLERS ||
+    if (controller < 0 || controller >= MAX_CONTROLLERS ||
             stream < 0 || stream >= MAX_STREAMS_PER_CONTROLLER) {
         controller = 0;
         stream = 0;
@@ -11938,7 +11938,7 @@ int platform_set_edid_channels_configuration_v2(void *platform, int channels,
         return -EINVAL;
     }
 
-    if (controller < 0 || controller > MAX_CONTROLLERS ||
+    if (controller < 0 || controller >= MAX_CONTROLLERS ||
             stream < 0 || stream >= MAX_STREAMS_PER_CONTROLLER) {
         ALOGE("%s: Invalid controller/stream - %d/%d",
               __func__, controller, stream);
@@ -12055,7 +12055,7 @@ void platform_invalidate_hdmi_config_v2(void * platform, int controller, int str
     int backend_idx;
     snd_device_t snd_device;
 
-    if (controller < 0 || controller > MAX_CONTROLLERS ||
+    if (controller < 0 || controller >= MAX_CONTROLLERS ||
             stream < 0 || stream >= MAX_STREAMS_PER_CONTROLLER) {
         ALOGE("%s: Invalid controller/stream - %d/%d",
               __func__, controller, stream);
