@@ -3056,6 +3056,7 @@ const char * platform_get_snd_card_name_for_acdb_loader(const char *snd_card_nam
     return acdb_card_name;
 }
 
+#ifndef DAEMON_SUPPORT_AUTO
 static int platform_acdb_init(void *platform)
 {
     struct platform_data *my_data = (struct platform_data *)platform;
@@ -3115,6 +3116,7 @@ cleanup:
     }
     return result;
 }
+#endif
 
 #define MAX_PATH             (256)
 #define THERMAL_SYSFS "/sys/class/thermal"
@@ -4687,8 +4689,23 @@ void platform_snd_card_update(void *platform, card_status_t card_status)
 
     if (card_status == CARD_STATUS_ONLINE) {
         if (!platform_is_acdb_initialized(my_data)) {
+#ifdef DAEMON_SUPPORT_AUTO
+        struct audio_device *adev = ((struct platform_data *)platform)->adev;
+        int result = acdb_init_v2(adev->mixer);
+        if (!result) {
+            my_data->is_acdb_initialized = true;
+            ALOGD("ACDB initialized");
+            audio_hwdep_send_cal(my_data);
+        } else {
+            my_data->is_acdb_initialized = false;
+            ALOGD("ACDB initialization failed");
+            if (my_data->acdb_deallocate)
+                my_data->acdb_deallocate();
+        }
+#else
             if(platform_acdb_init(my_data))
                 ALOGE("%s: acdb initialization is failed", __func__);
+#endif
         } else if (my_data->acdb_send_common_top() < 0) {
                 ALOGD("%s: acdb did not set common topology", __func__);
         }
