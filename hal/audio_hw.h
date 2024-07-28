@@ -849,6 +849,8 @@ struct audio_device {
     bool ha_proxy_enable;
     int ext_controller;
     int ext_stream;
+    pthread_mutex_t active_inputs_list_lock;
+    pthread_mutex_t active_outputs_list_lock;
 };
 
 struct audio_patch_record {

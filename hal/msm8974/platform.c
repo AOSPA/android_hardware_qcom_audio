@@ -3056,6 +3056,7 @@ const char * platform_get_snd_card_name_for_acdb_loader(const char *snd_card_nam
     return acdb_card_name;
 }
 
+#ifndef DAEMON_SUPPORT_AUTO
 static int platform_acdb_init(void *platform)
 {
     struct platform_data *my_data = (struct platform_data *)platform;
@@ -3115,6 +3116,7 @@ cleanup:
     }
     return result;
 }
+#endif
 
 #define MAX_PATH             (256)
 #define THERMAL_SYSFS "/sys/class/thermal"
@@ -4687,8 +4689,23 @@ void platform_snd_card_update(void *platform, card_status_t card_status)
 
     if (card_status == CARD_STATUS_ONLINE) {
         if (!platform_is_acdb_initialized(my_data)) {
+#ifdef DAEMON_SUPPORT_AUTO
+        struct audio_device *adev = ((struct platform_data *)platform)->adev;
+        int result = acdb_init_v2(adev->mixer);
+        if (!result) {
+            my_data->is_acdb_initialized = true;
+            ALOGD("ACDB initialized");
+            audio_hwdep_send_cal(my_data);
+        } else {
+            my_data->is_acdb_initialized = false;
+            ALOGD("ACDB initialization failed");
+            if (my_data->acdb_deallocate)
+                my_data->acdb_deallocate();
+        }
+#else
             if(platform_acdb_init(my_data))
                 ALOGE("%s: acdb initialization is failed", __func__);
+#endif
         } else if (my_data->acdb_send_common_top() < 0) {
                 ALOGD("%s: acdb did not set common topology", __func__);
         }
@@ -10229,7 +10246,7 @@ static void platform_check_hdmi_backend_cfg(struct audio_device* adev,
     controller = usecase->stream.out->extconn.cs.controller;
     stream = usecase->stream.out->extconn.cs.stream;
 
-    if (controller < 0 || controller > MAX_CONTROLLERS ||
+    if (controller < 0 || controller >= MAX_CONTROLLERS ||
             stream < 0 || stream >= MAX_STREAMS_PER_CONTROLLER) {
         controller = 0;
         stream = 0;
@@ -11938,7 +11955,7 @@ int platform_set_edid_channels_configuration_v2(void *platform, int channels,
         return -EINVAL;
     }
 
-    if (controller < 0 || controller > MAX_CONTROLLERS ||
+    if (controller < 0 || controller >= MAX_CONTROLLERS ||
             stream < 0 || stream >= MAX_STREAMS_PER_CONTROLLER) {
         ALOGE("%s: Invalid controller/stream - %d/%d",
               __func__, controller, stream);
@@ -12055,7 +12072,7 @@ void platform_invalidate_hdmi_config_v2(void * platform, int controller, int str
     int backend_idx;
     snd_device_t snd_device;
 
-    if (controller < 0 || controller > MAX_CONTROLLERS ||
+    if (controller < 0 || controller >= MAX_CONTROLLERS ||
             stream < 0 || stream >= MAX_STREAMS_PER_CONTROLLER) {
         ALOGE("%s: Invalid controller/stream - %d/%d",
               __func__, controller, stream);

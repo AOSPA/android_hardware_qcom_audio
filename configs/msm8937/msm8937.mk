@@ -185,7 +185,7 @@ endif
 
 #XML Audio configuration files
 ifeq ($(USE_XML_AUDIO_POLICY_CONF), 1)
-   ifeq ($(TARGET_PRODUCT),sdm429w_law)
+   ifeq ($(TARGET_BOARD_PLATFORM),sdm429w_law)
       PRODUCT_COPY_FILES += \
       $(TOPDIR)$(PRIMARYHAL_PATH)/configs/msm8937/audio_policy_configuration_sdm429w_law.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml
    else ifeq ($(TARGET_SUPPORTS_WEARABLES), true)
@@ -235,7 +235,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
 audio.offload.min.duration.secs=30
 
 #Enable offload audio video playback by default
-ifneq ($(TARGET_PRODUCT),sdm429w)
+ifneq ($(TARGET_BOARD_PLATFORM),sdm429w)
 PRODUCT_PROPERTY_OVERRIDES += \
 audio.offload.video=true
 endif
