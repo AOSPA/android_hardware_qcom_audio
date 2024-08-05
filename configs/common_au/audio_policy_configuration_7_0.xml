@@ -382,6 +382,9 @@
         <!-- Remote Submix Audio HAL -->
         <xi:include href="r_submix_audio_policy_configuration.xml"/>
 
+        <!-- LE Audio HAL -->
+        <xi:include href="/vendor/etc/bluetooth_audio_policy_configuration.xml"/>
+
     </modules>
     <!-- End of Modules section -->
 
