@@ -14,14 +14,11 @@ AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-impl
 #not needed for kalama products
 #AUDIO_AGM += vendor.qti.hardware.AGMIPC@1.0-service
 AUDIO_AGM += libagm
-AUDIO_AGM += agmplay
-AUDIO_AGM += agmcap
 AUDIO_AGM += libagmmixer
 AUDIO_AGM += agmcompressplay
 AUDIO_AGM += libagm_mixer_plugin
 AUDIO_AGM += libagm_pcm_plugin
 AUDIO_AGM += libagm_compress_plugin
-AUDIO_AGM += agmcompresscap
 AUDIO_AGM += agmvoiceui
 AUDIO_AGM += agmhostless
 
