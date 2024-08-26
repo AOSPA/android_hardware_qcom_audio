@@ -9255,6 +9255,11 @@ void in_set_power_policy(uint8_t enable)
 
     ALOGD("%s: Enter, state %d", __func__, enable);
 
+    if (!adev) {
+        ALOGE("%s: audio device wasn't initialized. exit", __func__);
+        return;
+    }
+
     pthread_mutex_lock(&adev->lock);
     adev->in_power_policy = enable ? POWER_POLICY_STATUS_ONLINE : POWER_POLICY_STATUS_OFFLINE;
     pthread_mutex_unlock(&adev->lock);
@@ -9279,6 +9284,11 @@ void out_set_power_policy(uint8_t enable)
     struct listnode *node;
 
     ALOGD("%s: Enter, state %d", __func__, enable);
+
+    if (!adev) {
+        ALOGE("%s: audio device wasn't initialized. exit", __func__);
+        return;
+    }
 
     pthread_mutex_lock(&adev->lock);
     adev->out_power_policy = enable ? POWER_POLICY_STATUS_ONLINE : POWER_POLICY_STATUS_OFFLINE;
