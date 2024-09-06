@@ -2604,7 +2604,7 @@ struct audio_usecase *get_usecase_from_list(const struct audio_device *adev,
 
     list_for_each(node, &adev->usecase_list) {
         usecase = node_to_item(node, struct audio_usecase, list);
-        if (usecase->id == uc_id)
+        if (usecase && (usecase->id == uc_id))
             return usecase;
     }
     return NULL;
