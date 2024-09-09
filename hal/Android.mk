@@ -1,3 +1,4 @@
+ifneq ($(TARGET_PROVIDES_AUDIO_HAL),true)
 ifneq ($(AUDIO_USE_STUB_HAL), true)
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
 LOCAL_PATH := $(call my-dir)
@@ -414,5 +415,6 @@ LOCAL_CFLAGS += -Wno-unused-local-typedef
 
 include $(BUILD_SHARED_LIBRARY)
 
+endif
 endif
 endif
