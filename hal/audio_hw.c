@@ -7784,9 +7784,13 @@ static ssize_t in_read(struct audio_stream_in *stream, void *buffer,
         (adev->num_va_sessions &&
          in->source != AUDIO_SOURCE_VOICE_RECOGNITION &&
          property_get_bool("persist.vendor.audio.va_concurrency_mute_enabled",
-            false)))
-        memset(buffer, 0, bytes);
+            false))) {
 
+        /* aviod FM usecase muting, upon muting MIC.*/
+        if (in->usecase != USECASE_AUDIO_RECORD_FM_VIRTUAL) {
+            memset(buffer, 0, bytes);
+        }
+    }
 exit:
     frame_size = audio_stream_in_frame_size(stream);
     if (frame_size > 0)

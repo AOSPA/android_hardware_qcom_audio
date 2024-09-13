@@ -912,6 +912,7 @@ include $(BUILD_SHARED_LIBRARY)
 
 endif
 
+ifneq ($(TARGET_BOARD_AUTO),true)
 #-------------------------------------------
 #            Build BATTERY_LISTENER
 #-------------------------------------------
@@ -983,6 +984,7 @@ ifneq ($(filter kona lahaina holi,$(TARGET_BOARD_PLATFORM)),)
 LOCAL_SANITIZE := integer_overflow
 endif
 include $(BUILD_SHARED_LIBRARY)
+endif
 
 #-------------------------------------------
 #            Build HWDEP_CAL
