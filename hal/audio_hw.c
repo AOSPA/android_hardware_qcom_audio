@@ -2604,7 +2604,7 @@ struct audio_usecase *get_usecase_from_list(const struct audio_device *adev,
 
     list_for_each(node, &adev->usecase_list) {
         usecase = node_to_item(node, struct audio_usecase, list);
-        if (usecase->id == uc_id)
+        if (usecase && (usecase->id == uc_id))
             return usecase;
     }
     return NULL;
@@ -9255,6 +9255,11 @@ void in_set_power_policy(uint8_t enable)
 
     ALOGD("%s: Enter, state %d", __func__, enable);
 
+    if (!adev) {
+        ALOGE("%s: audio device wasn't initialized. exit", __func__);
+        return;
+    }
+
     pthread_mutex_lock(&adev->lock);
     adev->in_power_policy = enable ? POWER_POLICY_STATUS_ONLINE : POWER_POLICY_STATUS_OFFLINE;
     pthread_mutex_unlock(&adev->lock);
@@ -9279,6 +9284,11 @@ void out_set_power_policy(uint8_t enable)
     struct listnode *node;
 
     ALOGD("%s: Enter, state %d", __func__, enable);
+
+    if (!adev) {
+        ALOGE("%s: audio device wasn't initialized. exit", __func__);
+        return;
+    }
 
     pthread_mutex_lock(&adev->lock);
     adev->out_power_policy = enable ? POWER_POLICY_STATUS_ONLINE : POWER_POLICY_STATUS_OFFLINE;

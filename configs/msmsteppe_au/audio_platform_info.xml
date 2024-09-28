@@ -57,6 +57,9 @@
         <device name="SND_DEVICE_IN_BUS_PAX" acdb_id="47"/>
         <device name="SND_DEVICE_IN_BUS_RSE" acdb_id="47"/>
         <device name="SND_DEVICE_IN_HEADSET_MIC" acdb_id="47"/>
+        <device name="SND_DEVICE_IN_UNPROCESSED_MIC" acdb_id="137"/>
+        <device name="SND_DEVICE_IN_VOICE_REC_MIC" acdb_id="138"/>
+        <device name="SND_DEVICE_IN_SPEAKER_MIC_AEC_AUTO" acdb_id="139"/>
         <device name="SND_DEVICE_IN_VOICE_HEADSET_MIC" acdb_id="95"/>
         <device name="SND_DEVICE_IN_VOICE_SPEAKER_MIC" acdb_id="95"/>
         <device name="SND_DEVICE_IN_VOICE_SPEAKER_MIC_HFP" acdb_id="95"/>
@@ -203,6 +206,9 @@
         <device name="SND_DEVICE_IN_HANDSET_MIC" interface="TERT_TDM_TX_0"/>
         <device name="SND_DEVICE_IN_SPEAKER_MIC" interface="TERT_TDM_TX_0"/>
         <device name="SND_DEVICE_IN_HEADSET_MIC" interface="TERT_TDM_TX_0"/>
+        <device name="SND_DEVICE_IN_UNPROCESSED_MIC" interface="TERT_TDM_TX_0"/>
+        <device name="SND_DEVICE_IN_VOICE_REC_MIC" interface="TERT_TDM_TX_0"/>
+        <device name="SND_DEVICE_IN_SPEAKER_MIC_AEC_AUTO" interface="TERT_TDM_TX_0"/>
         <device name="SND_DEVICE_IN_BUS" interface="TERT_TDM_TX_0"/>
         <device name="SND_DEVICE_IN_BUS_PAX" interface="QUAT_TDM_TX_0"/>
         <device name="SND_DEVICE_IN_BUS_RSE" interface="QUAT_TDM_TX_0"/>
