@@ -762,6 +762,7 @@ static const char * const device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_IN_SPEAKER_MIC_AEC_NS] = "speaker-mic",
     [SND_DEVICE_IN_SPEAKER_MIC_AEC_NS_SB] = "speaker-mic",
     [SND_DEVICE_IN_SPEAKER_MIC_AEC_NS_NN] = "speaker-mic",
+    [SND_DEVICE_IN_SPEAKER_MIC_AEC_AUTO] = "speaker-mic",
     [SND_DEVICE_IN_SPEAKER_DMIC] = "speaker-dmic-endfire",
     [SND_DEVICE_IN_SPEAKER_DMIC_NN] = "dmic-nn",
     [SND_DEVICE_IN_SPEAKER_DMIC_AEC] = "speaker-dmic-endfire",
@@ -1091,6 +1092,7 @@ static int acdb_device_table[SND_DEVICE_MAX] = {
     [SND_DEVICE_IN_SPEAKER_MIC_AEC_NS] = 114,
     [SND_DEVICE_IN_SPEAKER_MIC_AEC_NS_SB] = 174,
     [SND_DEVICE_IN_SPEAKER_MIC_AEC_NS_NN] = 192,
+    [SND_DEVICE_IN_SPEAKER_MIC_AEC_AUTO] = 139,
     [SND_DEVICE_IN_SPEAKER_DMIC] = 43,
     [SND_DEVICE_IN_SPEAKER_DMIC_NN] = 207,
     [SND_DEVICE_IN_SPEAKER_DMIC_AEC] = 115,
@@ -1353,6 +1355,7 @@ static struct name_to_index snd_device_name_index[SND_DEVICE_MAX] = {
     {TO_NAME_INDEX(SND_DEVICE_IN_SPEAKER_MIC_AEC_NS)},
     {TO_NAME_INDEX(SND_DEVICE_IN_SPEAKER_MIC_AEC_NS_SB)},
     {TO_NAME_INDEX(SND_DEVICE_IN_SPEAKER_MIC_AEC_NS_NN)},
+    {TO_NAME_INDEX(SND_DEVICE_IN_SPEAKER_MIC_AEC_AUTO)},
     {TO_NAME_INDEX(SND_DEVICE_IN_SPEAKER_DMIC)},
     {TO_NAME_INDEX(SND_DEVICE_IN_SPEAKER_DMIC_NN)},
     {TO_NAME_INDEX(SND_DEVICE_IN_SPEAKER_DMIC_AEC)},
@@ -2716,6 +2719,7 @@ static void set_platform_defaults(struct platform_data * my_data)
     hw_interface_table[SND_DEVICE_IN_SPEAKER_MIC_AEC_NS] = strdup("SLIMBUS_0_TX");
     hw_interface_table[SND_DEVICE_IN_SPEAKER_MIC_AEC_NS_SB] = strdup("SLIMBUS_0_TX");
     hw_interface_table[SND_DEVICE_IN_SPEAKER_MIC_AEC_NS_NN] = strdup("SLIMBUS_0_TX");
+    hw_interface_table[SND_DEVICE_IN_SPEAKER_MIC_AEC_AUTO] = strdup("SLIMBUS_0_TX");
     hw_interface_table[SND_DEVICE_IN_SPEAKER_DMIC] = strdup("SLIMBUS_0_TX");
     hw_interface_table[SND_DEVICE_IN_SPEAKER_DMIC_NN] = strdup("SLIMBUS_0_TX");
     hw_interface_table[SND_DEVICE_IN_SPEAKER_DMIC_AEC] = strdup("SLIMBUS_0_TX");
@@ -7236,12 +7240,17 @@ static snd_device_t get_snd_device_for_voice_comm_ecns_enabled(struct platform_d
                                         : SND_DEVICE_IN_SPEAKER_DMIC_AEC_NS);
             }
             adev->acdb_settings |= DMIC_FLAG;
-        } else
+        } else {
+#ifndef PLATFORM_AUTO
             snd_device = my_data->fluence_sb_enabled ?
                              SND_DEVICE_IN_SPEAKER_MIC_SB
                              : (my_data->fluence_nn_enabled ?
                                  SND_DEVICE_IN_SPEAKER_MIC_NN
                                  : SND_DEVICE_IN_SPEAKER_MIC);
+#else
+            snd_device = SND_DEVICE_IN_SPEAKER_MIC_AEC_AUTO;
+#endif
+        }
     } else if (compare_device_type(in_devices, AUDIO_DEVICE_IN_BUILTIN_MIC)) {
         if ((my_data->fluence_type & FLUENCE_TRI_MIC) &&
             (my_data->source_mic_type & SOURCE_THREE_MIC)) {
