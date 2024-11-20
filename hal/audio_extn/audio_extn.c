@@ -4351,8 +4351,6 @@ void audio_extn_perf_lock_acquire(int *handle, int duration,
     if (audio_extn_kpi_optimize_feature_enabled)
     {
         if (!perf_lock_opts || !size || !perf_lock_acq || !handle) {
-            ALOGE("%s: Incorrect params, Failed to acquire perf lock, err ",
-                  __func__);
             return;
         }
         /*
@@ -4370,11 +4368,10 @@ void audio_extn_perf_lock_acquire(int *handle, int duration,
 void audio_extn_perf_lock_release(int *handle)
 {
     if (audio_extn_kpi_optimize_feature_enabled) {
-         if (perf_lock_rel && handle && (*handle > 0)) {
+        if (perf_lock_rel && handle && (*handle > 0)) {
             perf_lock_rel(*handle);
             *handle = 0;
-        } else
-            ALOGE("%s: Perf lock release error \n", __func__);
+        }
     }
 }
 
