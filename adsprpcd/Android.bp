@@ -9,7 +9,7 @@ cc_binary {
         "libcutils",
     ],
 
-    init_rc: ["vendor.qti.audio-adsprpc-service.rc"],
+    required: ["vendor.qti.audio-adsprpc-service.rc"],
 
     vendor: true,
 
@@ -18,4 +18,12 @@ cc_binary {
     sanitize: {
         integer_overflow: true,
     },
+}
+
+prebuilt_etc {
+    name: "vendor.qti.audio-adsprpc-service.rc",
+    src: "vendor.qti.audio-adsprpc-service.rc",
+    filename_from_src: true,
+    sub_dir: "init",
+    vendor: true,
 }
