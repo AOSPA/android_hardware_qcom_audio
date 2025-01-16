@@ -164,7 +164,6 @@ LOCAL_C_INCLUDES += \
     external/tinycompress/include \
     system/media/audio_utils/include \
     external/expat/lib \
-    vendor/qcom/opensource/core-utils/fwk-detect \
     $(call include-path-for, audio-route) \
     $(call include-path-for, audio-effects) \
     $(LOCAL_PATH)/$(AUDIO_PLATFORM) \
