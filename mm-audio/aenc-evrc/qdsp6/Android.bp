@@ -1,0 +1,27 @@
+cc_library_shared {
+    name: "libOmxEvrcEnc",
+    vendor: true,
+
+    srcs: [
+        "aenc_svr.c",
+        "omx_evrc_aenc.cpp",
+    ],
+
+    header_libs: [
+        "libomxcore_headers",
+        "qti_kernel_headers",
+    ],
+
+    cflags: [
+        "-Wno-format",
+        "-Wno-sign-compare",
+        "-Wno-sign-conversion",
+        "-Wno-self-assign",
+        "-Wno-parentheses-equality",
+    ],
+
+    shared_libs: [
+        "libutils",
+        "liblog",
+    ],
+}
