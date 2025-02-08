@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5850790e_2cd97fa5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000579
+      },
+      "writtenOn": "2025-02-08T05:17:10Z",
+      "side": 1,
+      "message": "if perf locks arent working disable `audio_extn_kpi_optimize_feature_enabled`",
+      "revId": "f50623e72899d495862e0a5eaa10973f6777365e",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    }
+  ]
+}
