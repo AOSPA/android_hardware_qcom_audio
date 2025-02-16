@@ -1,4 +1,3 @@
-ifneq ($(TARGET_PROVIDES_AUDIO_HAL),true)
 ifneq ($(AUDIO_USE_STUB_HAL), true)
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
 LOCAL_PATH := $(call my-dir)
@@ -387,6 +386,7 @@ ifeq ($(strip $(AUDIO_FEATURE_ENABLED_FM_TUNER_EXT)),true)
     LOCAL_CFLAGS += -DFM_TUNER_EXT_ENABLED
 endif
 
+ifneq ($(TARGET_PROVIDES_AUDIO_HAL),true)
 LOCAL_MODULE := audio.primary.$(TARGET_BOARD_PLATFORM)
 
 LOCAL_MODULE_RELATIVE_PATH := hw
