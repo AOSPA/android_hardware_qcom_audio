@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1609bbdf_74241d1b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000730
+      },
+      "writtenOn": "2025-02-25T23:20:47Z",
+      "side": 1,
+      "message": "These are required\n\nhttps://gerrit.aospa.co/c/AOSPA/android_build/+/43494\nhttps://github.com/AOSPA-overlook/android_build_blueprint/commits/vauxite/",
+      "revId": "ea60a93f5e62512943c88c759c59fd2e4b2696ac",
+      "serverId": "3162e3d8-d894-470e-abd9-724f7b0effad"
+    }
+  ]
+}
