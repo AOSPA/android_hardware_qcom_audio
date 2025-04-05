@@ -6,8 +6,8 @@ MY_LOCAL_PATH := $(call my-dir)
 ifneq ($(wildcard vendor/qcom/proprietary/args),)
 include $(MY_LOCAL_PATH)/hal/Android.mk
 include $(MY_LOCAL_PATH)/hal/audio_extn/Android.mk
-include $(MY_LOCAL_PATH)/audio-effects/Android.mk
 endif
+include $(MY_LOCAL_PATH)/audio-effects/Android.mk
 
 endif
 endif
