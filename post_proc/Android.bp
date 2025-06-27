@@ -63,9 +63,17 @@ cc_library_shared {
         "-fvisibility=hidden",
         "-Werror",
     ] + select(soong_config_variable("ANDROID", "target_board_platform"), {
-        any @ flag_val: [
-            "-DLIB_AUDIO_HAL=/vendor/lib/hw/audio.primary." + flag_val + ".so",
-            "-DLIB64_AUDIO_HAL=/vendor/lib64/hw/audio.primary." + flag_val + ".so",
+        "holi": [
+            "-DLIB_AUDIO_HAL=/vendor/lib/hw/audio.primary.holi.so",
+            "-DLIB64_AUDIO_HAL=/vendor/lib64/hw/audio.primary.holi.so",
+        ],
+        "kona": [
+            "-DLIB_AUDIO_HAL=/vendor/lib/hw/audio.primary.kona.so",
+            "-DLIB64_AUDIO_HAL=/vendor/lib64/hw/audio.primary.kona.so",
+        ],
+        "lahaina": [
+            "-DLIB_AUDIO_HAL=/vendor/lib/hw/audio.primary.lahaina.so",
+            "-DLIB64_AUDIO_HAL=/vendor/lib64/hw/audio.primary.lahaina.so",
         ],
         default: [
             "-DLIB_AUDIO_HAL=/vendor/lib/hw/audio.primary.qcom.so",
