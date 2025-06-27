@@ -63,6 +63,10 @@ cc_library_shared {
         "-fvisibility=hidden",
         "-Werror",
     ] + select(soong_config_variable("ANDROID", "target_board_platform"), {
+        "bengal": [
+            "-DLIB_AUDIO_HAL=/vendor/lib/hw/audio.primary.bengal.so",
+            "-DLIB64_AUDIO_HAL=/vendor/lib64/hw/audio.primary.bengal.so",
+        ],
         "holi": [
             "-DLIB_AUDIO_HAL=/vendor/lib/hw/audio.primary.holi.so",
             "-DLIB64_AUDIO_HAL=/vendor/lib64/hw/audio.primary.holi.so",
