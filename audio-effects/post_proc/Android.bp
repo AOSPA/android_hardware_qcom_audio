@@ -1,0 +1,113 @@
+cc_library_shared {
+    name: "libqcompostprocbundle",
+    defaults: [
+        "qtiaudio_gcov_defaults",
+    ],
+    owner: "qti",
+    relative_install_path: "soundfx",
+    vendor: true,
+
+    cflags: [
+        "-O2",
+        "-Wall",
+        "-Werror",
+        "-Wno-format",
+        "-Wno-gnu-designator",
+        "-Wno-shorten-64-to-32",
+        "-Wno-sign-compare",
+        "-Wno-tautological-compare",
+        "-Wno-typedef-redefinition",
+        "-Wno-unused-function",
+        "-Wno-unused-label",
+        "-Wno-unused-local-typedef",
+        "-Wno-unused-parameter",
+        "-Wno-unused-value",
+        "-Wno-unused-variable",
+        "-fvisibility=hidden",
+    ] + select(soong_config_variable("qtiaudio", "feature_instance_id"), {
+        "true": ["-DINSTANCE_ID_ENABLED"],
+        default: [],
+    }) + select(soong_config_variable("qtiaudio", "feature_disabled_dts_eagle"), {
+        "true": [],
+        default: ["-DDTS_EAGLE"],
+    }),
+
+    srcs: [
+        "bass_boost.c",
+        "bundle.c",
+        "effect_api.c",
+        "effect_util.c",
+        "equalizer.c",
+        "reverb.c",
+        "virtualizer.c",
+    ],
+
+    include_dirs: [
+        "system/media/audio_effects/include",
+    ],
+
+    header_libs: [
+        "audio_kernel_headers",
+        "libacdb_headers",
+        "libaudio_extn_headers",
+        "libaudio_hal_headers",
+        "libhardware_headers",
+        "libsystem_headers",
+        "libutils_headers",
+        "qti_audio_kernel_uapi",
+    ],
+
+    shared_libs: [
+        "libar-pal",
+        "libcutils",
+        "libdl",
+        "liblog",
+    ],
+}
+
+cc_library_shared {
+    name: "libvolumelistener",
+    owner: "qti",
+    relative_install_path: "soundfx",
+    vendor: true,
+
+    cflags: [
+        "-O2",
+        "-Wall",
+        "-Werror",
+        "-Wno-format",
+        "-Wno-gnu-designator",
+        "-Wno-shorten-64-to-32",
+        "-Wno-sign-compare",
+        "-Wno-tautological-compare",
+        "-Wno-typedef-redefinition",
+        "-Wno-unused-function",
+        "-Wno-unused-label",
+        "-Wno-unused-local-typedef",
+        "-Wno-unused-parameter",
+        "-Wno-unused-variable",
+        "-fvisibility=hidden",
+    ] + select(soong_config_variable("ANDROID", "target_board_platform"), {
+        any @ board_platform: ["-DPLATFORM_NAME=" + board_platform],
+        default: ["-DPLATFORM_NAME=qcom"],
+    }),
+
+    srcs: ["volume_listener.c"],
+
+    header_libs: [
+        "audio_kernel_headers",
+        "libaudio_extn_headers",
+        "libaudio_hal_headers",
+        "libhardware_headers",
+        "libsystem_headers",
+        "libutils_headers",
+    ],
+
+    shared_libs: [
+        "libar-pal",
+        "libaudioutils",
+        "libcutils",
+        "libdl",
+        "liblog",
+    ],
+}

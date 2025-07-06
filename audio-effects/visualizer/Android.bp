@@ -1,0 +1,48 @@
+cc_library_shared {
+    name: "libqcomvisualizer",
+    defaults: [
+        "qtiaudio_gcov_defaults",
+    ],
+    relative_install_path: "soundfx",
+    vendor: true,
+
+    cflags: [
+        "-O2",
+        "-Wall",
+        "-Werror",
+        "-Wno-gnu-designator",
+        "-Wno-gnu-designator",
+        "-Wno-shorten-64-to-32",
+        "-Wno-sign-compare",
+        "-Wno-tautological-compare",
+        "-Wno-typedef-redefinition",
+        "-Wno-typedef-redefinition",
+        "-Wno-unused-function",
+        "-Wno-unused-label",
+        "-Wno-unused-local-typedef",
+        "-Wno-unused-parameter",
+        "-Wno-unused-parameter",
+        "-Wno-unused-value",
+        "-Wno-unused-variable",
+        "-Wno-unused-variable",
+        "-fvisibility=hidden",
+    ],
+
+    srcs: ["offload_visualizer.c"],
+
+    include_dirs: [
+        "system/media/audio_effects/include",
+    ],
+
+    header_libs: [
+        "libhardware_headers",
+        "libsystem_headers",
+    ],
+
+    shared_libs: [
+        "libar-pal",
+        "libcutils",
+        "libdl",
+        "liblog",
+    ],
+}

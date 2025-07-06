@@ -1,0 +1,130 @@
+cc_library_headers {
+    name: "libaudio_hal_headers",
+    vendor: true,
+    export_include_dirs: ["inc"],
+}
+
+soong_config_module_type {
+    name: "target_board_platform_cc_library_shared",
+    module_type: "cc_library_shared",
+    config_namespace: "ANDROID",
+    value_variables: ["target_board_platform"],
+    properties: [
+        "name",
+    ],
+}
+
+target_board_platform_cc_library_shared {
+    soong_config_variables: {
+        target_board_platform: {
+            name: "audio.primary.%s",
+            conditions_default: {
+                name: "audio.primary.qcom",
+            },
+        },
+    },
+    owner: "qti",
+    relative_install_path: "hw",
+    vendor: true,
+
+    arch: {
+        arm: {
+            instruction_set: "arm",
+        },
+    },
+
+    vintf_fragments: [
+        "configs/common/manifest_non_qmaa.xml",
+    ] + select(soong_config_variable("qtiaudio", "feature_lsm_hidl"), {
+        "true": ["configs/common/manifest_non_qmaa_extn.xml"],
+        default: [],
+    }),
+
+    cflags: [
+        "-D_GNU_SOURCE",
+        "-DUSEHIDL7_1",
+        "-Wall",
+        "-Werror",
+        "-Wno-gnu-designator",
+        "-Wno-macro-redefined",
+        "-Wno-shorten-64-to-32",
+        "-Wno-sign-compare",
+        "-Wno-tautological-compare",
+        "-Wno-typedef-redefinition",
+        "-Wno-unused-function",
+        "-Wno-unused-label",
+        "-Wno-unused-local-typedef",
+        "-Wno-unused-parameter",
+        "-Wno-unused-variable",
+    ] + select(soong_config_variable("qtiaudio", "feature_pal_hidl"), {
+        "true": ["-DPAL_HIDL_ENABLED"],
+        default: [],
+    }) + select(soong_config_variable("qtiaudio", "feature_agm_hidl"), {
+        "true": ["-DAGM_HIDL_ENABLED"],
+        default: [],
+    }) + select(soong_config_variable("qtiaudio", "feature_gef_support"), {
+        "true": ["-DAUDIO_GENERIC_EFFECT_FRAMEWORK_ENABLED"],
+        default: [],
+    }) + select(soong_config_variable("qtiaudio", "feature_instance_id"), {
+        "true": ["-DINSTANCE_ID_ENABLED"],
+        default: [],
+    }) + select(soong_config_variable("ANDROID", "target_board_platform"), {
+        any @ board_platform: ["-DSOUND_TRIGGER_PLATFORM_NAME=" + board_platform],
+        default: ["-DSOUND_TRIGGER_PLATFORM_NAME=qcom"],
+    }),
+
+    cppflags: ["-fexceptions"],
+
+    srcs: [
+        "AudioDevice.cpp",
+        "AudioStream.cpp",
+        "AudioVoice.cpp",
+        "audio_extn/AudioExtn.cpp",
+        "audio_extn/Gain.cpp",
+        "audio_extn/Gef.cpp",
+        "audio_extn/soundtrigger.cpp",
+    ],
+
+    include_dirs: [
+        "system/media/audio_effects/include",
+    ],
+
+    local_include_dirs: ["inc"],
+
+    header_libs: [
+        "libagm_headers",
+        "libaudio_extn_headers",
+        "libaudio_system_headers",
+        "libhardware_headers",
+    ],
+
+    shared_libs: [
+        "android.hidl.allocator@1.0",
+        "android.hidl.memory@1.0",
+        "libar-pal",
+        "libaudioutils",
+        "libbase",
+        "libcutils",
+        "libdl",
+        "libexpat",
+        "libfmq",
+        "libhidlbase",
+        "libhidlmemory",
+        "liblog",
+        "libprocessgroup",
+        "libutils",
+    ] + select(soong_config_variable("qtiaudio", "feature_pal_hidl"), {
+        "true": [
+            "vendor.qti.hardware.pal@1.0-impl",
+            "vendor.qti.hardware.pal@1.0",
+        ],
+        default: [],
+    }) + select(soong_config_variable("qtiaudio", "feature_agm_hidl"), {
+        "true": [
+            "vendor.qti.hardware.AGMIPC@1.0-impl",
+            "vendor.qti.hardware.AGMIPC@1.0",
+            "libagm",
+        ],
+        default: [],
+    }),
+}

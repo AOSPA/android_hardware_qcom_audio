@@ -1,0 +1,41 @@
+soong_config_module_type {
+    name: "qtiaudio_gcov_default",
+    module_type: "cc_defaults",
+    config_namespace: "qtiaudio",
+    bool_variables: [
+        "feature_gcov",
+    ],
+    properties: [
+        "cflags",
+        "cppflags",
+        "static_libs",
+    ],
+}
+
+qtiaudio_gcov_default {
+    name: "qtiaudio_gcov_defaults",
+
+    soong_config_variables: {
+        feature_gcov: {
+            conditions_default: {
+                cflags: [],
+                cppflags: [],
+                static_libs: [],
+            },
+            cflags: [
+                "--coverage",
+                "-fprofile-arcs",
+                "-ftest-coverage",
+            ],
+            cppflags: [
+                "--coverage",
+                "-fprofile-arcs",
+                "-ftest-coverage",
+            ],
+            static_libs: [
+                "libprofile_rt",
+
+            ],
+        },
+    },
+}
