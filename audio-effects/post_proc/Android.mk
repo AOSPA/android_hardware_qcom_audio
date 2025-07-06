@@ -3,8 +3,6 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_CFLAGS := -DLIB_AUDIO_HAL="/vendor/lib/hw/audio.primary."$(TARGET_BOARD_PLATFORM)".so"
-LOCAL_CFLAGS += -DPLATFORM_NAME=$(TARGET_BOARD_PLATFORM)
 LOCAL_CFLAGS += -Wno-unused-variable
 LOCAL_CFLAGS += -Wno-sign-compare
 LOCAL_CFLAGS += -Wno-unused-parameter
@@ -19,14 +17,6 @@ LOCAL_CFLAGS += -Wno-format
 LOCAL_CFLAGS += -Wno-unused-value
 LOCAL_CFLAGS += -Wall
 LOCAL_CFLAGS += -Werror
-
-ifeq ($(strip $(AUDIO_FEATURE_ENABLED_PROXY_DEVICE)),true)
-    LOCAL_CFLAGS += -DAFE_PROXY_ENABLED
-endif
-
-ifeq ($(strip $(AUDIO_FEATURE_ENABLED_GKI)),true)
-    LOCAL_CFLAGS += -DAUDIO_GKI_ENABLED
-endif
 
 LOCAL_SRC_FILES:= \
         bundle.c \
@@ -50,10 +40,6 @@ ifeq ($(strip $(AUDIO_FEATURE_ENABLED_GCOV)),true)
     LOCAL_CFLAGS += --coverage -fprofile-arcs -ftest-coverage
     LOCAL_CPPFLAGS += --coverage -fprofile-arcs -ftest-coverage
     LOCAL_STATIC_LIBRARIES += libprofile_rt
-endif
-
-ifeq ($(strip $(AUDIO_FEATURE_ENABLED_INSTANCE_ID)), true)
-    LOCAL_CFLAGS += -DINSTANCE_ID_ENABLED
 endif
 
 LOCAL_CFLAGS+= -O2 -fvisibility=hidden
@@ -150,7 +136,6 @@ endif
 
 include $(CLEAR_VARS)
 
-LOCAL_CFLAGS := -DLIB_AUDIO_HAL="/vendor/lib/hw/audio.primary."$(TARGET_BOARD_PLATFORM)".so"
 LOCAL_CFLAGS += -DPLATFORM_NAME=$(TARGET_BOARD_PLATFORM)
 LOCAL_CFLAGS += -Wno-unused-variable
 LOCAL_CFLAGS += -Wno-sign-compare

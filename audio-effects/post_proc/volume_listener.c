@@ -44,7 +44,6 @@
 #include <cutils/properties.h>
 #include "PalDefs.h"
 
-#define PRIMARY_HAL_PATH XSTR(LIB_AUDIO_HAL)
 #define XSTR(x) STR(x)
 #define STR(x) #x
 #define MAX_LIBRARY_PATH 100
